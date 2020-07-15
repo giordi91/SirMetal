@@ -1,4 +1,3 @@
-/*
 #include <metal_stdlib>
 
 using namespace metal;
@@ -32,8 +31,8 @@ fragment half4 fragment_flatcolor(Vertex vertexIn [[stage_in]])
 }
 
 
-*/
 
+/*
 using namespace metal;
 
 struct Vertex
@@ -52,3 +51,5 @@ fragment float4 fragment_main(Vertex inVertex [[stage_in]])
 {
     return inVertex.color;
 }
+
+*/

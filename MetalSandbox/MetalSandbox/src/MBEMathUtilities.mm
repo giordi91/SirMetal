@@ -1,4 +1,5 @@
 #import "MBEMathUtilities.h"
+#include <math.h>
 
 matrix_float4x4 matrix_float4x4_translation(vector_float3 t)
 {
