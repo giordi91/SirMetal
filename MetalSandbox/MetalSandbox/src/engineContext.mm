@@ -40,6 +40,7 @@ buffer to hold the text */
     fclose(infile);
     return buffer;
 }
+#import "ShaderManager.h"
 
 namespace SirMetal {
 
@@ -48,7 +49,9 @@ namespace SirMetal {
     void initializeContext(const char *projectPath)
     {
         printf("Initializing sir metal project at: %s\n", projectPath);
-        CONTEXT = new EngineContext{projectPath};
+
+        ShaderManager* shaderManager = new ShaderManager;
+        CONTEXT = new EngineContext{projectPath, shaderManager};
     }
 
 

@@ -9,6 +9,7 @@ Implementation of a platform independent renderer class, which performs Metal se
 
 #import "AAPLRenderer.h"
 #include "engineContext.h"
+#include "ShaderManager.h"
 #import "MBEMathUtilities.h"
 
 typedef struct
@@ -99,11 +100,27 @@ static const uint32_t MBEBufferAlignment = 256;
 
 - (void)makePipeline {
 
-    id <MTLLibrary> library = [_device newDefaultLibrary];
+    //NSString *shaderPath= [NSString stringWithCString:SirMetal::CONTEXT->projectPath
+    //                                         encoding:[NSString defaultCStringEncoding]];
+    //__autoreleasing NSError *errorLib = nil;
+    //shaderPath = [shaderPath  stringByAppendingString:@"/shaders/Shaders.metal"];
+
+    //const char *cString = [shaderPath cStringUsingEncoding:NSASCIIStringEncoding];
+    //const char* shaderData = readFile(cString);
+
+    //NSString *content = [NSString stringWithContentsOfFile:shaderPath encoding:NSUTF8StringEncoding error:nil];
+    //NSLog(shaderPath);
+    //id<MTLLibrary> libraryRaw = [_device newLibraryWithSource:content options:nil error:&errorLib];
+    char buffer[256];
+    sprintf(buffer,"%s/%s",SirMetal::CONTEXT->projectPath,"/shaders/Shaders.metal");
+    LibraryHandle lh  = SirMetal::CONTEXT->shaderManager->loadShader(buffer,_device);
+    id<MTLLibrary> rawLib = SirMetal::CONTEXT->shaderManager->getLibraryFromHandle(lh);
+    //shaderPath = [shaderPath  stringByAppendingString:@"/shaders/Shaders.metal"];
+    //id <MTLLibrary> library = [_device newDefaultLibrary];
 
     MTLRenderPipelineDescriptor *pipelineDescriptor = [MTLRenderPipelineDescriptor new];
-    pipelineDescriptor.vertexFunction = [library newFunctionWithName:@"vertex_project"];
-    pipelineDescriptor.fragmentFunction = [library newFunctionWithName:@"fragment_flatcolor"];
+    pipelineDescriptor.vertexFunction = [rawLib newFunctionWithName:@"vertex_project"];
+    pipelineDescriptor.fragmentFunction = [rawLib newFunctionWithName:@"fragment_flatcolor"];
     pipelineDescriptor.colorAttachments[0].pixelFormat = MTLPixelFormatBGRA8Unorm;
     pipelineDescriptor.depthAttachmentPixelFormat = MTLPixelFormatDepth32Float;
 
@@ -120,58 +137,6 @@ static const uint32_t MBEBufferAlignment = 256;
         NSLog(@"Error occurred when creating render pipeline state: %@", error);
     }
 }
-/*
-- (void)makePipeline
-{
-    NSString *shaderPath= [NSString stringWithCString:SirMetal::CONTEXT->projectPath
-                                                encoding:[NSString defaultCStringEncoding]];
-    __autoreleasing NSError *errorLib = nil;
-    shaderPath = [shaderPath  stringByAppendingString:@"/shaders/Shaders.metal"];
-
-    const char *cString = [shaderPath cStringUsingEncoding:NSASCIIStringEncoding];
-    const char* shaderData = readFile(cString);
-
-    NSString *content = [NSString stringWithContentsOfFile:shaderPath encoding:NSUTF8StringEncoding error:nil];
-    NSLog(shaderPath);
-    id<MTLLibrary> libraryRaw = [_device newLibraryWithSource:content options:nil error:&errorLib];
-
-    id<MTLFunction> vertexFunc = [libraryRaw newFunctionWithName:@"vertex_main"];
-    id<MTLFunction> fragmentFunc = [libraryRaw newFunctionWithName:@"fragment_main"];
-
-    MTLRenderPipelineDescriptor *pipelineDescriptor = [MTLRenderPipelineDescriptor new];
-    pipelineDescriptor.colorAttachments[0].pixelFormat = MTLPixelFormatBGRA8Unorm;
-    pipelineDescriptor.vertexFunction = vertexFunc;
-    pipelineDescriptor.fragmentFunction = fragmentFunc;
-
-    NSError *error = nil;
-    self.renderPipelineState = [_device newRenderPipelineStateWithDescriptor:pipelineDescriptor
-                                                       error:&error];
-
-    if (!self.renderPipelineState)
-    {
-        NSLog(@"Error occurred when creating render pipeline state: %@", error);
-    }
-
-    _commandQueue = [_device newCommandQueue];
-}
-*/
-
-
-/*
-- (void)makeBuffers
-{
-    static const MBEVertex vertices[] =
-            {
-                    { .position = {  0.0,  0.5, 0, 1 }, .color = { 1, 0, 0, 1 } },
-                    { .position = { -0.5, -0.5, 0, 1 }, .color = { 0, 1, 0, 1 } },
-                    { .position = {  0.5, -0.5, 0, 1 }, .color = { 0, 0, 1, 1 } }
-            };
-
-    self.vertexBuffer = [_device newBufferWithBytes:vertices
-                                        length:sizeof(vertices)
-                                       options:MTLResourceOptionCPUCacheModeDefault];
-}
-*/
 
 - (void)makeBuffers
 {
@@ -245,45 +210,6 @@ static const uint32_t MBEBufferAlignment = 256;
 /// Called whenever the view needs to render a frame.
 - (void)drawInMTKView:(nonnull MTKView *)view {
 
-    /*
-    // The render pass descriptor references the texture into which Metal should draw
-    MTLRenderPassDescriptor *renderPassDescriptor = view.currentRenderPassDescriptor;
-    if (renderPassDescriptor == nil) {
-        return;
-    }
-
-    //id<MTLCommandBuffer> commandBuffer = [_commandQueue commandBuffer];
-
-    // Create a render pass and immediately end encoding, causing the drawable to be cleared
-    //id<MTLRenderCommandEncoder> commandEncoder = [commandBuffer renderCommandEncoderWithDescriptor:renderPassDescriptor];
-
-    //[commandEncoder endEncoding];
-
-    // Get the drawable that will be presented at the end of the frame
-    id <CAMetalDrawable> drawable = view.currentDrawable;
-    id <MTLTexture> texture = drawable.texture;
-
-    if (drawable)
-    {
-        MTLRenderPassDescriptor *passDescriptor = [MTLRenderPassDescriptor renderPassDescriptor];
-        passDescriptor.colorAttachments[0].texture = texture;
-        passDescriptor.colorAttachments[0].clearColor = MTLClearColorMake(0.85, 0.85, 0.85, 1);
-        passDescriptor.colorAttachments[0].storeAction = MTLStoreActionStore;
-        passDescriptor.colorAttachments[0].loadAction = MTLLoadActionClear;
-
-        id<MTLCommandBuffer> commandBuffer = [_commandQueue commandBuffer];
-
-        id<MTLRenderCommandEncoder> commandEncoder = [commandBuffer renderCommandEncoderWithDescriptor:passDescriptor];
-        [commandEncoder setRenderPipelineState:self.renderPipelineState];
-        [commandEncoder setVertexBuffer:self.vertexBuffer offset:0 atIndex:0];
-        [commandEncoder drawPrimitives:MTLPrimitiveTypeTriangle vertexStart:0 vertexCount:3];
-        [commandEncoder endEncoding];
-
-        [commandBuffer presentDrawable:drawable];
-        [commandBuffer commit];
-    }
-    */
-    //dispatch_semaphore_wait(self.displaySemaphore, DISPATCH_TIME_FOREVER);
 
     view.clearColor = MTLClearColorMake(0.95, 0.95, 0.95, 1);
 

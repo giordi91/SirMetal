@@ -20,6 +20,7 @@
 		C08F5E5724B520CC00CC95FC /* main.mm in Sources */ = {isa = PBXBuildFile; fileRef = C08F5E3C24B3D93A00CC95FC /* main.mm */; settings = {COMPILER_FLAGS = "-fno-objc-arc"; }; };
 		C0DF944C24B84B930005DB07 /* MBEMathUtilities.mm in Sources */ = {isa = PBXBuildFile; fileRef = C0DF944B24B84B930005DB07 /* MBEMathUtilities.mm */; };
 		C9EA93BDE3F0E48EBCBC15CD /* Shaders.metal in Sources */ = {isa = PBXBuildFile; fileRef = C9EA9177C2222C58DC35911F /* Shaders.metal */; };
+		C9EA96375626AE0CE282845F /* ShaderManager.mm in Sources */ = {isa = PBXBuildFile; fileRef = C9EA94D56FAA9906BF43046E /* ShaderManager.mm */; };
 		C9EA96ED3CD28C517C3C3F84 /* engineContext.mm in Sources */ = {isa = PBXBuildFile; fileRef = C9EA97F345427A0F723A6B51 /* engineContext.mm */; };
 /* End PBXBuildFile section */
 
@@ -43,6 +44,8 @@
 		C0DF944A24B84B930005DB07 /* MBEMathUtilities.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = MBEMathUtilities.h; sourceTree = "<group>"; };
 		C0DF944B24B84B930005DB07 /* MBEMathUtilities.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = MBEMathUtilities.mm; sourceTree = "<group>"; };
 		C9EA9177C2222C58DC35911F /* Shaders.metal */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.metal; path = Shaders.metal; sourceTree = "<group>"; };
+		C9EA929371E6859DC26DC804 /* ShaderManager.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ShaderManager.h; sourceTree = "<group>"; };
+		C9EA94D56FAA9906BF43046E /* ShaderManager.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = ShaderManager.mm; sourceTree = "<group>"; };
 		C9EA964743E3B7294ACFE312 /* engineContext.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = engineContext.h; sourceTree = "<group>"; };
 		C9EA97F345427A0F723A6B51 /* engineContext.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = engineContext.mm; sourceTree = "<group>"; };
 /* End PBXFileReference section */
@@ -119,6 +122,8 @@
 				C9EA964743E3B7294ACFE312 /* engineContext.h */,
 				C9EA97F345427A0F723A6B51 /* engineContext.mm */,
 				C9EA92E04014502FD07D0A8C /* shaders */,
+				C9EA94D56FAA9906BF43046E /* ShaderManager.mm */,
+				C9EA929371E6859DC26DC804 /* ShaderManager.h */,
 			);
 			path = src;
 			sourceTree = "<group>";
@@ -206,6 +211,7 @@
 				C08F5E4F24B4449000CC95FC /* AppDelegate.mm in Sources */,
 				C9EA96ED3CD28C517C3C3F84 /* engineContext.mm in Sources */,
 				C9EA93BDE3F0E48EBCBC15CD /* Shaders.metal in Sources */,
+				C9EA96375626AE0CE282845F /* ShaderManager.mm in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
