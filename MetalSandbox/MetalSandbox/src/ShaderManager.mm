@@ -13,7 +13,6 @@ LibraryHandle ShaderManager::loadShader(const char *path, id <MTLDevice> device)
     __autoreleasing NSError *errorLib = nil;
     shaderPath = [shaderPath stringByAppendingString:@"/shaders/Shaders.metal"];
 
-    const char *cString = [shaderPath cStringUsingEncoding:NSASCIIStringEncoding];
 
     NSString *content = [NSString stringWithContentsOfFile:shaderPath encoding:NSUTF8StringEncoding error:nil];
     NSLog(shaderPath);

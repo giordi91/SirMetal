@@ -19,6 +19,11 @@
 		C08F5E5624B4475000CC95FC /* Cocoa.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = C08F5E5524B4475000CC95FC /* Cocoa.framework */; };
 		C08F5E5724B520CC00CC95FC /* main.mm in Sources */ = {isa = PBXBuildFile; fileRef = C08F5E3C24B3D93A00CC95FC /* main.mm */; settings = {COMPILER_FLAGS = "-fno-objc-arc"; }; };
 		C0DF944C24B84B930005DB07 /* MBEMathUtilities.mm in Sources */ = {isa = PBXBuildFile; fileRef = C0DF944B24B84B930005DB07 /* MBEMathUtilities.mm */; };
+		C0DF948D24C250F50005DB07 /* imgui_widgets.cpp in Sources */ = {isa = PBXBuildFile; fileRef = C0DF947B24C250F40005DB07 /* imgui_widgets.cpp */; };
+		C0DF948E24C250F50005DB07 /* imgui_impl_metal.mm in Sources */ = {isa = PBXBuildFile; fileRef = C0DF947D24C250F40005DB07 /* imgui_impl_metal.mm */; };
+		C0DF948F24C250F50005DB07 /* imgui.cpp in Sources */ = {isa = PBXBuildFile; fileRef = C0DF947E24C250F40005DB07 /* imgui.cpp */; };
+		C0DF949024C250F50005DB07 /* imgui_demo.cpp in Sources */ = {isa = PBXBuildFile; fileRef = C0DF948224C250F40005DB07 /* imgui_demo.cpp */; };
+		C0DF949124C250F50005DB07 /* imgui_draw.cpp in Sources */ = {isa = PBXBuildFile; fileRef = C0DF948324C250F40005DB07 /* imgui_draw.cpp */; };
 		C9EA93BDE3F0E48EBCBC15CD /* Shaders.metal in Sources */ = {isa = PBXBuildFile; fileRef = C9EA9177C2222C58DC35911F /* Shaders.metal */; };
 		C9EA96375626AE0CE282845F /* ShaderManager.mm in Sources */ = {isa = PBXBuildFile; fileRef = C9EA94D56FAA9906BF43046E /* ShaderManager.mm */; };
 		C9EA96ED3CD28C517C3C3F84 /* engineContext.mm in Sources */ = {isa = PBXBuildFile; fileRef = C9EA97F345427A0F723A6B51 /* engineContext.mm */; };
@@ -43,6 +48,19 @@
 		C08F5E5524B4475000CC95FC /* Cocoa.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Cocoa.framework; path = System/Library/Frameworks/Cocoa.framework; sourceTree = SDKROOT; };
 		C0DF944A24B84B930005DB07 /* MBEMathUtilities.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = MBEMathUtilities.h; sourceTree = "<group>"; };
 		C0DF944B24B84B930005DB07 /* MBEMathUtilities.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = MBEMathUtilities.mm; sourceTree = "<group>"; };
+		C0DF947824C250F40005DB07 /* imgui.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = imgui.h; sourceTree = "<group>"; };
+		C0DF947924C250F40005DB07 /* imstb_textedit.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = imstb_textedit.h; sourceTree = "<group>"; };
+		C0DF947A24C250F40005DB07 /* imconfig.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = imconfig.h; sourceTree = "<group>"; };
+		C0DF947B24C250F40005DB07 /* imgui_widgets.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = imgui_widgets.cpp; sourceTree = "<group>"; };
+		C0DF947C24C250F40005DB07 /* imstb_truetype.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = imstb_truetype.h; sourceTree = "<group>"; };
+		C0DF947D24C250F40005DB07 /* imgui_impl_metal.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = imgui_impl_metal.mm; sourceTree = "<group>"; };
+		C0DF947E24C250F40005DB07 /* imgui.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = imgui.cpp; sourceTree = "<group>"; };
+		C0DF947F24C250F40005DB07 /* imgui_internal.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = imgui_internal.h; sourceTree = "<group>"; };
+		C0DF948024C250F40005DB07 /* imgui_impl_metal.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = imgui_impl_metal.h; sourceTree = "<group>"; };
+		C0DF948124C250F40005DB07 /* imstb_rectpack.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = imstb_rectpack.h; sourceTree = "<group>"; };
+		C0DF948224C250F40005DB07 /* imgui_demo.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = imgui_demo.cpp; sourceTree = "<group>"; };
+		C0DF948324C250F40005DB07 /* imgui_draw.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = imgui_draw.cpp; sourceTree = "<group>"; };
+		C0DF949224C255F40005DB07 /* libfreetype.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libfreetype.a; path = ../../../../../usr/local/Cellar/freetype/2.10.2/lib/libfreetype.a; sourceTree = "<group>"; };
 		C9EA9177C2222C58DC35911F /* Shaders.metal */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.metal; path = Shaders.metal; sourceTree = "<group>"; };
 		C9EA929371E6859DC26DC804 /* ShaderManager.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ShaderManager.h; sourceTree = "<group>"; };
 		C9EA94D56FAA9906BF43046E /* ShaderManager.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = ShaderManager.mm; sourceTree = "<group>"; };
@@ -99,6 +117,7 @@
 		C08F5E4424B3D96600CC95FC /* Frameworks */ = {
 			isa = PBXGroup;
 			children = (
+				C0DF949224C255F40005DB07 /* libfreetype.a */,
 				C08F5E5524B4475000CC95FC /* Cocoa.framework */,
 				C08F5E5324B4474900CC95FC /* AppKit.framework */,
 				C08F5E5124B444D400CC95FC /* Foundation.framework */,
@@ -112,6 +131,7 @@
 		C0B66B6524B66F68002E0E50 /* src */ = {
 			isa = PBXGroup;
 			children = (
+				C0DF946924C250F40005DB07 /* vendors */,
 				C0DF944A24B84B930005DB07 /* MBEMathUtilities.h */,
 				C0DF944B24B84B930005DB07 /* MBEMathUtilities.mm */,
 				C08F5E3C24B3D93A00CC95FC /* main.mm */,
@@ -126,6 +146,41 @@
 				C9EA929371E6859DC26DC804 /* ShaderManager.h */,
 			);
 			path = src;
+			sourceTree = "<group>";
+		};
+		C0DF946924C250F40005DB07 /* vendors */ = {
+			isa = PBXGroup;
+			children = (
+				C0DF946A24C250F40005DB07 /* imgui */,
+			);
+			path = vendors;
+			sourceTree = "<group>";
+		};
+		C0DF946A24C250F40005DB07 /* imgui */ = {
+			isa = PBXGroup;
+			children = (
+				C0DF946B24C250F40005DB07 /* misc */,
+				C0DF947824C250F40005DB07 /* imgui.h */,
+				C0DF947924C250F40005DB07 /* imstb_textedit.h */,
+				C0DF947A24C250F40005DB07 /* imconfig.h */,
+				C0DF947B24C250F40005DB07 /* imgui_widgets.cpp */,
+				C0DF947C24C250F40005DB07 /* imstb_truetype.h */,
+				C0DF947D24C250F40005DB07 /* imgui_impl_metal.mm */,
+				C0DF947E24C250F40005DB07 /* imgui.cpp */,
+				C0DF947F24C250F40005DB07 /* imgui_internal.h */,
+				C0DF948024C250F40005DB07 /* imgui_impl_metal.h */,
+				C0DF948124C250F40005DB07 /* imstb_rectpack.h */,
+				C0DF948224C250F40005DB07 /* imgui_demo.cpp */,
+				C0DF948324C250F40005DB07 /* imgui_draw.cpp */,
+			);
+			path = imgui;
+			sourceTree = "<group>";
+		};
+		C0DF946B24C250F40005DB07 /* misc */ = {
+			isa = PBXGroup;
+			children = (
+			);
+			path = misc;
 			sourceTree = "<group>";
 		};
 		C9EA92E04014502FD07D0A8C /* shaders */ = {
@@ -205,8 +260,13 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				C0DF948E24C250F50005DB07 /* imgui_impl_metal.mm in Sources */,
+				C0DF949124C250F50005DB07 /* imgui_draw.cpp in Sources */,
 				C08F5E5724B520CC00CC95FC /* main.mm in Sources */,
+				C0DF949024C250F50005DB07 /* imgui_demo.cpp in Sources */,
 				C0DF944C24B84B930005DB07 /* MBEMathUtilities.mm in Sources */,
+				C0DF948D24C250F50005DB07 /* imgui_widgets.cpp in Sources */,
+				C0DF948F24C250F50005DB07 /* imgui.cpp in Sources */,
 				C08F5E5024B4449000CC95FC /* AAPLRenderer.mm in Sources */,
 				C08F5E4F24B4449000CC95FC /* AppDelegate.mm in Sources */,
 				C9EA96ED3CD28C517C3C3F84 /* engineContext.mm in Sources */,
@@ -352,6 +412,8 @@
 					"$(inherited)",
 					"@executable_path/../Frameworks",
 				);
+				LIBRARY_SEARCH_PATHS = "";
+				OTHER_LDFLAGS = "";
 				PRODUCT_BUNDLE_IDENTIFIER = mg.MetalSandbox;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 			};
@@ -371,6 +433,8 @@
 					"$(inherited)",
 					"@executable_path/../Frameworks",
 				);
+				LIBRARY_SEARCH_PATHS = "";
+				OTHER_LDFLAGS = "";
 				PRODUCT_BUNDLE_IDENTIFIER = mg.MetalSandbox;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 			};

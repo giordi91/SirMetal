@@ -9,6 +9,7 @@
 #include "Metal/Metal.h"
 typedef uint32_t LibraryHandle;
 
+//struct id;
 class ShaderManager {
 public :
     LibraryHandle loadShader(const char *path, id<MTLDevice> device );

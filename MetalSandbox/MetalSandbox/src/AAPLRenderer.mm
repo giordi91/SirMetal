@@ -11,6 +11,8 @@ Implementation of a platform independent renderer class, which performs Metal se
 #include "engineContext.h"
 #include "ShaderManager.h"
 #import "MBEMathUtilities.h"
+#import "vendors/imgui/imgui.h"
+#import "vendors/imgui/imgui_impl_metal.h"
 
 typedef struct
 {
@@ -84,6 +86,14 @@ static const uint32_t MBEBufferAlignment = 256;
         // Create the command queue
         _commandQueue = [_device newCommandQueue];
     }
+
+    IMGUI_CHECKVERSION();
+    ImGui::CreateContext();
+    ImGui::StyleColorsDark();
+
+    ImGui_ImplMetal_Init(_device);
+
+
     NSLog(@"Initializing Sir Metal: v0.0.1");
     [self logGPUInformation:_device];
 
@@ -100,23 +110,10 @@ static const uint32_t MBEBufferAlignment = 256;
 
 - (void)makePipeline {
 
-    //NSString *shaderPath= [NSString stringWithCString:SirMetal::CONTEXT->projectPath
-    //                                         encoding:[NSString defaultCStringEncoding]];
-    //__autoreleasing NSError *errorLib = nil;
-    //shaderPath = [shaderPath  stringByAppendingString:@"/shaders/Shaders.metal"];
-
-    //const char *cString = [shaderPath cStringUsingEncoding:NSASCIIStringEncoding];
-    //const char* shaderData = readFile(cString);
-
-    //NSString *content = [NSString stringWithContentsOfFile:shaderPath encoding:NSUTF8StringEncoding error:nil];
-    //NSLog(shaderPath);
-    //id<MTLLibrary> libraryRaw = [_device newLibraryWithSource:content options:nil error:&errorLib];
     char buffer[256];
     sprintf(buffer,"%s/%s",SirMetal::CONTEXT->projectPath,"/shaders/Shaders.metal");
     LibraryHandle lh  = SirMetal::CONTEXT->shaderManager->loadShader(buffer,_device);
     id<MTLLibrary> rawLib = SirMetal::CONTEXT->shaderManager->getLibraryFromHandle(lh);
-    //shaderPath = [shaderPath  stringByAppendingString:@"/shaders/Shaders.metal"];
-    //id <MTLLibrary> library = [_device newDefaultLibrary];
 
     MTLRenderPipelineDescriptor *pipelineDescriptor = [MTLRenderPipelineDescriptor new];
     pipelineDescriptor.vertexFunction = [rawLib newFunctionWithName:@"vertex_project"];
@@ -210,11 +207,20 @@ static const uint32_t MBEBufferAlignment = 256;
 /// Called whenever the view needs to render a frame.
 - (void)drawInMTKView:(nonnull MTKView *)view {
 
+    ImGuiIO &io = ImGui::GetIO();
+    io.DisplaySize.x = view.bounds.size.width;
+    io.DisplaySize.y = view.bounds.size.height;
+
+    CGFloat framebufferScale = view.window.screen.backingScaleFactor ?: NSScreen.mainScreen.backingScaleFactor;
+    io.DisplayFramebufferScale = ImVec2(framebufferScale, framebufferScale);
+
+    io.DeltaTime = 1 / float(view.preferredFramesPerSecond ?: 60);
 
     view.clearColor = MTLClearColorMake(0.95, 0.95, 0.95, 1);
 
     float w = view.drawableSize.width;
     float h = view.drawableSize.height;
+
     [self updateUniformsForView:w :h];
     NSLog(@"render");
 
@@ -228,6 +234,8 @@ static const uint32_t MBEBufferAlignment = 256;
     [renderPass setFrontFacingWinding:MTLWindingCounterClockwise];
     [renderPass setCullMode:MTLCullModeBack];
 
+
+
     const NSUInteger uniformBufferOffset = AlignUp(sizeof(MBEUniforms), MBEBufferAlignment) * self.bufferIndex;
 
     [renderPass setVertexBuffer:self.vertexBuffer offset:0 atIndex:0];
@@ -238,6 +246,21 @@ static const uint32_t MBEBufferAlignment = 256;
                             indexType:MBEIndexType
                           indexBuffer:self.indexBuffer
                     indexBufferOffset:0];
+
+    //imgui
+    // Start the Dear ImGui frame
+    ImGui_ImplMetal_NewFrame(passDescriptor);
+    ImGui::NewFrame();
+
+    // 1. Show the big demo window (Most of the sample code is in ImGui::ShowDemoWindow()! You can browse its code to learn more about Dear ImGui!).
+    static bool show_demo_window =true;
+    ImGui::ShowDemoWindow(&show_demo_window);
+
+    // Rendering
+    ImGui::Render();
+    ImDrawData *drawData = ImGui::GetDrawData();
+    ImGui_ImplMetal_RenderDrawData(drawData, commandBuffer, renderPass);
+
 
     [renderPass endEncoding];
 

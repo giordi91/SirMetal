@@ -40,6 +40,8 @@ buffer to hold the text */
     fclose(infile);
     return buffer;
 }
+#import "Metal/Metal.h"
+
 #import "ShaderManager.h"
 
 namespace SirMetal {
