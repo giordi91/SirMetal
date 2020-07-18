@@ -13,6 +13,7 @@ Implementation of a platform independent renderer class, which performs Metal se
 #import "MBEMathUtilities.h"
 #import "vendors/imgui/imgui.h"
 #import "vendors/imgui/imgui_impl_metal.h"
+#import "imgui_impl_osx.h"
 
 typedef struct
 {
@@ -98,7 +99,6 @@ static const uint32_t MBEBufferAlignment = 256;
     [self logGPUInformation:_device];
 
     mtkView.paused = NO;
-
 
     //create the pipeline
     [self makePipeline];
@@ -222,7 +222,6 @@ static const uint32_t MBEBufferAlignment = 256;
     float h = view.drawableSize.height;
 
     [self updateUniformsForView:w :h];
-    NSLog(@"render");
 
     id<MTLCommandBuffer> commandBuffer = [_commandQueue commandBuffer];
 
@@ -249,6 +248,7 @@ static const uint32_t MBEBufferAlignment = 256;
 
     //imgui
     // Start the Dear ImGui frame
+    ImGui_ImplOSX_NewFrame(view);
     ImGui_ImplMetal_NewFrame(passDescriptor);
     ImGui::NewFrame();
 

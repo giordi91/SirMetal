@@ -24,6 +24,7 @@
 		C0DF948F24C250F50005DB07 /* imgui.cpp in Sources */ = {isa = PBXBuildFile; fileRef = C0DF947E24C250F40005DB07 /* imgui.cpp */; };
 		C0DF949024C250F50005DB07 /* imgui_demo.cpp in Sources */ = {isa = PBXBuildFile; fileRef = C0DF948224C250F40005DB07 /* imgui_demo.cpp */; };
 		C0DF949124C250F50005DB07 /* imgui_draw.cpp in Sources */ = {isa = PBXBuildFile; fileRef = C0DF948324C250F40005DB07 /* imgui_draw.cpp */; };
+		C0DF949924C2D04B0005DB07 /* imgui_impl_osx.mm in Sources */ = {isa = PBXBuildFile; fileRef = C0DF949724C2D04A0005DB07 /* imgui_impl_osx.mm */; };
 		C9EA93BDE3F0E48EBCBC15CD /* Shaders.metal in Sources */ = {isa = PBXBuildFile; fileRef = C9EA9177C2222C58DC35911F /* Shaders.metal */; };
 		C9EA96375626AE0CE282845F /* ShaderManager.mm in Sources */ = {isa = PBXBuildFile; fileRef = C9EA94D56FAA9906BF43046E /* ShaderManager.mm */; };
 		C9EA96ED3CD28C517C3C3F84 /* engineContext.mm in Sources */ = {isa = PBXBuildFile; fileRef = C9EA97F345427A0F723A6B51 /* engineContext.mm */; };
@@ -61,6 +62,8 @@
 		C0DF948224C250F40005DB07 /* imgui_demo.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = imgui_demo.cpp; sourceTree = "<group>"; };
 		C0DF948324C250F40005DB07 /* imgui_draw.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = imgui_draw.cpp; sourceTree = "<group>"; };
 		C0DF949224C255F40005DB07 /* libfreetype.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libfreetype.a; path = ../../../../../usr/local/Cellar/freetype/2.10.2/lib/libfreetype.a; sourceTree = "<group>"; };
+		C0DF949724C2D04A0005DB07 /* imgui_impl_osx.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = imgui_impl_osx.mm; sourceTree = "<group>"; };
+		C0DF949824C2D04A0005DB07 /* imgui_impl_osx.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = imgui_impl_osx.h; sourceTree = "<group>"; };
 		C9EA9177C2222C58DC35911F /* Shaders.metal */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.metal; path = Shaders.metal; sourceTree = "<group>"; };
 		C9EA929371E6859DC26DC804 /* ShaderManager.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ShaderManager.h; sourceTree = "<group>"; };
 		C9EA94D56FAA9906BF43046E /* ShaderManager.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = ShaderManager.mm; sourceTree = "<group>"; };
@@ -159,8 +162,9 @@
 		C0DF946A24C250F40005DB07 /* imgui */ = {
 			isa = PBXGroup;
 			children = (
-				C0DF946B24C250F40005DB07 /* misc */,
 				C0DF947824C250F40005DB07 /* imgui.h */,
+				C0DF949824C2D04A0005DB07 /* imgui_impl_osx.h */,
+				C0DF949724C2D04A0005DB07 /* imgui_impl_osx.mm */,
 				C0DF947924C250F40005DB07 /* imstb_textedit.h */,
 				C0DF947A24C250F40005DB07 /* imconfig.h */,
 				C0DF947B24C250F40005DB07 /* imgui_widgets.cpp */,
@@ -174,13 +178,6 @@
 				C0DF948324C250F40005DB07 /* imgui_draw.cpp */,
 			);
 			path = imgui;
-			sourceTree = "<group>";
-		};
-		C0DF946B24C250F40005DB07 /* misc */ = {
-			isa = PBXGroup;
-			children = (
-			);
-			path = misc;
 			sourceTree = "<group>";
 		};
 		C9EA92E04014502FD07D0A8C /* shaders */ = {
@@ -267,6 +264,7 @@
 				C0DF944C24B84B930005DB07 /* MBEMathUtilities.mm in Sources */,
 				C0DF948D24C250F50005DB07 /* imgui_widgets.cpp in Sources */,
 				C0DF948F24C250F50005DB07 /* imgui.cpp in Sources */,
+				C0DF949924C2D04B0005DB07 /* imgui_impl_osx.mm in Sources */,
 				C08F5E5024B4449000CC95FC /* AAPLRenderer.mm in Sources */,
 				C08F5E4F24B4449000CC95FC /* AppDelegate.mm in Sources */,
 				C9EA96ED3CD28C517C3C3F84 /* engineContext.mm in Sources */,
