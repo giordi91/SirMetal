@@ -12,6 +12,7 @@ Header for a platform independent renderer class, which performs Metal setup and
 @interface AAPLRenderer : NSObject<MTKViewDelegate>
 
 - (nonnull instancetype)initWithMetalKitView:(nonnull MTKView *)mtkView;
+- (void)mtkView:(nonnull MTKView *)view drawableSizeWillChange:(CGSize)size;
 
 @end
 

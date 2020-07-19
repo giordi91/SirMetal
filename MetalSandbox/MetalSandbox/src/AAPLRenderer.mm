@@ -5,6 +5,7 @@ Abstract:
 Implementation of a platform independent renderer class, which performs Metal setup and per frame rendering
 */
 
+#import <Metal/Metal.h>
 #import "MetalKit/MetalKit.h"
 
 #import "AAPLRenderer.h"
@@ -100,9 +101,14 @@ static const uint32_t MBEBufferAlignment = 256;
 
     mtkView.paused = NO;
 
+    int w = mtkView.drawableSize.width;
+    int h = mtkView.drawableSize.height;
+
+
     //create the pipeline
     [self makePipeline];
     [self makeBuffers];
+    [self createOffscreenTexture:w :h ];
 
 
     return self;
@@ -204,8 +210,23 @@ static const uint32_t MBEBufferAlignment = 256;
     memcpy((char*)([self.uniformBuffer contents]) + uniformBufferOffset, &uniforms, sizeof(uniforms));
 }
 
+- (void) createOffscreenTexture: (int)width :(int)height
+{
+    //id<MTLTextureDescriptor> textureDescriptor =
+    MTLTextureDescriptor *textureDescriptor = [[MTLTextureDescriptor alloc] init];
+    textureDescriptor.textureType = MTLTextureType2D;
+    textureDescriptor.width = width;
+    textureDescriptor.height = height;
+    textureDescriptor.sampleCount = 1;
+    textureDescriptor.pixelFormat = MTLPixelFormatBGRA8Unorm_sRGB;
+    textureDescriptor.usage = MTLTextureUsageRenderTarget;
+
+    id<MTLTexture> sampleTex = [_device newTextureWithDescriptor:textureDescriptor];
+}
+
 /// Called whenever the view needs to render a frame.
 - (void)drawInMTKView:(nonnull MTKView *)view {
+
 
     ImGuiIO &io = ImGui::GetIO();
     io.DisplaySize.x = view.bounds.size.width;
@@ -221,6 +242,7 @@ static const uint32_t MBEBufferAlignment = 256;
     float w = view.drawableSize.width;
     float h = view.drawableSize.height;
 
+    //NSLog(@"%.1fx%.1f",w, h);
     [self updateUniformsForView:w :h];
 
     id<MTLCommandBuffer> commandBuffer = [_commandQueue commandBuffer];
@@ -279,6 +301,8 @@ static const uint32_t MBEBufferAlignment = 256;
 
 /// Called whenever view changes orientation or is resized
 - (void)mtkView:(nonnull MTKView *)view drawableSizeWillChange:(CGSize)size {
+    NSLog(@"RESIZEEEEEEEEE ");
+    NSLog(@"%.1fx%.1f",size.width,size.height);
 }
 
 @end
