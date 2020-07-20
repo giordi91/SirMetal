@@ -92,7 +92,14 @@
     //53 == esc
     if(event.keyCode == 53) {
         [self.window close];
+        return;
     }
+    if(event.keyCode == 49)//tab
+    {
+        ImGuiIO &io = ImGui::GetIO();
+        io.ConfigFlags ^= ImGuiConfigFlags_DockingEnable;
+    }
+
 }
 - (BOOL)acceptsFirstResponder
 {
@@ -116,12 +123,12 @@
 
 
     NSScreen* screen = NSScreen.mainScreen;
-    NSRect screenRect = [screen frame];
-    NSLog(@"Screen size %.1fx%.1f",screenRect.size.width, screenRect.size.height);
+    NSRect screenRect = [screen visibleFrame];
+    NSLog(@"Screen size %.1f-%.1f %.1fx%.1f",screenRect.origin.x, screenRect.origin.y, screenRect.size.width, screenRect.size.height);
 
     //2880.0x1480.0
     //2880.0x1594.0
-    screenRect = NSMakeRect(0, 0, 1400, 750);
+    screenRect = NSMakeRect(0, 0, 1440, 795);
 
     window  = [[[NSWindow alloc] initWithContentRect:screenRect
                                                      styleMask:NSWindowStyleMaskTitled | NSWindowStyleMaskClosable | NSWindowStyleMaskResizable
@@ -137,7 +144,12 @@
 
 //    Create Metal View
 
-    MTKView *view = [[SirMTKView alloc] initWithFrame:screenRect];
+    NSRect  viewSize = screenRect;
+    viewSize.origin.y = 0;
+    viewSize.size.height -= 20;
+
+    NSLog(@"Screen size %.1f-%.1f %.1fx%.1f",viewSize.origin.x, viewSize.origin.y, viewSize.size.width, viewSize.size.height);
+    MTKView *view = [[SirMTKView alloc] initWithFrame:viewSize];
     [view setWantsLayer:YES];
     view.enableSetNeedsDisplay = YES;
     view.device = MTLCreateSystemDefaultDevice();
