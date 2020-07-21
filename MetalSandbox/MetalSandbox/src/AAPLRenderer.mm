@@ -16,8 +16,7 @@ Implementation of a platform independent renderer class, which performs Metal se
 #import "vendors/imgui/imgui_impl_metal.h"
 #import "imgui_impl_osx.h"
 
-typedef struct
-{
+typedef struct {
     vector_float4 position;
     vector_float4 color;
 } MBEVertex;
@@ -26,8 +25,7 @@ static const NSInteger MBEInFlightBufferCount = 3;
 typedef uint16_t MBEIndex;
 const MTLIndexType MBEIndexType = MTLIndexTypeUInt16;
 
-typedef struct
-{
+typedef struct {
     matrix_float4x4 modelViewProjectionMatrix;
 } MBEUniforms;
 
@@ -40,12 +38,16 @@ static const uint32_t MBEBufferAlignment = 256;
 @interface AAPLRenderer ()
 @property(strong) id <MTLRenderPipelineState> renderPipelineState;
 @property(strong) id <MTLDepthStencilState> depthStencilState;
-@property (nonatomic, strong) id<MTLBuffer> vertexBuffer;
-@property (strong) id<MTLBuffer> indexBuffer;
-@property (strong) id<MTLBuffer> uniformBuffer;
-@property (strong) dispatch_semaphore_t displaySemaphore;
-@property (assign) NSInteger bufferIndex;
-@property (assign) float rotationX, rotationY, time;
+@property(strong) id <MTLTexture> depthTexture;
+@property(strong) id <MTLTexture> depthTextureGUI;
+@property(strong) id <MTLTexture> offScreenTexture;
+@property(nonatomic, strong) id <MTLBuffer> vertexBuffer;
+@property(strong) id <MTLBuffer> indexBuffer;
+@property(strong) id <MTLBuffer> uniformBuffer;
+@property(assign ) ImVec2 viewportSize;
+@property(strong) dispatch_semaphore_t displaySemaphore;
+@property(assign) NSInteger bufferIndex;
+@property(assign) float rotationX, rotationY, time;
 @end
 
 /*
@@ -68,13 +70,12 @@ static const uint32_t MBEBufferAlignment = 256;
     id <MTLCommandQueue> _commandQueue;
 }
 
-- (void) logGPUInformation: (id<MTLDevice>)device
-{
+- (void)logGPUInformation:(id <MTLDevice>)device {
     NSLog(@"Device name: %@", device.name);
-    NSLog(@"\t\tis low power: %@",device.isLowPower ? @"YES" : @"NO" );
-    NSLog(@"\t\tis removable: %@", device.isRemovable ? @"YES" :@"NO");
-    NSLog(@"\t\tsupport macOS GPU family 1: %@", [device supportsFeatureSet:MTLFeatureSet::MTLFeatureSet_macOS_GPUFamily1_v1] ? @"YES" :@"NO");
-    NSLog(@"\t\tsupport macOS GPU family 2: %@", [device supportsFeatureSet:MTLFeatureSet::MTLFeatureSet_macOS_GPUFamily2_v1] ? @"YES" :@"NO");
+    NSLog(@"\t\tis low power: %@", device.isLowPower ? @"YES" : @"NO");
+    NSLog(@"\t\tis removable: %@", device.isRemovable ? @"YES" : @"NO");
+    NSLog(@"\t\tsupport macOS GPU family 1: %@", [device supportsFeatureSet:MTLFeatureSet::MTLFeatureSet_macOS_GPUFamily1_v1] ? @"YES" : @"NO");
+    NSLog(@"\t\tsupport macOS GPU family 2: %@", [device supportsFeatureSet:MTLFeatureSet::MTLFeatureSet_macOS_GPUFamily2_v1] ? @"YES" : @"NO");
 }
 
 
@@ -104,11 +105,24 @@ static const uint32_t MBEBufferAlignment = 256;
     int w = mtkView.drawableSize.width;
     int h = mtkView.drawableSize.height;
 
+    //Init viewport
+    _viewportSize = {256,256};
 
     //create the pipeline
     [self makePipeline];
     [self makeBuffers];
-    [self createOffscreenTexture:w :h ];
+    [self createOffscreenTexture:_viewportSize.x :_viewportSize.y];
+    //[self createOffscreenTexture:w :h];
+
+
+
+    MTLTextureDescriptor *descriptor =
+            [MTLTextureDescriptor texture2DDescriptorWithPixelFormat:MTLPixelFormatDepth32Float_Stencil8 width:w height:h mipmapped:NO];
+    descriptor.storageMode = MTLStorageModePrivate;
+    descriptor.usage = MTLTextureUsageRenderTarget;
+    descriptor.pixelFormat = MTLPixelFormatDepth32Float_Stencil8;
+    self.depthTextureGUI = [_device newTextureWithDescriptor:descriptor];
+    self.depthTextureGUI.label = @"DepthStencilGUI";
 
 
     return self;
@@ -117,15 +131,16 @@ static const uint32_t MBEBufferAlignment = 256;
 - (void)makePipeline {
 
     char buffer[256];
-    sprintf(buffer,"%s/%s",SirMetal::CONTEXT->projectPath,"/shaders/Shaders.metal");
-    LibraryHandle lh  = SirMetal::CONTEXT->shaderManager->loadShader(buffer,_device);
-    id<MTLLibrary> rawLib = SirMetal::CONTEXT->shaderManager->getLibraryFromHandle(lh);
+    sprintf(buffer, "%s/%s", SirMetal::CONTEXT->projectPath, "/shaders/Shaders.metal");
+    LibraryHandle lh = SirMetal::CONTEXT->shaderManager->loadShader(buffer, _device);
+    id <MTLLibrary> rawLib = SirMetal::CONTEXT->shaderManager->getLibraryFromHandle(lh);
 
     MTLRenderPipelineDescriptor *pipelineDescriptor = [MTLRenderPipelineDescriptor new];
     pipelineDescriptor.vertexFunction = [rawLib newFunctionWithName:@"vertex_project"];
     pipelineDescriptor.fragmentFunction = [rawLib newFunctionWithName:@"fragment_flatcolor"];
     pipelineDescriptor.colorAttachments[0].pixelFormat = MTLPixelFormatBGRA8Unorm;
-    pipelineDescriptor.depthAttachmentPixelFormat = MTLPixelFormatDepth32Float;
+    pipelineDescriptor.depthAttachmentPixelFormat = MTLPixelFormatDepth32Float_Stencil8;
+    //pipelineDescriptor.depthAttachmentPixelFormat = MTLPixelFormatDepth32Float;
 
     MTLDepthStencilDescriptor *depthStencilDescriptor = [MTLDepthStencilDescriptor new];
     depthStencilDescriptor.depthCompareFunction = MTLCompareFunctionLess;
@@ -141,18 +156,17 @@ static const uint32_t MBEBufferAlignment = 256;
     }
 }
 
-- (void)makeBuffers
-{
+- (void)makeBuffers {
     static const MBEVertex vertices[] =
             {
-                    { .position = { -1,  1,  1, 1 }, .color = { 0, 1, 1, 1 } },
-                    { .position = { -1, -1,  1, 1 }, .color = { 0, 0, 1, 1 } },
-                    { .position = {  1, -1,  1, 1 }, .color = { 1, 0, 1, 1 } },
-                    { .position = {  1,  1,  1, 1 }, .color = { 1, 1, 1, 1 } },
-                    { .position = { -1,  1, -1, 1 }, .color = { 0, 1, 0, 1 } },
-                    { .position = { -1, -1, -1, 1 }, .color = { 0, 0, 0, 1 } },
-                    { .position = {  1, -1, -1, 1 }, .color = { 1, 0, 0, 1 } },
-                    { .position = {  1,  1, -1, 1 }, .color = { 1, 1, 0, 1 } }
+                    {.position = {-1, 1, 1, 1}, .color = {0, 1, 1, 1}},
+                    {.position = {-1, -1, 1, 1}, .color = {0, 0, 1, 1}},
+                    {.position = {1, -1, 1, 1}, .color = {1, 0, 1, 1}},
+                    {.position = {1, 1, 1, 1}, .color = {1, 1, 1, 1}},
+                    {.position = {-1, 1, -1, 1}, .color = {0, 1, 0, 1}},
+                    {.position = {-1, -1, -1, 1}, .color = {0, 0, 0, 1}},
+                    {.position = {1, -1, -1, 1}, .color = {1, 0, 0, 1}},
+                    {.position = {1, 1, -1, 1}, .color = {1, 1, 0, 1}}
             };
 
     static const MBEIndex indices[] =
@@ -166,35 +180,34 @@ static const uint32_t MBEBufferAlignment = 256;
             };
 
     _vertexBuffer = [_device newBufferWithBytes:vertices
-                                             length:sizeof(vertices)
-                                            options:MTLResourceOptionCPUCacheModeDefault];
+                                         length:sizeof(vertices)
+                                        options:MTLResourceOptionCPUCacheModeDefault];
     [_vertexBuffer setLabel:@"Vertices"];
 
     _indexBuffer = [_device newBufferWithBytes:indices
-                                            length:sizeof(indices)
-                                           options:MTLResourceOptionCPUCacheModeDefault];
+                                        length:sizeof(indices)
+                                       options:MTLResourceOptionCPUCacheModeDefault];
     [_indexBuffer setLabel:@"Indices"];
 
     _uniformBuffer = [_device newBufferWithLength:AlignUp(sizeof(MBEUniforms), MBEBufferAlignment) * MBEInFlightBufferCount
-                                              options:MTLResourceOptionCPUCacheModeDefault];
+                                          options:MTLResourceOptionCPUCacheModeDefault];
     [_uniformBuffer setLabel:@"Uniforms"];
 }
 
-- (void)updateUniformsForView: (float) screenWidth: (float) screenHeight
-{
+- (void)updateUniformsForView:(float)screenWidth :(float)screenHeight {
     float duration = 0.01;
     self.time += duration;
     self.rotationX += duration * (M_PI / 2);
     self.rotationY += duration * (M_PI / 3);
     float scaleFactor = sinf(5 * self.time) * 0.25 + 1;
-    const vector_float3 xAxis = { 1, 0, 0 };
-    const vector_float3 yAxis = { 0, 1, 0 };
+    const vector_float3 xAxis = {1, 0, 0};
+    const vector_float3 yAxis = {0, 1, 0};
     const matrix_float4x4 xRot = matrix_float4x4_rotation(xAxis, self.rotationX);
     const matrix_float4x4 yRot = matrix_float4x4_rotation(yAxis, self.rotationY);
     const matrix_float4x4 scale = matrix_float4x4_uniform_scale(scaleFactor);
     const matrix_float4x4 modelMatrix = matrix_multiply(matrix_multiply(xRot, yRot), scale);
 
-    const vector_float3 cameraTranslation = { 0, 0, -5 };
+    const vector_float3 cameraTranslation = {0, 0, -5};
     const matrix_float4x4 viewMatrix = matrix_float4x4_translation(cameraTranslation);
 
     const float aspect = screenWidth / screenHeight;
@@ -207,38 +220,47 @@ static const uint32_t MBEBufferAlignment = 256;
     uniforms.modelViewProjectionMatrix = matrix_multiply(projectionMatrix, matrix_multiply(viewMatrix, modelMatrix));
 
     const NSUInteger uniformBufferOffset = AlignUp(sizeof(MBEUniforms), MBEBufferAlignment) * self.bufferIndex;
-    memcpy((char*)([self.uniformBuffer contents]) + uniformBufferOffset, &uniforms, sizeof(uniforms));
+    memcpy((char *) ([self.uniformBuffer contents]) + uniformBufferOffset, &uniforms, sizeof(uniforms));
 }
 
-- (void) createOffscreenTexture: (int)width :(int)height
-{
-    //id<MTLTextureDescriptor> textureDescriptor =
+- (void)createOffscreenTexture:(int)width :(int)height {
     MTLTextureDescriptor *textureDescriptor = [[MTLTextureDescriptor alloc] init];
     textureDescriptor.textureType = MTLTextureType2D;
     textureDescriptor.width = width;
     textureDescriptor.height = height;
     textureDescriptor.sampleCount = 1;
-    textureDescriptor.pixelFormat = MTLPixelFormatBGRA8Unorm_sRGB;
-    textureDescriptor.usage = MTLTextureUsageRenderTarget;
+    textureDescriptor.pixelFormat = MTLPixelFormatBGRA8Unorm;
+    textureDescriptor.usage = MTLTextureUsageRenderTarget | MTLTextureUsageShaderRead;
 
-    id<MTLTexture> sampleTex = [_device newTextureWithDescriptor:textureDescriptor];
+    self.offScreenTexture = [_device newTextureWithDescriptor:textureDescriptor];
+
+    MTLTextureDescriptor *descriptor =
+            [MTLTextureDescriptor texture2DDescriptorWithPixelFormat:MTLPixelFormatDepth32Float_Stencil8 width:width height:height mipmapped:NO];
+    descriptor.storageMode = MTLStorageModePrivate;
+    descriptor.usage = MTLTextureUsageRenderTarget;
+    descriptor.pixelFormat = MTLPixelFormatDepth32Float_Stencil8;
+    self.depthTexture = [_device newTextureWithDescriptor:descriptor];
+    self.depthTexture.label = @"DepthStencil";
 }
 
--(void) showImguiContent
-{
-    static bool show_demo_window =true;
+- (void)showImguiContent {
+    static bool show_demo_window = true;
     ImGui::ShowDemoWindow(&show_demo_window);
+
+
+    ImGui::Begin("Viewport",&show_demo_window);
+    ImGui::Image(self.offScreenTexture,ImVec2{256,256});
+    ImGui::End();
 }
 
--(void) renderUI: (MTKView*) view : (MTLRenderPassDescriptor *) passDescriptor : (id<MTLCommandBuffer>) commandBuffer
-: (id<MTLRenderCommandEncoder>) renderPass
-{
+- (void)renderUI:(MTKView *)view :(MTLRenderPassDescriptor *)passDescriptor :(id <MTLCommandBuffer>)commandBuffer
+        :(id <MTLRenderCommandEncoder>)renderPass {
     // Start the Dear ImGui frame
     ImGui_ImplOSX_NewFrame(view);
     ImGui_ImplMetal_NewFrame(passDescriptor);
     ImGui::NewFrame();
 
-    ImGuiIO& io = ImGui::GetIO();
+    ImGuiIO &io = ImGui::GetIO();
     if (io.ConfigFlags & ImGuiConfigFlags_DockingEnable) {
 
         static bool opt_fullscreen_persistant = true;
@@ -319,8 +341,7 @@ static const uint32_t MBEBufferAlignment = 256;
         }
 
         ImGui::End();
-    } else
-    {
+    } else {
         [self showImguiContent];
     }
 
@@ -333,6 +354,8 @@ static const uint32_t MBEBufferAlignment = 256;
 
 /// Called whenever the view needs to render a frame.
 - (void)drawInMTKView:(nonnull MTKView *)view {
+
+    //dispatch_semaphore_wait(self.displaySemaphore, DISPATCH_TIME_FOREVER);
 
 
     ImGuiIO &io = ImGui::GetIO();
@@ -352,16 +375,41 @@ static const uint32_t MBEBufferAlignment = 256;
     //NSLog(@"%.1fx%.1f",w, h);
     [self updateUniformsForView:w :h];
 
-    id<MTLCommandBuffer> commandBuffer = [_commandQueue commandBuffer];
-
+    id <MTLCommandBuffer> commandBuffer = [_commandQueue commandBuffer];
     MTLRenderPassDescriptor *passDescriptor = [view currentRenderPassDescriptor];
+    //passDescriptor.depthAttachment
 
-    id<MTLRenderCommandEncoder> renderPass = [commandBuffer renderCommandEncoderWithDescriptor:passDescriptor];
+
+    bool isViewport = (io.ConfigFlags & ImGuiConfigFlags_DockingEnable) > 0;
+    passDescriptor.renderTargetWidth = isViewport ? 256 : w;
+    passDescriptor.renderTargetHeight = isViewport ? 256 : h;
+    MTLRenderPassColorAttachmentDescriptor *colorAttachment = passDescriptor.colorAttachments[0];
+    colorAttachment.texture = isViewport ? self.offScreenTexture : view.currentDrawable.texture;
+    colorAttachment.clearColor  = MTLClearColorMake(0.8, 0.8, 0.8, 1.0);
+    colorAttachment.storeAction = MTLStoreActionStore;
+    colorAttachment.loadAction  =  MTLLoadActionClear ;
+
+    MTLRenderPassDepthAttachmentDescriptor *depthAttachment = passDescriptor.depthAttachment;
+    depthAttachment.texture = isViewport ? self.depthTexture : self.depthTextureGUI;
+    depthAttachment.clearDepth = 1.0;
+    depthAttachment.storeAction = MTLStoreActionDontCare;
+    depthAttachment.loadAction =  MTLLoadActionClear;
+
+    /*
+    MTLRenderPassStencilAttachmentDescriptor *stencilAttachment = _metalRenderPassDesc.stencilAttachment;
+    stencilAttachment.texture = depthAttachment.texture;
+    stencilAttachment.storeAction = MTLStoreActionDontCare;
+    stencilAttachment.loadAction = desc.clear ? MTLLoadActionClear : MTLLoadActionLoad;
+    */
+
+
+
+
+    id <MTLRenderCommandEncoder> renderPass = [commandBuffer renderCommandEncoderWithDescriptor:passDescriptor];
     [renderPass setRenderPipelineState:self.renderPipelineState];
     [renderPass setDepthStencilState:self.depthStencilState];
     [renderPass setFrontFacingWinding:MTLWindingCounterClockwise];
     [renderPass setCullMode:MTLCullModeBack];
-
 
 
     const NSUInteger uniformBufferOffset = AlignUp(sizeof(MBEUniforms), MBEBufferAlignment) * self.bufferIndex;
@@ -375,12 +423,37 @@ static const uint32_t MBEBufferAlignment = 256;
                           indexBuffer:self.indexBuffer
                     indexBufferOffset:0];
 
-    [self renderUI:view :passDescriptor :commandBuffer :renderPass];
-
-
     [renderPass endEncoding];
 
-    [commandBuffer presentDrawable:view.currentDrawable ];
+
+    if(isViewport) {
+
+        MTLRenderPassDescriptor* uiPassDescriptor =  [[MTLRenderPassDescriptor alloc] init];
+        MTLRenderPassColorAttachmentDescriptor *uiColorAttachment = uiPassDescriptor.colorAttachments[0];
+        uiColorAttachment.texture = view.currentDrawable.texture;
+        uiColorAttachment.clearColor = MTLClearColorMake(0.0, 0.0, 0.0, 1.0);
+        uiColorAttachment.storeAction = MTLStoreActionStore;
+        uiColorAttachment.loadAction = MTLLoadActionClear;
+
+        MTLRenderPassDepthAttachmentDescriptor *uiDepthAttachment = uiPassDescriptor.depthAttachment;
+        uiDepthAttachment.texture = self.depthTextureGUI;
+        uiDepthAttachment.clearDepth = 1.0;
+        uiDepthAttachment.storeAction = MTLStoreActionDontCare;
+        uiDepthAttachment.loadAction = MTLLoadActionClear;
+
+        uiPassDescriptor.renderTargetWidth =  w;
+        uiPassDescriptor.renderTargetHeight = h;
+
+        id <MTLRenderCommandEncoder> uiPass = [commandBuffer renderCommandEncoderWithDescriptor:uiPassDescriptor];
+
+
+        [self renderUI:view :passDescriptor :commandBuffer :uiPass];
+
+
+        [uiPass endEncoding];
+    }
+
+    [commandBuffer presentDrawable:view.currentDrawable];
 
     //[commandBuffer addCompletedHandler:^(id<MTLCommandBuffer> commandBuffer) {
     //    self.bufferIndex = (self.bufferIndex + 1) % MBEInFlightBufferCount;
@@ -396,7 +469,8 @@ static const uint32_t MBEBufferAlignment = 256;
 /// Called whenever view changes orientation or is resized
 - (void)mtkView:(nonnull MTKView *)view drawableSizeWillChange:(CGSize)size {
     NSLog(@"RESIZEEEEEEEEE ");
-    NSLog(@"%.1fx%.1f",size.width,size.height);
+    NSLog(@"%.1fx%.1f", size.width, size.height);
+
 }
 
 @end
