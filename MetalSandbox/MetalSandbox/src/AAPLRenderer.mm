@@ -6,6 +6,7 @@ Implementation of a platform independent renderer class, which performs Metal se
 */
 
 #import <Metal/Metal.h>
+#import <iostream>
 #import "MetalKit/MetalKit.h"
 
 #import "AAPLRenderer.h"
@@ -45,6 +46,7 @@ static const uint32_t MBEBufferAlignment = 256;
 @property(strong) id <MTLBuffer> indexBuffer;
 @property(strong) id <MTLBuffer> uniformBuffer;
 @property(assign ) ImVec2 viewportSize;
+@property(assign ) ImVec2 viewportPanelSize;
 @property(strong) dispatch_semaphore_t displaySemaphore;
 @property(assign) NSInteger bufferIndex;
 @property(assign) float rotationX, rotationY, time;
@@ -107,6 +109,7 @@ static const uint32_t MBEBufferAlignment = 256;
 
     //Init viewport
     _viewportSize = {256,256};
+    _viewportPanelSize = _viewportSize;
 
     //create the pipeline
     [self makePipeline];
@@ -195,6 +198,7 @@ static const uint32_t MBEBufferAlignment = 256;
 }
 
 - (void)updateUniformsForView:(float)screenWidth :(float)screenHeight {
+
     float duration = 0.01;
     self.time += duration;
     self.rotationX += duration * (M_PI / 2);
@@ -249,7 +253,8 @@ static const uint32_t MBEBufferAlignment = 256;
 
 
     ImGui::Begin("Viewport",&show_demo_window);
-    ImGui::Image(self.offScreenTexture,ImVec2{256,256});
+    self.viewportPanelSize = ImGui::GetContentRegionAvail();
+    ImGui::Image(self.offScreenTexture,self.viewportPanelSize);
     ImGui::End();
 }
 
@@ -356,6 +361,11 @@ static const uint32_t MBEBufferAlignment = 256;
 - (void)drawInMTKView:(nonnull MTKView *)view {
 
     //dispatch_semaphore_wait(self.displaySemaphore, DISPATCH_TIME_FOREVER);
+    if(self.viewportSize.x != self.viewportPanelSize.x || self.viewportSize.y != self.viewportPanelSize.y)
+    {
+        [self createOffscreenTexture:(int)self.viewportPanelSize.x :(int)self.viewportPanelSize.y];
+        self.viewportSize = self.viewportPanelSize;
+    }
 
 
     ImGuiIO &io = ImGui::GetIO();
@@ -372,17 +382,17 @@ static const uint32_t MBEBufferAlignment = 256;
     float w = view.drawableSize.width;
     float h = view.drawableSize.height;
 
+    bool isViewport = (io.ConfigFlags & ImGuiConfigFlags_DockingEnable) > 0;
     //NSLog(@"%.1fx%.1f",w, h);
-    [self updateUniformsForView:w :h];
+    [self updateUniformsForView:(isViewport ? self.viewportSize.x : w) : (isViewport? self.viewportSize.y : h)];
 
     id <MTLCommandBuffer> commandBuffer = [_commandQueue commandBuffer];
     MTLRenderPassDescriptor *passDescriptor = [view currentRenderPassDescriptor];
     //passDescriptor.depthAttachment
 
 
-    bool isViewport = (io.ConfigFlags & ImGuiConfigFlags_DockingEnable) > 0;
-    passDescriptor.renderTargetWidth = isViewport ? 256 : w;
-    passDescriptor.renderTargetHeight = isViewport ? 256 : h;
+    passDescriptor.renderTargetWidth = isViewport ? self.viewportSize.x: w;
+    passDescriptor.renderTargetHeight = isViewport ? self.viewportSize.y: h;
     MTLRenderPassColorAttachmentDescriptor *colorAttachment = passDescriptor.colorAttachments[0];
     colorAttachment.texture = isViewport ? self.offScreenTexture : view.currentDrawable.texture;
     colorAttachment.clearColor  = MTLClearColorMake(0.8, 0.8, 0.8, 1.0);
