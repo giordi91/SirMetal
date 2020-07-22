@@ -16,6 +16,7 @@ Implementation of a platform independent renderer class, which performs Metal se
 #import "vendors/imgui/imgui.h"
 #import "vendors/imgui/imgui_impl_metal.h"
 #import "imgui_impl_osx.h"
+#import "imgui_internal.h"
 
 typedef struct {
     vector_float4 position;
@@ -247,10 +248,42 @@ static const uint32_t MBEBufferAlignment = 256;
     self.depthTexture.label = @"DepthStencil";
 }
 
-- (void)showImguiContent {
-    static bool show_demo_window = true;
-    ImGui::ShowDemoWindow(&show_demo_window);
+- (void)showImguiContent: (ImGuiID)dockspace_id {
+    /*
+     ImGui::DockBuilderRemoveNode(dockspace_id); // Clear out existing layout
+ImGui::DockBuilderAddNode(dockspace_id, ImGuiDockNodeFlags_Dockspace); // Add empty node
+ImGui::DockBuilderSetNodeSize(dockspace_id, dockspace_size);
 
+ImGuiID dock_main_id = dockspace_id; // This variable will track the document node, however we are not using it here as we aren't docking anything into it.
+ImGuiID dock_id_prop = ImGui::DockBuilderSplitNode(dock_main_id, ImGuiDir_Left, 0.20f, NULL, &dock_main_id);
+ImGuiID dock_id_bottom = ImGui::DockBuilderSplitNode(dock_main_id, ImGuiDir_Down, 0.20f, NULL, &dock_main_id);
+
+ImGui::DockBuilderDockWindow("Log", dock_id_bottom);
+ImGui::DockBuilderDockWindow("Properties", dock_id_prop);
+ImGui::DockBuilderDockWindow("Mesh", dock_id_prop);
+ImGui::DockBuilderDockWindow("Extra", dock_id_prop);
+ImGui::DockBuilderFinish(dockspace_id);
+     */
+    static bool show_demo_window = true;
+
+    ImGui::DockBuilderRemoveNode(dockspace_id); // Clear out existing layout
+    ImGui::DockBuilderAddNode(dockspace_id, ImGuiDockNodeFlags_DockSpace); // Add empty node
+    ImGui::DockBuilderSetNodeSize(dockspace_id, {1400,700});
+    ImGuiID dock_main_id = dockspace_id; // This variable will track the document node, however we are not using it here as we aren't docking anything into it.
+    ImGuiID dock_id_prop = ImGui::DockBuilderSplitNode( dock_main_id, ImGuiDir_Left, 0.20f, NULL, &dock_main_id);
+    ImGuiID dock_id_bottom = ImGui::DockBuilderSplitNode( dock_main_id, ImGuiDir_Down, 0.20f, NULL, &dock_main_id);
+    ImGui::DockBuilderDockWindow( "ViewportDock", dock_id_bottom);
+    ImGui::DockBuilderDockWindow( "HierarchyDock", dock_id_prop);
+    ImGui::DockBuilderFinish( dockspace_id);
+
+    ImGui::SetNextWindowDockID(dock_id_prop,0);
+    ImGui::Begin("Viewport dock",&show_demo_window);
+    ImGui::End();
+
+    ImGui::SetNextWindowDockID(dock_id_bottom,0);
+    ImGui::Begin("Hierarchy",&show_demo_window);
+    ImGui::Text("Hierarchy here");
+    ImGui::End();
 
     ImGui::Begin("Viewport",&show_demo_window);
     self.viewportPanelSize = ImGui::GetContentRegionAvail();
@@ -305,9 +338,10 @@ static const uint32_t MBEBufferAlignment = 256;
         if (opt_fullscreen)
             ImGui::PopStyleVar(2);
 
+        ImGuiID dockspace_id =0;
         // DockSpace
         if (io.ConfigFlags & ImGuiConfigFlags_DockingEnable) {
-            ImGuiID dockspace_id = ImGui::GetID("MyDockSpace");
+            dockspace_id = ImGui::GetID("MyDockSpace");
             ImGui::DockSpace(dockspace_id, ImVec2(0.0f, 0.0f), dockspace_flags);
         } else {
             assert(0 && "docking not enabled");
@@ -340,9 +374,9 @@ static const uint32_t MBEBufferAlignment = 256;
             //        "ImGui::DockSpace() comes with one hard constraint: it needs to be submitted _before_ any window which may be docked into it. Therefore, if you use a dock spot as the central point of your application, you'll probably want it to be part of the very first window you are submitting to imgui every frame." "\n\n"
             //        "(NB: because of this constraint, the implicit \"Debug\" window can not be docked into an explicit DockSpace() node, because that window is submitted as part of the NewFrame() call. An easy workaround is that you can create your own implicit \"Debug##2\" window after calling DockSpace() and leave it in the window stack for anyone to use.)"
             //);
-            [self showImguiContent];
 
             ImGui::EndMenuBar();
+            [self showImguiContent: dockspace_id];
         }
 
         ImGui::End();
