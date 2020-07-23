@@ -26,6 +26,7 @@
 		C0DF949124C250F50005DB07 /* imgui_draw.cpp in Sources */ = {isa = PBXBuildFile; fileRef = C0DF948324C250F40005DB07 /* imgui_draw.cpp */; };
 		C0DF949924C2D04B0005DB07 /* imgui_impl_osx.mm in Sources */ = {isa = PBXBuildFile; fileRef = C0DF949724C2D04A0005DB07 /* imgui_impl_osx.mm */; };
 		C9EA90772113DB2D1A5104A5 /* editorUI.mm in Sources */ = {isa = PBXBuildFile; fileRef = C9EA9133493C7B1654F27F1B /* editorUI.mm */; };
+		C9EA91FBA8214D4CB4CED2E5 /* TextureManager.mm in Sources */ = {isa = PBXBuildFile; fileRef = C9EA975B59388E141EDF5924 /* TextureManager.mm */; };
 		C9EA93BDE3F0E48EBCBC15CD /* Shaders.metal in Sources */ = {isa = PBXBuildFile; fileRef = C9EA9177C2222C58DC35911F /* Shaders.metal */; };
 		C9EA96375626AE0CE282845F /* ShaderManager.mm in Sources */ = {isa = PBXBuildFile; fileRef = C9EA94D56FAA9906BF43046E /* ShaderManager.mm */; };
 		C9EA96ED3CD28C517C3C3F84 /* engineContext.mm in Sources */ = {isa = PBXBuildFile; fileRef = C9EA97F345427A0F723A6B51 /* engineContext.mm */; };
@@ -71,6 +72,8 @@
 		C9EA93B2EBB4A176221347C1 /* editorUI.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = editorUI.h; sourceTree = "<group>"; };
 		C9EA94D56FAA9906BF43046E /* ShaderManager.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = ShaderManager.mm; sourceTree = "<group>"; };
 		C9EA964743E3B7294ACFE312 /* engineContext.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = engineContext.h; sourceTree = "<group>"; };
+		C9EA969077EF5A2EB3AAB5B1 /* TextureManager.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = TextureManager.h; sourceTree = "<group>"; };
+		C9EA975B59388E141EDF5924 /* TextureManager.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = TextureManager.mm; sourceTree = "<group>"; };
 		C9EA97F345427A0F723A6B51 /* engineContext.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = engineContext.mm; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
@@ -151,6 +154,7 @@
 				C9EA94D56FAA9906BF43046E /* ShaderManager.mm */,
 				C9EA929371E6859DC26DC804 /* ShaderManager.h */,
 				C9EA9A0A831D1A44CAB4CC87 /* ui */,
+				C9EA9BBF0E6E791A2D0F709E /* resources */,
 			);
 			path = src;
 			sourceTree = "<group>";
@@ -199,6 +203,15 @@
 				C9EA93B2EBB4A176221347C1 /* editorUI.h */,
 			);
 			path = ui;
+			sourceTree = "<group>";
+		};
+		C9EA9BBF0E6E791A2D0F709E /* resources */ = {
+			isa = PBXGroup;
+			children = (
+				C9EA975B59388E141EDF5924 /* TextureManager.mm */,
+				C9EA969077EF5A2EB3AAB5B1 /* TextureManager.h */,
+			);
+			path = resources;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -284,6 +297,7 @@
 				C9EA93BDE3F0E48EBCBC15CD /* Shaders.metal in Sources */,
 				C9EA96375626AE0CE282845F /* ShaderManager.mm in Sources */,
 				C9EA90772113DB2D1A5104A5 /* editorUI.mm in Sources */,
+				C9EA91FBA8214D4CB4CED2E5 /* TextureManager.mm in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

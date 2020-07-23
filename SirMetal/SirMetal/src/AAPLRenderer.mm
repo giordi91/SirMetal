@@ -38,18 +38,8 @@ static inline uint64_t AlignUp(uint64_t n, uint32_t alignment) {
 static const uint32_t MBEBufferAlignment = 256;
 
 
-struct DockIDs {
-    ImGuiID root = 0;
-    ImGuiID bottom = 0;
-    ImGuiID left = 0;
-    ImGuiID right = 0;
-    ImGuiID center = 0;
-
-
-};
-
 //temporary until i figure out what to do with this
-static EditorUI editorUI = EditorUI();
+static SirMetal::EditorUI editorUI = SirMetal::EditorUI();
 
 @interface AAPLRenderer ()
 @property(strong) id <MTLRenderPipelineState> renderPipelineState;
