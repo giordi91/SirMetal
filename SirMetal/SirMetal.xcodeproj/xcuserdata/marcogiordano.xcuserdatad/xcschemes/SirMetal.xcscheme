@@ -14,9 +14,9 @@
             <BuildableReference
                BuildableIdentifier = "primary"
                BlueprintIdentifier = "C08F5E2F24B3D93900CC95FC"
-               BuildableName = "MetalSandbox.app"
-               BlueprintName = "MetalSandbox"
-               ReferencedContainer = "container:MetalSandbox.xcodeproj">
+               BuildableName = "SirMetal.app"
+               BlueprintName = "SirMetal"
+               ReferencedContainer = "container:SirMetal.xcodeproj">
             </BuildableReference>
          </BuildActionEntry>
       </BuildActionEntries>
@@ -44,9 +44,9 @@
          <BuildableReference
             BuildableIdentifier = "primary"
             BlueprintIdentifier = "C08F5E2F24B3D93900CC95FC"
-            BuildableName = "MetalSandbox.app"
-            BlueprintName = "MetalSandbox"
-            ReferencedContainer = "container:MetalSandbox.xcodeproj">
+            BuildableName = "SirMetal.app"
+            BlueprintName = "SirMetal"
+            ReferencedContainer = "container:SirMetal.xcodeproj">
          </BuildableReference>
       </BuildableProductRunnable>
       <CommandLineArguments>

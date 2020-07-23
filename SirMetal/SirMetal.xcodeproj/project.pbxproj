@@ -31,12 +31,12 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
-		C08F5E3024B3D93900CC95FC /* MetalSandbox.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = MetalSandbox.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		C08F5E3024B3D93900CC95FC /* SirMetal.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = SirMetal.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		C08F5E3624B3D93A00CC95FC /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		C08F5E3924B3D93A00CC95FC /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.xib; name = Base; path = Base.lproj/MainMenu.xib; sourceTree = "<group>"; };
 		C08F5E3B24B3D93A00CC95FC /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		C08F5E3C24B3D93A00CC95FC /* main.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; path = main.mm; sourceTree = "<group>"; };
-		C08F5E3E24B3D93A00CC95FC /* MetalSandbox.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = MetalSandbox.entitlements; sourceTree = "<group>"; };
+		C08F5E3E24B3D93A00CC95FC /* SirMetal.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = SirMetal.entitlements; sourceTree = "<group>"; };
 		C08F5E4524B3D96600CC95FC /* Metal.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Metal.framework; path = System/Library/Frameworks/Metal.framework; sourceTree = SDKROOT; };
 		C08F5E4624B3D96600CC95FC /* MetalPerformanceShaders.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = MetalPerformanceShaders.framework; path = System/Library/Frameworks/MetalPerformanceShaders.framework; sourceTree = SDKROOT; };
 		C08F5E4724B3D96600CC95FC /* MetalKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = MetalKit.framework; path = System/Library/Frameworks/MetalKit.framework; sourceTree = SDKROOT; };
@@ -91,7 +91,7 @@
 		C08F5E2724B3D93900CC95FC = {
 			isa = PBXGroup;
 			children = (
-				C08F5E3224B3D93900CC95FC /* MetalSandbox */,
+				C08F5E3224B3D93900CC95FC /* SirMetal */,
 				C08F5E3124B3D93900CC95FC /* Products */,
 				C08F5E4424B3D96600CC95FC /* Frameworks */,
 			);
@@ -100,21 +100,21 @@
 		C08F5E3124B3D93900CC95FC /* Products */ = {
 			isa = PBXGroup;
 			children = (
-				C08F5E3024B3D93900CC95FC /* MetalSandbox.app */,
+				C08F5E3024B3D93900CC95FC /* SirMetal.app */,
 			);
 			name = Products;
 			sourceTree = "<group>";
 		};
-		C08F5E3224B3D93900CC95FC /* MetalSandbox */ = {
+		C08F5E3224B3D93900CC95FC /* SirMetal */ = {
 			isa = PBXGroup;
 			children = (
 				C0B66B6524B66F68002E0E50 /* src */,
 				C08F5E3624B3D93A00CC95FC /* Assets.xcassets */,
 				C08F5E3824B3D93A00CC95FC /* MainMenu.xib */,
 				C08F5E3B24B3D93A00CC95FC /* Info.plist */,
-				C08F5E3E24B3D93A00CC95FC /* MetalSandbox.entitlements */,
+				C08F5E3E24B3D93A00CC95FC /* SirMetal.entitlements */,
 			);
-			path = MetalSandbox;
+			path = SirMetal;
 			sourceTree = "<group>";
 		};
 		C08F5E4424B3D96600CC95FC /* Frameworks */ = {
@@ -191,9 +191,9 @@
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
-		C08F5E2F24B3D93900CC95FC /* MetalSandbox */ = {
+		C08F5E2F24B3D93900CC95FC /* SirMetal */ = {
 			isa = PBXNativeTarget;
-			buildConfigurationList = C08F5E4124B3D93A00CC95FC /* Build configuration list for PBXNativeTarget "MetalSandbox" */;
+			buildConfigurationList = C08F5E4124B3D93A00CC95FC /* Build configuration list for PBXNativeTarget "SirMetal" */;
 			buildPhases = (
 				C08F5E2C24B3D93900CC95FC /* Sources */,
 				C08F5E2D24B3D93900CC95FC /* Frameworks */,
@@ -203,9 +203,9 @@
 			);
 			dependencies = (
 			);
-			name = MetalSandbox;
-			productName = MetalSandbox;
-			productReference = C08F5E3024B3D93900CC95FC /* MetalSandbox.app */;
+			name = SirMetal;
+			productName = SirMetal;
+			productReference = C08F5E3024B3D93900CC95FC /* SirMetal.app */;
 			productType = "com.apple.product-type.application";
 		};
 /* End PBXNativeTarget section */
@@ -222,7 +222,7 @@
 					};
 				};
 			};
-			buildConfigurationList = C08F5E2B24B3D93900CC95FC /* Build configuration list for PBXProject "MetalSandbox" */;
+			buildConfigurationList = C08F5E2B24B3D93900CC95FC /* Build configuration list for PBXProject "SirMetal" */;
 			compatibilityVersion = "Xcode 11.4";
 			developmentRegion = en;
 			hasScannedForEncodings = 0;
@@ -235,7 +235,7 @@
 			projectDirPath = "";
 			projectRoot = "";
 			targets = (
-				C08F5E2F24B3D93900CC95FC /* MetalSandbox */,
+				C08F5E2F24B3D93900CC95FC /* SirMetal */,
 			);
 		};
 /* End PBXProject section */
@@ -400,19 +400,19 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
-				CODE_SIGN_ENTITLEMENTS = MetalSandbox/MetalSandbox.entitlements;
+				CODE_SIGN_ENTITLEMENTS = SirMetal/SirMetal.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
 				DEVELOPMENT_TEAM = XXL4SLD26M;
 				ENABLE_HARDENED_RUNTIME = YES;
-				INFOPLIST_FILE = MetalSandbox/Info.plist;
+				INFOPLIST_FILE = SirMetal/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/../Frameworks",
 				);
 				LIBRARY_SEARCH_PATHS = "";
 				OTHER_LDFLAGS = "";
-				PRODUCT_BUNDLE_IDENTIFIER = mg.MetalSandbox;
+				PRODUCT_BUNDLE_IDENTIFIER = mg.SirMetal;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 			};
 			name = Debug;
@@ -421,19 +421,19 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
-				CODE_SIGN_ENTITLEMENTS = MetalSandbox/MetalSandbox.entitlements;
+				CODE_SIGN_ENTITLEMENTS = SirMetal/SirMetal.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
 				DEVELOPMENT_TEAM = XXL4SLD26M;
 				ENABLE_HARDENED_RUNTIME = YES;
-				INFOPLIST_FILE = MetalSandbox/Info.plist;
+				INFOPLIST_FILE = SirMetal/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/../Frameworks",
 				);
 				LIBRARY_SEARCH_PATHS = "";
 				OTHER_LDFLAGS = "";
-				PRODUCT_BUNDLE_IDENTIFIER = mg.MetalSandbox;
+				PRODUCT_BUNDLE_IDENTIFIER = mg.SirMetal;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 			};
 			name = Release;
@@ -441,7 +441,7 @@
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
-		C08F5E2B24B3D93900CC95FC /* Build configuration list for PBXProject "MetalSandbox" */ = {
+		C08F5E2B24B3D93900CC95FC /* Build configuration list for PBXProject "SirMetal" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				C08F5E3F24B3D93A00CC95FC /* Debug */,
@@ -450,7 +450,7 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
-		C08F5E4124B3D93A00CC95FC /* Build configuration list for PBXNativeTarget "MetalSandbox" */ = {
+		C08F5E4124B3D93A00CC95FC /* Build configuration list for PBXNativeTarget "SirMetal" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				C08F5E4224B3D93A00CC95FC /* Debug */,
