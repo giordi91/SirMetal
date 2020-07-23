@@ -6,7 +6,6 @@ Implementation of a platform independent renderer class, which performs Metal se
 */
 
 #import <Metal/Metal.h>
-#import <iostream>
 #import "MetalKit/MetalKit.h"
 
 #import "AAPLRenderer.h"
@@ -17,6 +16,7 @@ Implementation of a platform independent renderer class, which performs Metal se
 #import "vendors/imgui/imgui_impl_metal.h"
 #import "imgui_impl_osx.h"
 #import "imgui_internal.h"
+#import "editorUI.h"
 
 typedef struct {
     vector_float4 position;
@@ -48,7 +48,8 @@ struct DockIDs {
 
 };
 
-static DockIDs dockIds = {};
+//temporary until i figure out what to do with this
+static EditorUI editorUI = EditorUI();
 
 @interface AAPLRenderer ()
 @property(strong) id <MTLRenderPipelineState> renderPipelineState;
@@ -64,6 +65,7 @@ static DockIDs dockIds = {};
 @property(strong) dispatch_semaphore_t displaySemaphore;
 @property(assign) NSInteger bufferIndex;
 @property(assign) float rotationX, rotationY, time;
+
 @end
 
 /*
@@ -261,134 +263,6 @@ static DockIDs dockIds = {};
     self.depthTexture.label = @"DepthStencil";
 }
 
-- (void)setupDockSpaceLayout:(int)width :(int)height {
-    if (ImGui::DockBuilderGetNode(dockIds.root) == NULL) {
-        NSLog(@"create layout");
-        dockIds.root = ImGui::GetID("Root_Dockspace");
-
-        ImGui::DockBuilderRemoveNode(dockIds.root);                            // Clear out existing layout
-        ImGui::DockBuilderAddNode(dockIds.root, ImGuiDockNodeFlags_DockSpace); // Add empty node
-        ImGui::DockBuilderSetNodeSize(dockIds.root, ImVec2(width, height));
-
-        dockIds.right = ImGui::DockBuilderSplitNode(dockIds.root, ImGuiDir_Right, 0.2f, NULL, &dockIds.root);
-        dockIds.left = ImGui::DockBuilderSplitNode(dockIds.root, ImGuiDir_Left, 0.2f, NULL, &dockIds.root);
-        dockIds.bottom = ImGui::DockBuilderSplitNode(dockIds.root, ImGuiDir_Down, 0.3f, NULL, &dockIds.root);
-
-        ImGui::DockBuilderDockWindow("Edit Viewport", dockIds.root);
-        ImGui::DockBuilderDockWindow("Play Viewport", dockIds.root);
-        ImGui::DockBuilderDockWindow("Log", dockIds.bottom);
-        ImGui::DockBuilderDockWindow("Asset Browser", dockIds.bottom);
-        ImGui::DockBuilderDockWindow("Scene Hierarchy", dockIds.left);
-        ImGui::DockBuilderDockWindow("Inspector", dockIds.right);
-        ImGui::DockBuilderFinish(dockIds.root);
-    }
-
-}
-
-- (void)showImguiContent {
-
-    if (ImGui::DockBuilderGetNode(dockIds.root) == NULL) {
-        [self setupDockSpaceLayout:1400 :700];
-    }
-
-    auto id = ImGui::GetID("Root_Dockspace");
-
-    static ImGuiDockNodeFlags dockspace_flags = ImGuiDockNodeFlags_None;
-
-    ImGuiWindowFlags window_flags = ImGuiWindowFlags_MenuBar | ImGuiWindowFlags_NoDocking;
-
-    ImGuiViewport *viewport = ImGui::GetMainViewport();
-
-    ImGui::SetNextWindowPos(viewport->GetWorkPos());
-    ImGui::SetNextWindowSize(viewport->GetWorkSize());
-    ImGui::SetNextWindowViewport(viewport->ID);
-    ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 0.0f);
-    ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0.0f);
-
-    window_flags |= ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove;
-    window_flags |= ImGuiWindowFlags_NoBringToFrontOnFocus | ImGuiWindowFlags_NoNavFocus;
-
-    if (dockspace_flags & ImGuiDockNodeFlags_PassthruCentralNode)
-        window_flags |= ImGuiWindowFlags_NoBackground;
-
-    ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0.0f, 0.0f));
-
-    ImGui::Begin("Editor", (bool *) 0, window_flags);
-
-    ImGui::PopStyleVar();
-    ImGui::PopStyleVar(2);
-
-    //shorcut_menu_bar();
-    if (ImGui::BeginMenuBar()) {
-        if (ImGui::BeginMenu("File")) {
-            ImGui::MenuItem("Open");
-            ImGui::MenuItem("Save");
-            ImGui::EndMenu();
-        }
-        if (ImGui::BeginMenu("Settings")) {
-
-            if (ImGui::BeginMenu("Docking")) {
-                if (ImGui::MenuItem("Flag: NoSplit", "", (dockspace_flags & ImGuiDockNodeFlags_NoSplit) != 0)) dockspace_flags ^= ImGuiDockNodeFlags_NoSplit;
-                if (ImGui::MenuItem("Flag: NoResize", "", (dockspace_flags & ImGuiDockNodeFlags_NoResize) != 0)) dockspace_flags ^= ImGuiDockNodeFlags_NoResize;
-                if (ImGui::MenuItem("Flag: NoDockingInCentralNode", "", (dockspace_flags & ImGuiDockNodeFlags_NoDockingInCentralNode) != 0)) dockspace_flags ^= ImGuiDockNodeFlags_NoDockingInCentralNode;
-                if (ImGui::MenuItem("Flag: PassthruCentralNode", "", (dockspace_flags & ImGuiDockNodeFlags_PassthruCentralNode) != 0)) dockspace_flags ^= ImGuiDockNodeFlags_PassthruCentralNode;
-                if (ImGui::MenuItem("Flag: AutoHideTabBar", "", (dockspace_flags & ImGuiDockNodeFlags_AutoHideTabBar) != 0)) dockspace_flags ^= ImGuiDockNodeFlags_AutoHideTabBar;
-                ImGui::EndMenu();
-            }
-            ImGui::EndMenu();
-        }
-
-        ImGui::EndMenuBar();
-    }
-
-    ImGui::DockSpace(id, ImVec2(0.0f, 0.0f), dockspace_flags
-    );
-
-
-    ImGui::SetNextWindowDockID(dockIds
-            .root, ImGuiCond_Appearing);
-    ImGui::Begin("Viewport", (bool *) 0);
-    self.
-            viewportPanelSize = ImGui::GetContentRegionAvail();
-    ImGui::Image(self
-            .offScreenTexture, self.viewportPanelSize);
-
-    ImGui::End();
-
-    ImGui::SetNextWindowDockID(dockIds
-            .bottom, ImGuiCond_Appearing);
-    ImGui::Begin("Assets", (bool *) 0);
-    ImGui::Text("assets go here");
-
-    ImGui::End();
-
-    ImGui::SetNextWindowDockID(dockIds
-            .bottom, ImGuiCond_Appearing);
-    ImGui::Begin("log", (bool *) 0);
-    ImGui::Text("console output brrrrr");
-
-    ImGui::End();
-
-    ImGui::SetNextWindowDockID(dockIds
-            .left, ImGuiCond_Appearing);
-    ImGui::Begin("Hierarchy", (bool *) 0);
-    ImGui::Text("see you hierarchy here");
-
-    ImGui::End();
-
-    ImGui::SetNextWindowDockID(dockIds
-            .right, ImGuiCond_Appearing);
-    ImGui::Begin("Inspector", (bool *) 0);
-    ImGui::Text("inspect values of selected objects here");
-
-    ImGui::End();
-
-    ImGui::End();
-
-    //ImGui::ShowDemoWindow((bool*)0);
-
-}
-
 - (void)renderUI:(MTKView *)view :(MTLRenderPassDescriptor *)passDescriptor :(id <MTLCommandBuffer>)commandBuffer
         :(id <MTLRenderCommandEncoder>)renderPass {
     // Start the Dear ImGui frame
@@ -397,7 +271,8 @@ static DockIDs dockIds = {};
     ImGui::NewFrame();
 
 
-    [self showImguiContent];
+    //[self showImguiContent];
+    editorUI.show(SirMetal::CONTEXT->screenWidth, SirMetal::CONTEXT->screenHeight);
     // Rendering
     ImGui::Render();
     ImDrawData *drawData = ImGui::GetDrawData();
@@ -522,12 +397,13 @@ static DockIDs dockIds = {};
 
 }
 
-
-/// Called whenever view changes orientation or is resized
 - (void)mtkView:(nonnull MTKView *)view drawableSizeWillChange:(CGSize)size {
-    NSLog(@"RESIZEEEEEEEEE ");
-    NSLog(@"%.1fx%.1f", size.width, size.height);
 
+    //here we divide by the scale factor so our engine will work with the
+    //real sizes if needed and not scaled up views
+    CGFloat scaling = view.window.screen.backingScaleFactor;
+    SirMetal::CONTEXT->screenWidth = size.width / scaling;
+    SirMetal::CONTEXT->screenHeight = size.height/ scaling;
 }
 
 @end
