@@ -94,7 +94,7 @@
         [self.window close];
         return;
     }
-    if(event.keyCode == 49)//tab
+    if(event.keyCode == 50)//~
     {
         ImGuiIO &io = ImGui::GetIO();
         io.ConfigFlags ^= ImGuiConfigFlags_DockingEnable;
@@ -128,7 +128,7 @@
 
     //2880.0x1480.0
     //2880.0x1594.0
-    screenRect = NSMakeRect(0, 0, 1440, 795);
+    //screenRect = NSMakeRect(0, 0, 1440, 795);
 
     window  = [[[NSWindow alloc] initWithContentRect:screenRect
                                                      styleMask:NSWindowStyleMaskTitled | NSWindowStyleMaskClosable | NSWindowStyleMaskResizable

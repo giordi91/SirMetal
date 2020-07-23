@@ -37,6 +37,19 @@ static inline uint64_t AlignUp(uint64_t n, uint32_t alignment) {
 
 static const uint32_t MBEBufferAlignment = 256;
 
+
+struct DockIDs {
+    ImGuiID root = 0;
+    ImGuiID bottom = 0;
+    ImGuiID left = 0;
+    ImGuiID right = 0;
+    ImGuiID center = 0;
+
+
+};
+
+static DockIDs dockIds = {};
+
 @interface AAPLRenderer ()
 @property(strong) id <MTLRenderPipelineState> renderPipelineState;
 @property(strong) id <MTLDepthStencilState> depthStencilState;
@@ -46,8 +59,8 @@ static const uint32_t MBEBufferAlignment = 256;
 @property(nonatomic, strong) id <MTLBuffer> vertexBuffer;
 @property(strong) id <MTLBuffer> indexBuffer;
 @property(strong) id <MTLBuffer> uniformBuffer;
-@property(assign ) ImVec2 viewportSize;
-@property(assign ) ImVec2 viewportPanelSize;
+@property(assign) ImVec2 viewportSize;
+@property(assign) ImVec2 viewportPanelSize;
 @property(strong) dispatch_semaphore_t displaySemaphore;
 @property(assign) NSInteger bufferIndex;
 @property(assign) float rotationX, rotationY, time;
@@ -109,7 +122,7 @@ static const uint32_t MBEBufferAlignment = 256;
     int h = mtkView.drawableSize.height;
 
     //Init viewport
-    _viewportSize = {256,256};
+    _viewportSize = {256, 256};
     _viewportPanelSize = _viewportSize;
 
     //create the pipeline
@@ -248,47 +261,132 @@ static const uint32_t MBEBufferAlignment = 256;
     self.depthTexture.label = @"DepthStencil";
 }
 
-- (void)showImguiContent: (ImGuiID)dockspace_id {
-    /*
-     ImGui::DockBuilderRemoveNode(dockspace_id); // Clear out existing layout
-ImGui::DockBuilderAddNode(dockspace_id, ImGuiDockNodeFlags_Dockspace); // Add empty node
-ImGui::DockBuilderSetNodeSize(dockspace_id, dockspace_size);
+- (void)setupDockSpaceLayout:(int)width :(int)height {
+    if (ImGui::DockBuilderGetNode(dockIds.root) == NULL) {
+        NSLog(@"create layout");
+        dockIds.root = ImGui::GetID("Root_Dockspace");
 
-ImGuiID dock_main_id = dockspace_id; // This variable will track the document node, however we are not using it here as we aren't docking anything into it.
-ImGuiID dock_id_prop = ImGui::DockBuilderSplitNode(dock_main_id, ImGuiDir_Left, 0.20f, NULL, &dock_main_id);
-ImGuiID dock_id_bottom = ImGui::DockBuilderSplitNode(dock_main_id, ImGuiDir_Down, 0.20f, NULL, &dock_main_id);
+        ImGui::DockBuilderRemoveNode(dockIds.root);                            // Clear out existing layout
+        ImGui::DockBuilderAddNode(dockIds.root, ImGuiDockNodeFlags_DockSpace); // Add empty node
+        ImGui::DockBuilderSetNodeSize(dockIds.root, ImVec2(width, height));
 
-ImGui::DockBuilderDockWindow("Log", dock_id_bottom);
-ImGui::DockBuilderDockWindow("Properties", dock_id_prop);
-ImGui::DockBuilderDockWindow("Mesh", dock_id_prop);
-ImGui::DockBuilderDockWindow("Extra", dock_id_prop);
-ImGui::DockBuilderFinish(dockspace_id);
-     */
-    static bool show_demo_window = true;
+        dockIds.right = ImGui::DockBuilderSplitNode(dockIds.root, ImGuiDir_Right, 0.2f, NULL, &dockIds.root);
+        dockIds.left = ImGui::DockBuilderSplitNode(dockIds.root, ImGuiDir_Left, 0.2f, NULL, &dockIds.root);
+        dockIds.bottom = ImGui::DockBuilderSplitNode(dockIds.root, ImGuiDir_Down, 0.3f, NULL, &dockIds.root);
 
-    ImGui::DockBuilderRemoveNode(dockspace_id); // Clear out existing layout
-    ImGui::DockBuilderAddNode(dockspace_id, ImGuiDockNodeFlags_DockSpace); // Add empty node
-    ImGui::DockBuilderSetNodeSize(dockspace_id, {1400,700});
-    ImGuiID dock_main_id = dockspace_id; // This variable will track the document node, however we are not using it here as we aren't docking anything into it.
-    ImGuiID dock_id_prop = ImGui::DockBuilderSplitNode( dock_main_id, ImGuiDir_Left, 0.20f, NULL, &dock_main_id);
-    ImGuiID dock_id_bottom = ImGui::DockBuilderSplitNode( dock_main_id, ImGuiDir_Down, 0.20f, NULL, &dock_main_id);
-    ImGui::DockBuilderDockWindow( "ViewportDock", dock_id_bottom);
-    ImGui::DockBuilderDockWindow( "HierarchyDock", dock_id_prop);
-    ImGui::DockBuilderFinish( dockspace_id);
+        ImGui::DockBuilderDockWindow("Edit Viewport", dockIds.root);
+        ImGui::DockBuilderDockWindow("Play Viewport", dockIds.root);
+        ImGui::DockBuilderDockWindow("Log", dockIds.bottom);
+        ImGui::DockBuilderDockWindow("Asset Browser", dockIds.bottom);
+        ImGui::DockBuilderDockWindow("Scene Hierarchy", dockIds.left);
+        ImGui::DockBuilderDockWindow("Inspector", dockIds.right);
+        ImGui::DockBuilderFinish(dockIds.root);
+    }
 
-    ImGui::SetNextWindowDockID(dock_id_prop,0);
-    ImGui::Begin("Viewport dock",&show_demo_window);
+}
+
+- (void)showImguiContent {
+
+    if (ImGui::DockBuilderGetNode(dockIds.root) == NULL) {
+        [self setupDockSpaceLayout:1400 :700];
+    }
+
+    auto id = ImGui::GetID("Root_Dockspace");
+
+    static ImGuiDockNodeFlags dockspace_flags = ImGuiDockNodeFlags_None;
+
+    ImGuiWindowFlags window_flags = ImGuiWindowFlags_MenuBar | ImGuiWindowFlags_NoDocking;
+
+    ImGuiViewport *viewport = ImGui::GetMainViewport();
+
+    ImGui::SetNextWindowPos(viewport->GetWorkPos());
+    ImGui::SetNextWindowSize(viewport->GetWorkSize());
+    ImGui::SetNextWindowViewport(viewport->ID);
+    ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 0.0f);
+    ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0.0f);
+
+    window_flags |= ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove;
+    window_flags |= ImGuiWindowFlags_NoBringToFrontOnFocus | ImGuiWindowFlags_NoNavFocus;
+
+    if (dockspace_flags & ImGuiDockNodeFlags_PassthruCentralNode)
+        window_flags |= ImGuiWindowFlags_NoBackground;
+
+    ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0.0f, 0.0f));
+
+    ImGui::Begin("Editor", (bool *) 0, window_flags);
+
+    ImGui::PopStyleVar();
+    ImGui::PopStyleVar(2);
+
+    //shorcut_menu_bar();
+    if (ImGui::BeginMenuBar()) {
+        if (ImGui::BeginMenu("File")) {
+            ImGui::MenuItem("Open");
+            ImGui::MenuItem("Save");
+            ImGui::EndMenu();
+        }
+        if (ImGui::BeginMenu("Settings")) {
+
+            if (ImGui::BeginMenu("Docking")) {
+                if (ImGui::MenuItem("Flag: NoSplit", "", (dockspace_flags & ImGuiDockNodeFlags_NoSplit) != 0)) dockspace_flags ^= ImGuiDockNodeFlags_NoSplit;
+                if (ImGui::MenuItem("Flag: NoResize", "", (dockspace_flags & ImGuiDockNodeFlags_NoResize) != 0)) dockspace_flags ^= ImGuiDockNodeFlags_NoResize;
+                if (ImGui::MenuItem("Flag: NoDockingInCentralNode", "", (dockspace_flags & ImGuiDockNodeFlags_NoDockingInCentralNode) != 0)) dockspace_flags ^= ImGuiDockNodeFlags_NoDockingInCentralNode;
+                if (ImGui::MenuItem("Flag: PassthruCentralNode", "", (dockspace_flags & ImGuiDockNodeFlags_PassthruCentralNode) != 0)) dockspace_flags ^= ImGuiDockNodeFlags_PassthruCentralNode;
+                if (ImGui::MenuItem("Flag: AutoHideTabBar", "", (dockspace_flags & ImGuiDockNodeFlags_AutoHideTabBar) != 0)) dockspace_flags ^= ImGuiDockNodeFlags_AutoHideTabBar;
+                ImGui::EndMenu();
+            }
+            ImGui::EndMenu();
+        }
+
+        ImGui::EndMenuBar();
+    }
+
+    ImGui::DockSpace(id, ImVec2(0.0f, 0.0f), dockspace_flags
+    );
+
+
+    ImGui::SetNextWindowDockID(dockIds
+            .root, ImGuiCond_Appearing);
+    ImGui::Begin("Viewport", (bool *) 0);
+    self.
+            viewportPanelSize = ImGui::GetContentRegionAvail();
+    ImGui::Image(self
+            .offScreenTexture, self.viewportPanelSize);
+
     ImGui::End();
 
-    ImGui::SetNextWindowDockID(dock_id_bottom,0);
-    ImGui::Begin("Hierarchy",&show_demo_window);
-    ImGui::Text("Hierarchy here");
+    ImGui::SetNextWindowDockID(dockIds
+            .bottom, ImGuiCond_Appearing);
+    ImGui::Begin("Assets", (bool *) 0);
+    ImGui::Text("assets go here");
+
     ImGui::End();
 
-    ImGui::Begin("Viewport",&show_demo_window);
-    self.viewportPanelSize = ImGui::GetContentRegionAvail();
-    ImGui::Image(self.offScreenTexture,self.viewportPanelSize);
+    ImGui::SetNextWindowDockID(dockIds
+            .bottom, ImGuiCond_Appearing);
+    ImGui::Begin("log", (bool *) 0);
+    ImGui::Text("console output brrrrr");
+
     ImGui::End();
+
+    ImGui::SetNextWindowDockID(dockIds
+            .left, ImGuiCond_Appearing);
+    ImGui::Begin("Hierarchy", (bool *) 0);
+    ImGui::Text("see you hierarchy here");
+
+    ImGui::End();
+
+    ImGui::SetNextWindowDockID(dockIds
+            .right, ImGuiCond_Appearing);
+    ImGui::Begin("Inspector", (bool *) 0);
+    ImGui::Text("inspect values of selected objects here");
+
+    ImGui::End();
+
+    ImGui::End();
+
+    //ImGui::ShowDemoWindow((bool*)0);
+
 }
 
 - (void)renderUI:(MTKView *)view :(MTLRenderPassDescriptor *)passDescriptor :(id <MTLCommandBuffer>)commandBuffer
@@ -298,92 +396,8 @@ ImGui::DockBuilderFinish(dockspace_id);
     ImGui_ImplMetal_NewFrame(passDescriptor);
     ImGui::NewFrame();
 
-    ImGuiIO &io = ImGui::GetIO();
-    if (io.ConfigFlags & ImGuiConfigFlags_DockingEnable) {
 
-        static bool opt_fullscreen_persistant = true;
-        bool opt_fullscreen = opt_fullscreen_persistant;
-        static ImGuiDockNodeFlags dockspace_flags = ImGuiDockNodeFlags_None;
-
-        // We are using the ImGuiWindowFlags_NoDocking flag to make the parent window not dockable into,
-        // because it would be confusing to have two docking targets within each others.
-        ImGuiWindowFlags window_flags = ImGuiWindowFlags_MenuBar | ImGuiWindowFlags_NoDocking;
-        if (opt_fullscreen) {
-            ImGuiViewport *viewport = ImGui::GetMainViewport();
-            ImGui::SetNextWindowPos(viewport->GetWorkPos());
-            ImGui::SetNextWindowSize(viewport->GetWorkSize());
-            ImGui::SetNextWindowViewport(viewport->ID);
-            ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 0.0f);
-            ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0.0f);
-            window_flags |= ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove;
-            window_flags |= ImGuiWindowFlags_NoBringToFrontOnFocus | ImGuiWindowFlags_NoNavFocus;
-        }
-
-        // When using ImGuiDockNodeFlags_PassthruCentralNode, DockSpace() will render our background
-        // and handle the pass-thru hole, so we ask Begin() to not render a background.
-        if (dockspace_flags & ImGuiDockNodeFlags_PassthruCentralNode)
-            window_flags |= ImGuiWindowFlags_NoBackground;
-
-        // Important: note that we proceed even if Begin() returns false (aka window is collapsed).
-        // This is because we want to keep our DockSpace() active. If a DockSpace() is inactive,
-        // all active windows docked into it will lose their parent and become undocked.
-        // We cannot preserve the docking relationship between an active window and an inactive docking, otherwise
-        // any change of dockspace/settings would lead to windows being stuck in limbo and never being visible.
-        ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0.0f, 0.0f));
-        bool open = true;
-        bool *p_open = &open;
-        ImGui::Begin("DockSpace Demo", p_open, window_flags);
-        ImGui::PopStyleVar();
-
-        if (opt_fullscreen)
-            ImGui::PopStyleVar(2);
-
-        ImGuiID dockspace_id =0;
-        // DockSpace
-        if (io.ConfigFlags & ImGuiConfigFlags_DockingEnable) {
-            dockspace_id = ImGui::GetID("MyDockSpace");
-            ImGui::DockSpace(dockspace_id, ImVec2(0.0f, 0.0f), dockspace_flags);
-        } else {
-            assert(0 && "docking not enabled");
-        }
-
-        if (ImGui::BeginMenuBar()) {
-            if (ImGui::BeginMenu("Docking")) {
-                // Disabling fullscreen would allow the window to be moved to the front of other windows,
-                // which we can't undo at the moment without finer window depth/z control.
-                //ImGui::MenuItem("Fullscreen", NULL, &opt_fullscreen_persistant);
-
-                if (ImGui::MenuItem("Flag: NoSplit", "", (dockspace_flags & ImGuiDockNodeFlags_NoSplit) != 0)) dockspace_flags ^= ImGuiDockNodeFlags_NoSplit;
-                if (ImGui::MenuItem("Flag: NoResize", "", (dockspace_flags & ImGuiDockNodeFlags_NoResize) != 0)) dockspace_flags ^= ImGuiDockNodeFlags_NoResize;
-                if (ImGui::MenuItem("Flag: NoDockingInCentralNode", "", (dockspace_flags & ImGuiDockNodeFlags_NoDockingInCentralNode) != 0)) dockspace_flags ^= ImGuiDockNodeFlags_NoDockingInCentralNode;
-                if (ImGui::MenuItem("Flag: PassthruCentralNode", "", (dockspace_flags & ImGuiDockNodeFlags_PassthruCentralNode) != 0)) dockspace_flags ^= ImGuiDockNodeFlags_PassthruCentralNode;
-                if (ImGui::MenuItem("Flag: AutoHideTabBar", "", (dockspace_flags & ImGuiDockNodeFlags_AutoHideTabBar) != 0)) dockspace_flags ^= ImGuiDockNodeFlags_AutoHideTabBar;
-                ImGui::Separator();
-                if (ImGui::MenuItem("Close DockSpace", NULL, false, p_open != NULL))
-                    *p_open = false;
-                ImGui::EndMenu();
-            }
-            //HelpMarker(
-            //        "When docking is enabled, you can ALWAYS dock MOST window into another! Try it now!" "\n\n"
-            //        " > if io.ConfigDockingWithShift==false (default):" "\n"
-            //        "   drag windows from title bar to dock" "\n"
-            //        " > if io.ConfigDockingWithShift==true:" "\n"
-            //        "   drag windows from anywhere and hold Shift to dock" "\n\n"
-            //        "This demo app has nothing to do with it!" "\n\n"
-            //        "This demo app only demonstrate the use of ImGui::DockSpace() which allows you to manually create a docking node _within_ another window. This is useful so you can decorate your main application window (e.g. with a menu bar)." "\n\n"
-            //        "ImGui::DockSpace() comes with one hard constraint: it needs to be submitted _before_ any window which may be docked into it. Therefore, if you use a dock spot as the central point of your application, you'll probably want it to be part of the very first window you are submitting to imgui every frame." "\n\n"
-            //        "(NB: because of this constraint, the implicit \"Debug\" window can not be docked into an explicit DockSpace() node, because that window is submitted as part of the NewFrame() call. An easy workaround is that you can create your own implicit \"Debug##2\" window after calling DockSpace() and leave it in the window stack for anyone to use.)"
-            //);
-
-            ImGui::EndMenuBar();
-            [self showImguiContent: dockspace_id];
-        }
-
-        ImGui::End();
-    } else {
-        [self showImguiContent];
-    }
-
+    [self showImguiContent];
     // Rendering
     ImGui::Render();
     ImDrawData *drawData = ImGui::GetDrawData();
@@ -395,9 +409,8 @@ ImGui::DockBuilderFinish(dockspace_id);
 - (void)drawInMTKView:(nonnull MTKView *)view {
 
     //dispatch_semaphore_wait(self.displaySemaphore, DISPATCH_TIME_FOREVER);
-    if(self.viewportSize.x != self.viewportPanelSize.x || self.viewportSize.y != self.viewportPanelSize.y)
-    {
-        [self createOffscreenTexture:(int)self.viewportPanelSize.x :(int)self.viewportPanelSize.y];
+    if (self.viewportSize.x != self.viewportPanelSize.x || self.viewportSize.y != self.viewportPanelSize.y) {
+        [self createOffscreenTexture:(int) self.viewportPanelSize.x :(int) self.viewportPanelSize.y];
         self.viewportSize = self.viewportPanelSize;
     }
 
@@ -418,26 +431,26 @@ ImGui::DockBuilderFinish(dockspace_id);
 
     bool isViewport = (io.ConfigFlags & ImGuiConfigFlags_DockingEnable) > 0;
     //NSLog(@"%.1fx%.1f",w, h);
-    [self updateUniformsForView:(isViewport ? self.viewportSize.x : w) : (isViewport? self.viewportSize.y : h)];
+    [self updateUniformsForView:(isViewport ? self.viewportSize.x : w) :(isViewport ? self.viewportSize.y : h)];
 
     id <MTLCommandBuffer> commandBuffer = [_commandQueue commandBuffer];
     MTLRenderPassDescriptor *passDescriptor = [view currentRenderPassDescriptor];
     //passDescriptor.depthAttachment
 
 
-    passDescriptor.renderTargetWidth = isViewport ? self.viewportSize.x: w;
-    passDescriptor.renderTargetHeight = isViewport ? self.viewportSize.y: h;
+    passDescriptor.renderTargetWidth = isViewport ? self.viewportSize.x : w;
+    passDescriptor.renderTargetHeight = isViewport ? self.viewportSize.y : h;
     MTLRenderPassColorAttachmentDescriptor *colorAttachment = passDescriptor.colorAttachments[0];
     colorAttachment.texture = isViewport ? self.offScreenTexture : view.currentDrawable.texture;
-    colorAttachment.clearColor  = MTLClearColorMake(0.8, 0.8, 0.8, 1.0);
+    colorAttachment.clearColor = MTLClearColorMake(0.8, 0.8, 0.8, 1.0);
     colorAttachment.storeAction = MTLStoreActionStore;
-    colorAttachment.loadAction  =  MTLLoadActionClear ;
+    colorAttachment.loadAction = MTLLoadActionClear;
 
     MTLRenderPassDepthAttachmentDescriptor *depthAttachment = passDescriptor.depthAttachment;
     depthAttachment.texture = isViewport ? self.depthTexture : self.depthTextureGUI;
     depthAttachment.clearDepth = 1.0;
     depthAttachment.storeAction = MTLStoreActionDontCare;
-    depthAttachment.loadAction =  MTLLoadActionClear;
+    depthAttachment.loadAction = MTLLoadActionClear;
 
     /*
     MTLRenderPassStencilAttachmentDescriptor *stencilAttachment = _metalRenderPassDesc.stencilAttachment;
@@ -470,9 +483,9 @@ ImGui::DockBuilderFinish(dockspace_id);
     [renderPass endEncoding];
 
 
-    if(isViewport) {
+    if (isViewport) {
 
-        MTLRenderPassDescriptor* uiPassDescriptor =  [[MTLRenderPassDescriptor alloc] init];
+        MTLRenderPassDescriptor *uiPassDescriptor = [[MTLRenderPassDescriptor alloc] init];
         MTLRenderPassColorAttachmentDescriptor *uiColorAttachment = uiPassDescriptor.colorAttachments[0];
         uiColorAttachment.texture = view.currentDrawable.texture;
         uiColorAttachment.clearColor = MTLClearColorMake(0.0, 0.0, 0.0, 1.0);
@@ -485,7 +498,7 @@ ImGui::DockBuilderFinish(dockspace_id);
         uiDepthAttachment.storeAction = MTLStoreActionDontCare;
         uiDepthAttachment.loadAction = MTLLoadActionClear;
 
-        uiPassDescriptor.renderTargetWidth =  w;
+        uiPassDescriptor.renderTargetWidth = w;
         uiPassDescriptor.renderTargetHeight = h;
 
         id <MTLRenderCommandEncoder> uiPass = [commandBuffer renderCommandEncoderWithDescriptor:uiPassDescriptor];
