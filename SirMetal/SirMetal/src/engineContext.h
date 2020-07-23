@@ -12,6 +12,7 @@ namespace SirMetal {
         ShaderManager* shaderManager;
         uint32_t screenWidth;
         uint32_t screenHeight;
+        void* viewportTexture;
     };
     void initializeContext(const char *projectPath);
     extern EngineContext* CONTEXT;

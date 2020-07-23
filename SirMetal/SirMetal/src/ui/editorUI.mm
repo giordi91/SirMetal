@@ -5,11 +5,12 @@
 
 #import <iostream>
 
+#import "engineContext.h"
 #import "editorUI.h"
 #import "imgui_internal.h"
 
 namespace SirMetal {
-    void EditorUI::show(int width, int height) {
+    bool EditorUI::show(int width, int height) {
         setupDockSpaceLayout(width, height);
 
         auto id = ImGui::GetID("Root_Dockspace");
@@ -69,11 +70,11 @@ namespace SirMetal {
         ImGui::SetNextWindowDockID(dockIds
                 .root, ImGuiCond_Appearing);
         ImGui::Begin("Viewport", (bool *) 0);
-        //self.
-        //        viewportPanelSize = ImGui::GetContentRegionAvail();
-        //ImGui::Image(self
-        //        .offScreenTexture, self.viewportPanelSize);
 
+        ImVec2 newViewportSize = ImGui::GetContentRegionAvail();
+        bool shouldRefreshTextureSize = newViewportSize.x != viewportPanelSize.x || newViewportSize.y != viewportPanelSize.y;
+        viewportPanelSize= newViewportSize;
+        ImGui::Image( SirMetal::CONTEXT->viewportTexture, viewportPanelSize);
         ImGui::End();
 
         ImGui::SetNextWindowDockID(dockIds
@@ -106,6 +107,7 @@ namespace SirMetal {
 
         ImGui::End();
 
+        return shouldRefreshTextureSize;
         //ImGui::ShowDemoWindow((bool*)0);
 
     }
@@ -132,4 +134,5 @@ namespace SirMetal {
             ImGui::DockBuilderFinish(dockIds.root);
         }
     }
+
 }

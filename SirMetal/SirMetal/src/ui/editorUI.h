@@ -15,13 +15,18 @@ namespace SirMetal {
         };
 
     public:
-        void show(int width, int height);
+        bool show(int width, int height);
+
+        inline ImVec2 getViewportSize()const{return viewportPanelSize;};
 
     private:
         void setupDockSpaceLayout(int width, int height);
 
     private:
         DockIDs dockIds{};
+        ImVec2 viewportPanelSize = {256,256};
+
+
     };
 }
 
