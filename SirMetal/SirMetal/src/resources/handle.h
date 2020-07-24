@@ -8,7 +8,7 @@ namespace SirMetal {
     enum class HANDLE_TYPE {
         NONE = 0,
         TEXTURE = 1,
-        SHADER = 2,
+        SHADER_LIBRARY = 2,
         MESH = 3,
     };
 
@@ -36,7 +36,15 @@ namespace SirMetal {
         [[nodiscard]] bool isHandleValid() const {
             return handle != 0;
         }
-
         static const HANDLE_TYPE type = HANDLE_TYPE::TEXTURE;
+    };
+
+    struct LibraryHandle final {
+        uint32_t handle;
+
+        [[nodiscard]] bool isHandleValid() const {
+            return handle != 0;
+        }
+        static const HANDLE_TYPE type = HANDLE_TYPE::SHADER_LIBRARY;
     };
 }

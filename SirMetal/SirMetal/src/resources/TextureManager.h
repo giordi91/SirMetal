@@ -21,6 +21,9 @@ namespace SirMetal {
 
     class TextureManager {
     public:
+        TextureManager() = default;
+        void initialize() {};
+
         TextureHandle allocate(id <MTLDevice> device, const AllocTextureRequest &request);
 
     private:

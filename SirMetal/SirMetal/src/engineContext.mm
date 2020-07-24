@@ -42,7 +42,8 @@ buffer to hold the text */
 }
 #import "Metal/Metal.h"
 
-#import "shaderManager.h"
+#import "resources/shaderManager.h"
+#import "resources/textureManager.h"
 
 namespace SirMetal {
 
@@ -53,7 +54,15 @@ namespace SirMetal {
         printf("Initializing sir metal project at: %s\n", projectPath);
 
         ShaderManager* shaderManager = new ShaderManager;
-        CONTEXT = new EngineContext{projectPath, shaderManager};
+        shaderManager->initialize();
+        TextureManager* textureManager = new TextureManager;
+        textureManager->initialize();
+
+        CONTEXT = new EngineContext{projectPath, 0,0, nullptr
+        ,{
+            textureManager,
+            shaderManager,
+        }};
     }
 
 

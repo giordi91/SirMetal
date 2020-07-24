@@ -1,22 +1,23 @@
-//
-// Created by Marco Giordano on 16/07/2020.
-// Copyright (c) 2020 Marco Giordano. All rights reserved.
-//
-
 #pragma once
 
-#include <vector>
-#include "Metal/Metal.h"
-typedef uint32_t LibraryHandle;
+#include <unordered_map>
+#include <string>
+#include "handle.h"
 
-//struct id;
-class ShaderManager {
-public :
-    LibraryHandle loadShader(const char *path, id<MTLDevice> device );
-    id<MTLLibrary> getLibraryFromHandle(LibraryHandle handle);
+namespace SirMetal {
+    class ShaderManager {
+    public :
+        LibraryHandle loadShader(const char *path, id <MTLDevice> device);
+        id getLibraryFromHandle(LibraryHandle handle);
 
-private:
-    std::vector<id> m_shaders;
-};
+        void initialize() {
+        };
+
+    private:
+        std::unordered_map<uint32_t, id> m_libraries;
+        std::unordered_map<std::string, uint32_t> m_nameToLibraryHandle;
+        uint32_t m_libraryCounter = 0;
+    };
+}
 
 

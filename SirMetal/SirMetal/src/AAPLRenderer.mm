@@ -139,8 +139,8 @@ static bool shouldResizeOffScreen = false;
 
     char buffer[256];
     sprintf(buffer, "%s/%s", SirMetal::CONTEXT->projectPath, "/shaders/Shaders.metal");
-    LibraryHandle lh = SirMetal::CONTEXT->shaderManager->loadShader(buffer, _device);
-    id <MTLLibrary> rawLib = SirMetal::CONTEXT->shaderManager->getLibraryFromHandle(lh);
+    SirMetal::LibraryHandle lh = SirMetal::CONTEXT->managers.shaderManager->loadShader(buffer, _device);
+    id <MTLLibrary> rawLib = SirMetal::CONTEXT->managers.shaderManager->getLibraryFromHandle(lh);
 
     MTLRenderPipelineDescriptor *pipelineDescriptor = [MTLRenderPipelineDescriptor new];
     pipelineDescriptor.vertexFunction = [rawLib newFunctionWithName:@"vertex_project"];
