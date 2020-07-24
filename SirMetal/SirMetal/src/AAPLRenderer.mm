@@ -11,6 +11,7 @@ Implementation of a platform independent renderer class, which performs Metal se
 #import "AAPLRenderer.h"
 #include "engineContext.h"
 #include "shaderManager.h"
+#include "resources/textureManager.h"
 #import "MBEMathUtilities.h"
 #import "vendors/imgui/imgui.h"
 #import "vendors/imgui/imgui_impl_metal.h"
@@ -123,7 +124,6 @@ static bool shouldResizeOffScreen = false;
     [self createOffscreenTexture:256 :256];
 
 
-
     MTLTextureDescriptor *descriptor =
             [MTLTextureDescriptor texture2DDescriptorWithPixelFormat:MTLPixelFormatDepth32Float_Stencil8 width:w height:h mipmapped:NO];
     descriptor.storageMode = MTLStorageModePrivate;
@@ -232,17 +232,28 @@ static bool shouldResizeOffScreen = false;
 }
 
 - (void)createOffscreenTexture:(int)width :(int)height {
-    MTLTextureDescriptor *textureDescriptor = [[MTLTextureDescriptor alloc] init];
-    textureDescriptor.textureType = MTLTextureType2D;
-    textureDescriptor.width = width;
-    textureDescriptor.height = height;
-    textureDescriptor.sampleCount = 1;
-    textureDescriptor.pixelFormat = MTLPixelFormatBGRA8Unorm;
-    textureDescriptor.usage = MTLTextureUsageRenderTarget | MTLTextureUsageShaderRead;
 
-    self.offScreenTexture = [_device newTextureWithDescriptor:textureDescriptor];
+    SirMetal::TextureManager *textureManager = SirMetal::CONTEXT->managers.textureManager;
+
+    SirMetal::AllocTextureRequest request{
+            static_cast<uint32_t>(width), static_cast<uint32_t>(height),
+            1, MTLTextureType2D, MTLPixelFormatBGRA8Unorm,
+            MTLTextureUsageRenderTarget | MTLTextureUsageShaderRead,1, "offscreenTexture"
+    };
+    SirMetal::TextureHandle viewportHandle = textureManager->allocate(_device, request);
+    self.offScreenTexture = textureManager->getNativeFromHandle(viewportHandle);
     SirMetal::CONTEXT->viewportTexture = self.offScreenTexture;
 
+
+    SirMetal::AllocTextureRequest requestDepth{
+            static_cast<uint32_t>(width), static_cast<uint32_t>(height),
+            1, MTLTextureType2D, MTLPixelFormatDepth32Float_Stencil8,
+            MTLTextureUsageRenderTarget | MTLTextureUsageShaderRead,1, "depthTexture"
+    };
+    SirMetal::TextureHandle depthHandle = textureManager->allocate(_device, requestDepth);
+    self.depthTexture= textureManager->getNativeFromHandle(depthHandle);
+
+    /*
     MTLTextureDescriptor *descriptor =
             [MTLTextureDescriptor texture2DDescriptorWithPixelFormat:MTLPixelFormatDepth32Float_Stencil8 width:width height:height mipmapped:NO];
     descriptor.storageMode = MTLStorageModePrivate;
@@ -250,6 +261,7 @@ static bool shouldResizeOffScreen = false;
     descriptor.pixelFormat = MTLPixelFormatDepth32Float_Stencil8;
     self.depthTexture = [_device newTextureWithDescriptor:descriptor];
     self.depthTexture.label = @"DepthStencil";
+     */
 }
 
 - (void)renderUI:(MTKView *)view :(MTLRenderPassDescriptor *)passDescriptor :(id <MTLCommandBuffer>)commandBuffer
@@ -261,7 +273,7 @@ static bool shouldResizeOffScreen = false;
 
 
     //[self showImguiContent];
-    shouldResizeOffScreen= editorUI.show(SirMetal::CONTEXT->screenWidth, SirMetal::CONTEXT->screenHeight);
+    shouldResizeOffScreen = editorUI.show(SirMetal::CONTEXT->screenWidth, SirMetal::CONTEXT->screenHeight);
     // Rendering
     ImGui::Render();
     ImDrawData *drawData = ImGui::GetDrawData();
@@ -273,7 +285,7 @@ static bool shouldResizeOffScreen = false;
 - (void)drawInMTKView:(nonnull MTKView *)view {
 
     //dispatch_semaphore_wait(self.displaySemaphore, DISPATCH_TIME_FOREVER);
-    ImVec2 viewportSize =  editorUI.getViewportSize();
+    ImVec2 viewportSize = editorUI.getViewportSize();
     if (shouldResizeOffScreen) {
         [self createOffscreenTexture:(int) viewportSize.x :(int) viewportSize.y];
         shouldResizeOffScreen = false;
@@ -303,7 +315,7 @@ static bool shouldResizeOffScreen = false;
 
 
     passDescriptor.renderTargetWidth = isViewport ? viewportSize.x : w;
-    passDescriptor.renderTargetHeight = isViewport ?viewportSize.y : h;
+    passDescriptor.renderTargetHeight = isViewport ? viewportSize.y : h;
     MTLRenderPassColorAttachmentDescriptor *colorAttachment = passDescriptor.colorAttachments[0];
     colorAttachment.texture = isViewport ? self.offScreenTexture : view.currentDrawable.texture;
     colorAttachment.clearColor = MTLClearColorMake(0.8, 0.8, 0.8, 1.0);
@@ -392,7 +404,7 @@ static bool shouldResizeOffScreen = false;
     //real sizes if needed and not scaled up views
     CGFloat scaling = view.window.screen.backingScaleFactor;
     SirMetal::CONTEXT->screenWidth = size.width / scaling;
-    SirMetal::CONTEXT->screenHeight = size.height/ scaling;
+    SirMetal::CONTEXT->screenHeight = size.height / scaling;
 }
 
 @end

@@ -24,10 +24,10 @@ namespace SirMetal {
     }
 
     template<typename T>
-    inline uint32_t getTypeFromHandle(const T h) {
+    inline HANDLE_TYPE getTypeFromHandle(const T h) {
         constexpr uint32_t standardIndexMask = (1 << 8) - 1;
         const uint32_t standardMagicNumberMask = ~standardIndexMask;
-        return (h.handle & standardMagicNumberMask) >> 24;
+        return static_cast<HANDLE_TYPE>((h.handle & standardMagicNumberMask) >> 24);
     }
 
     struct TextureHandle final {
