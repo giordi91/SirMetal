@@ -10,7 +10,7 @@ Implementation of a platform independent renderer class, which performs Metal se
 
 #import "AAPLRenderer.h"
 #include "engineContext.h"
-#include "ShaderManager.h"
+#include "shaderManager.h"
 #import "MBEMathUtilities.h"
 #import "vendors/imgui/imgui.h"
 #import "vendors/imgui/imgui_impl_metal.h"
@@ -286,7 +286,6 @@ static bool shouldResizeOffScreen = false;
 
     CGFloat framebufferScale = view.window.screen.backingScaleFactor ?: NSScreen.mainScreen.backingScaleFactor;
     io.DisplayFramebufferScale = ImVec2(framebufferScale, framebufferScale);
-
     io.DeltaTime = 1 / float(view.preferredFramesPerSecond ?: 60);
 
     view.clearColor = MTLClearColorMake(0.95, 0.95, 0.95, 1);

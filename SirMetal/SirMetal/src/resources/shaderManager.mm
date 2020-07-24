@@ -4,7 +4,7 @@
 //
 
 #import <Metal/Metal.h>
-#include "ShaderManager.h"
+#include "shaderManager.h"
 #import "engineContext.h"
 
 LibraryHandle ShaderManager::loadShader(const char *path, id <MTLDevice> device) {

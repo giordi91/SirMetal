@@ -42,7 +42,7 @@ buffer to hold the text */
 }
 #import "Metal/Metal.h"
 
-#import "ShaderManager.h"
+#import "shaderManager.h"
 
 namespace SirMetal {
 

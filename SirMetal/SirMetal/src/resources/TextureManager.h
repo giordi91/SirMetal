@@ -1,17 +1,38 @@
-//
-// Created by Marco Giordano on 23/07/2020.
-// Copyright (c) 2020 Marco Giordano. All rights reserved.
-//
+#pragma once
 
-#ifndef SIRMETAL_TEXTUREMANAGER_H
-#define SIRMETAL_TEXTUREMANAGER_H
+#import <unordered_map>
+#import <string>
+#include <stdint.h>
 
+#import <Metal/Metal.h>
+
+#import "handle.h"
 
 namespace SirMetal {
-    class TextureManager {
+    struct AllocTextureRequest {
+        uint32_t width;
+        uint32_t height;
+        uint32_t sampleCount;
+        MTLTextureType type;
+        MTLPixelFormat format;
+        MTLTextureUsage usage;
+        std::string name;
+    };
 
+    class TextureManager {
+    public:
+        TextureHandle allocate(id <MTLDevice> device, const AllocTextureRequest &request);
+
+    private:
+        struct TextureData {
+            AllocTextureRequest request;
+            id <MTLTexture> texture;
+        };
+    private:
+        std::unordered_map<uint32_t, TextureData> m_data;
+        std::unordered_map<std::string, uint32_t> m_nameToHandle;
+        int m_textureCounter = 1;
     };
 }
 
 
-#endif //SIRMETAL_TEXTUREMANAGER_H
