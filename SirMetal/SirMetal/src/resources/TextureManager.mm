@@ -1,6 +1,7 @@
 
 #include "textureManager.h"
 #import "handle.h"
+#import "log.h"
 
 namespace SirMetal {
 
@@ -42,7 +43,7 @@ namespace SirMetal {
         if (found != m_nameToHandle.end()) {
             return TextureHandle{found->second};
         }
-        auto tex = createTextureFromRequest(device,request);
+        auto tex = createTextureFromRequest(device, request);
 
         TextureHandle handle = getHandle<TextureHandle>(m_textureCounter++);
         m_data[handle.handle] = TextureData{request, tex};
@@ -68,17 +69,20 @@ namespace SirMetal {
         //making sure we got a correct handle
         HANDLE_TYPE type = getTypeFromHandle(handle);
         if (type != HANDLE_TYPE::TEXTURE) {
+            SIR_ERROR("[Texture Manager] Provided handle is not a texture handle");
             return false;
         }
 
         //fetching the corresponding data
         auto found = m_data.find(handle.handle);
         if (found == m_data.end()) {
+            SIR_ERROR("[Texture Manager] Could not find data for requested handle");
             return false;
         }
-        TextureData& texData = found->second;
+        TextureData &texData = found->second;
         if ((texData.request.width == newWidth) & (texData.request.height)) {
-            //TODO spit out warning
+            SIR_WARN("[Texture Manager] Requested resize of texture with name{} with same size {}x{}", texData.request.name,
+                    texData.request.width, texData.request.height);
             return true;
         }
         texData.request.width = newWidth;
@@ -88,9 +92,9 @@ namespace SirMetal {
         texData.texture = nil;
 
         //alloc new texture
-        texData.texture = createTextureFromRequest(device,texData.request);
-        if(texData.texture == nil)
-        {
+        texData.texture = createTextureFromRequest(device, texData.request);
+        if (texData.texture == nil) {
+            SIR_ERROR("[Texture Manager] Could not resize requested texture with name {}",texData.request.name);
             return false;
         }
 
