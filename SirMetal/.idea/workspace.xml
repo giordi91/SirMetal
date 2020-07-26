@@ -38,25 +38,25 @@
       <screen x="0" y="0" width="1440" height="900" />
     </state>
     <state width="492" height="466" key="DebuggerActiveHint/0.0.1440.900@0.0.1440.900" timestamp="1595539629798" />
-    <state width="1398" height="198" key="GridCell.Tab.0.bottom" timestamp="1595580257993">
+    <state width="1398" height="181" key="GridCell.Tab.0.bottom" timestamp="1595742529536">
       <screen x="0" y="0" width="1440" height="900" />
     </state>
-    <state width="1398" height="198" key="GridCell.Tab.0.bottom/0.0.1440.900@0.0.1440.900" timestamp="1595580257993" />
+    <state width="1398" height="181" key="GridCell.Tab.0.bottom/0.0.1440.900@0.0.1440.900" timestamp="1595742529536" />
     <state width="1398" height="181" key="GridCell.Tab.0.bottom/0.23.1440.797@0.23.1440.797" timestamp="1595579734390" />
-    <state width="1398" height="198" key="GridCell.Tab.0.center" timestamp="1595580257991">
+    <state width="1398" height="181" key="GridCell.Tab.0.center" timestamp="1595742529534">
       <screen x="0" y="0" width="1440" height="900" />
     </state>
-    <state width="1398" height="198" key="GridCell.Tab.0.center/0.0.1440.900@0.0.1440.900" timestamp="1595580257991" />
+    <state width="1398" height="181" key="GridCell.Tab.0.center/0.0.1440.900@0.0.1440.900" timestamp="1595742529534" />
     <state width="1398" height="181" key="GridCell.Tab.0.center/0.23.1440.797@0.23.1440.797" timestamp="1595579734388" />
-    <state width="1398" height="198" key="GridCell.Tab.0.left" timestamp="1595580257989">
+    <state width="1398" height="181" key="GridCell.Tab.0.left" timestamp="1595742529534">
       <screen x="0" y="0" width="1440" height="900" />
     </state>
-    <state width="1398" height="198" key="GridCell.Tab.0.left/0.0.1440.900@0.0.1440.900" timestamp="1595580257989" />
+    <state width="1398" height="181" key="GridCell.Tab.0.left/0.0.1440.900@0.0.1440.900" timestamp="1595742529534" />
     <state width="1398" height="181" key="GridCell.Tab.0.left/0.23.1440.797@0.23.1440.797" timestamp="1595579734387" />
-    <state width="1398" height="198" key="GridCell.Tab.0.right" timestamp="1595580257992">
+    <state width="1398" height="181" key="GridCell.Tab.0.right" timestamp="1595742529535">
       <screen x="0" y="0" width="1440" height="900" />
     </state>
-    <state width="1398" height="198" key="GridCell.Tab.0.right/0.0.1440.900@0.0.1440.900" timestamp="1595580257992" />
+    <state width="1398" height="181" key="GridCell.Tab.0.right/0.0.1440.900@0.0.1440.900" timestamp="1595742529535" />
     <state width="1398" height="181" key="GridCell.Tab.0.right/0.23.1440.797@0.23.1440.797" timestamp="1595579734388" />
     <state width="1398" height="198" key="GridCell.Tab.1.bottom" timestamp="1595580257997">
       <screen x="0" y="0" width="1440" height="900" />
@@ -93,10 +93,10 @@
       <screen x="0" y="0" width="1440" height="900" />
     </state>
     <state x="471" y="247" key="refactoring.ChangeSignatureDialog/0.0.1440.900@0.0.1440.900" timestamp="1595579236881" />
-    <state x="385" y="196" width="670" height="676" key="search.everywhere.popup" timestamp="1595579832659">
+    <state x="385" y="196" width="670" height="676" key="search.everywhere.popup" timestamp="1595742163695">
       <screen x="0" y="0" width="1440" height="900" />
     </state>
-    <state x="385" y="196" width="670" height="676" key="search.everywhere.popup/0.0.1440.900@0.0.1440.900" timestamp="1595579832659" />
+    <state x="385" y="196" width="670" height="676" key="search.everywhere.popup/0.0.1440.900@0.0.1440.900" timestamp="1595742163695" />
   </component>
   <component name="XDebuggerManager">
     <breakpoint-manager>
@@ -110,11 +110,6 @@
           <url>file://$PROJECT_DIR$/SirMetal/src/ui/editorUI.mm</url>
           <line>74</line>
           <option name="timeStamp" value="26" />
-        </line-breakpoint>
-        <line-breakpoint enabled="true" type="com.jetbrains.cidr.execution.debugger.OCBreakpointType">
-          <url>file://$PROJECT_DIR$/SirMetal/src/AAPLRenderer.mm</url>
-          <line>262</line>
-          <option name="timeStamp" value="29" />
         </line-breakpoint>
       </breakpoints>
     </breakpoint-manager>

@@ -238,30 +238,20 @@ static bool shouldResizeOffScreen = false;
     SirMetal::AllocTextureRequest request{
             static_cast<uint32_t>(width), static_cast<uint32_t>(height),
             1, MTLTextureType2D, MTLPixelFormatBGRA8Unorm,
-            MTLTextureUsageRenderTarget | MTLTextureUsageShaderRead,1, "offscreenTexture"
+            MTLTextureUsageRenderTarget | MTLTextureUsageShaderRead,MTLStorageModePrivate,1, "offscreenTexture"
     };
-    SirMetal::TextureHandle viewportHandle = textureManager->allocate(_device, request);
-    self.offScreenTexture = textureManager->getNativeFromHandle(viewportHandle);
+    self.viewportHandle = textureManager->allocate(_device, request);
+    self.offScreenTexture = textureManager->getNativeFromHandle(self.viewportHandle);
     SirMetal::CONTEXT->viewportTexture = self.offScreenTexture;
 
 
     SirMetal::AllocTextureRequest requestDepth{
             static_cast<uint32_t>(width), static_cast<uint32_t>(height),
             1, MTLTextureType2D, MTLPixelFormatDepth32Float_Stencil8,
-            MTLTextureUsageRenderTarget | MTLTextureUsageShaderRead,1, "depthTexture"
+            MTLTextureUsageRenderTarget | MTLTextureUsageShaderRead,MTLStorageModePrivate,1, "depthTexture"
     };
-    SirMetal::TextureHandle depthHandle = textureManager->allocate(_device, requestDepth);
-    self.depthTexture= textureManager->getNativeFromHandle(depthHandle);
-
-    /*
-    MTLTextureDescriptor *descriptor =
-            [MTLTextureDescriptor texture2DDescriptorWithPixelFormat:MTLPixelFormatDepth32Float_Stencil8 width:width height:height mipmapped:NO];
-    descriptor.storageMode = MTLStorageModePrivate;
-    descriptor.usage = MTLTextureUsageRenderTarget;
-    descriptor.pixelFormat = MTLPixelFormatDepth32Float_Stencil8;
-    self.depthTexture = [_device newTextureWithDescriptor:descriptor];
-    self.depthTexture.label = @"DepthStencil";
-     */
+    self.depthHandle = textureManager->allocate(_device, requestDepth);
+    self.depthTexture= textureManager->getNativeFromHandle(self.depthHandle);
 }
 
 - (void)renderUI:(MTKView *)view :(MTLRenderPassDescriptor *)passDescriptor :(id <MTLCommandBuffer>)commandBuffer
@@ -287,7 +277,15 @@ static bool shouldResizeOffScreen = false;
     //dispatch_semaphore_wait(self.displaySemaphore, DISPATCH_TIME_FOREVER);
     ImVec2 viewportSize = editorUI.getViewportSize();
     if (shouldResizeOffScreen) {
-        [self createOffscreenTexture:(int) viewportSize.x :(int) viewportSize.y];
+       // [self createOffscreenTexture:(int) viewportSize.x :(int) viewportSize.y];
+       SirMetal::TextureManager* texManager = SirMetal::CONTEXT->managers.textureManager;
+        bool viewportResult = texManager->resizeTexture(_device,self.viewportHandle,viewportSize.x,viewportSize.y);
+        assert(viewportResult);
+        bool depthResult = texManager->resizeTexture(_device,self.depthHandle,viewportSize.x,viewportSize.y);
+        assert(depthResult);
+        self.offScreenTexture =texManager->getNativeFromHandle(self.viewportHandle);
+        self.depthTexture =texManager->getNativeFromHandle(self.depthHandle);
+        SirMetal::CONTEXT->viewportTexture = self.offScreenTexture;
         shouldResizeOffScreen = false;
     }
 

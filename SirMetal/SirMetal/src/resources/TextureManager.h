@@ -16,6 +16,7 @@ namespace SirMetal {
         MTLTextureType type;
         MTLPixelFormat format;
         MTLTextureUsage usage;
+        MTLStorageMode storage;
         uint32_t mipLevel = 1;
         std::string name;
     };
@@ -26,6 +27,7 @@ namespace SirMetal {
         void initialize() {};
 
         TextureHandle allocate(id <MTLDevice> device, const AllocTextureRequest &request);
+        bool resizeTexture(id <MTLDevice> device,TextureHandle handle, uint32_t newWidth, uint32_t newHeight);
 
         id getNativeFromHandle(TextureHandle handle);
 
