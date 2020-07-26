@@ -1,12 +1,6 @@
-//
-// Created by Marco Giordano on 16/07/2020.
-// Copyright (c) 2020 Marco Giordano. All rights reserved.
-//
-
 #import <Metal/Metal.h>
 #include "shaderManager.h"
 #import "engineContext.h"
-#include <string>
 
 namespace SirMetal {
     LibraryHandle ShaderManager::loadShader(const char *path, id <MTLDevice> device) {

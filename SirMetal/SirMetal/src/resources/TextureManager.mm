@@ -69,19 +69,19 @@ namespace SirMetal {
         //making sure we got a correct handle
         HANDLE_TYPE type = getTypeFromHandle(handle);
         if (type != HANDLE_TYPE::TEXTURE) {
-            SIR_ERROR("[Texture Manager] Provided handle is not a texture handle");
+            SIR_CORE_ERROR("[Texture Manager] Provided handle is not a texture handle");
             return false;
         }
 
         //fetching the corresponding data
         auto found = m_data.find(handle.handle);
         if (found == m_data.end()) {
-            SIR_ERROR("[Texture Manager] Could not find data for requested handle");
+            SIR_CORE_ERROR("[Texture Manager] Could not find data for requested handle");
             return false;
         }
         TextureData &texData = found->second;
         if ((texData.request.width == newWidth) & (texData.request.height)) {
-            SIR_WARN("[Texture Manager] Requested resize of texture with name{} with same size {}x{}", texData.request.name,
+            SIR_CORE_WARN("[Texture Manager] Requested resize of texture with name{} with same size {}x{}", texData.request.name,
                     texData.request.width, texData.request.height);
             return true;
         }
@@ -94,7 +94,7 @@ namespace SirMetal {
         //alloc new texture
         texData.texture = createTextureFromRequest(device, texData.request);
         if (texData.texture == nil) {
-            SIR_ERROR("[Texture Manager] Could not resize requested texture with name {}",texData.request.name);
+            SIR_CORE_ERROR("[Texture Manager] Could not resize requested texture with name {}",texData.request.name);
             return false;
         }
 

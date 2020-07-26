@@ -1,10 +1,3 @@
-/*
-See LICENSE folder for this sample’s licensing information.
-
-Abstract:
-Implementation of a platform independent renderer class, which performs Metal setup and per frame rendering
-*/
-
 #import <Metal/Metal.h>
 #import "MetalKit/MetalKit.h"
 
@@ -18,6 +11,7 @@ Implementation of a platform independent renderer class, which performs Metal se
 #import "imgui_impl_osx.h"
 #import "imgui_internal.h"
 #import "editorUI.h"
+#import "log.h"
 
 typedef struct {
     vector_float4 position;
@@ -203,7 +197,8 @@ static bool shouldResizeOffScreen = false;
 
 - (void)updateUniformsForView:(float)screenWidth :(float)screenHeight {
 
-    float duration = 0.01;
+    //float duration = 0.01;
+    float duration = 0.00;
     self.time += duration;
     self.rotationX += duration * (M_PI / 2);
     self.rotationY += duration * (M_PI / 3);
@@ -238,7 +233,7 @@ static bool shouldResizeOffScreen = false;
     SirMetal::AllocTextureRequest request{
             static_cast<uint32_t>(width), static_cast<uint32_t>(height),
             1, MTLTextureType2D, MTLPixelFormatBGRA8Unorm,
-            MTLTextureUsageRenderTarget | MTLTextureUsageShaderRead,MTLStorageModePrivate,1, "offscreenTexture"
+            MTLTextureUsageRenderTarget | MTLTextureUsageShaderRead, MTLStorageModePrivate, 1, "offscreenTexture"
     };
     self.viewportHandle = textureManager->allocate(_device, request);
     self.offScreenTexture = textureManager->getNativeFromHandle(self.viewportHandle);
@@ -248,10 +243,10 @@ static bool shouldResizeOffScreen = false;
     SirMetal::AllocTextureRequest requestDepth{
             static_cast<uint32_t>(width), static_cast<uint32_t>(height),
             1, MTLTextureType2D, MTLPixelFormatDepth32Float_Stencil8,
-            MTLTextureUsageRenderTarget | MTLTextureUsageShaderRead,MTLStorageModePrivate,1, "depthTexture"
+            MTLTextureUsageRenderTarget | MTLTextureUsageShaderRead, MTLStorageModePrivate, 1, "depthTexture"
     };
     self.depthHandle = textureManager->allocate(_device, requestDepth);
-    self.depthTexture= textureManager->getNativeFromHandle(self.depthHandle);
+    self.depthTexture = textureManager->getNativeFromHandle(self.depthHandle);
 }
 
 - (void)renderUI:(MTKView *)view :(MTLRenderPassDescriptor *)passDescriptor :(id <MTLCommandBuffer>)commandBuffer
@@ -277,22 +272,24 @@ static bool shouldResizeOffScreen = false;
     //dispatch_semaphore_wait(self.displaySemaphore, DISPATCH_TIME_FOREVER);
     ImVec2 viewportSize = editorUI.getViewportSize();
     if (shouldResizeOffScreen) {
-       // [self createOffscreenTexture:(int) viewportSize.x :(int) viewportSize.y];
-       SirMetal::TextureManager* texManager = SirMetal::CONTEXT->managers.textureManager;
-        bool viewportResult = texManager->resizeTexture(_device,self.viewportHandle,viewportSize.x,viewportSize.y);
-        assert(viewportResult);
-        bool depthResult = texManager->resizeTexture(_device,self.depthHandle,viewportSize.x,viewportSize.y);
-        assert(depthResult);
-        self.offScreenTexture =texManager->getNativeFromHandle(self.viewportHandle);
-        self.depthTexture =texManager->getNativeFromHandle(self.depthHandle);
+        // [self createOffscreenTexture:(int) viewportSize.x :(int) viewportSize.y];
+        SirMetal::TextureManager *texManager = SirMetal::CONTEXT->managers.textureManager;
+        bool viewportResult = texManager->resizeTexture(_device, self.viewportHandle, viewportSize.x, viewportSize.y);
+        bool depthResult = texManager->resizeTexture(_device, self.depthHandle, viewportSize.x, viewportSize.y);
+        if (viewportResult | depthResult) {
+
+        }
+        SIR_CORE_FATAL("Could not resize viewport color or depth buffer");
+        self.offScreenTexture = texManager->getNativeFromHandle(self.viewportHandle);
+        self.depthTexture = texManager->getNativeFromHandle(self.depthHandle);
         SirMetal::CONTEXT->viewportTexture = self.offScreenTexture;
         shouldResizeOffScreen = false;
     }
 
 
     ImGuiIO &io = ImGui::GetIO();
-    io.DisplaySize.x = view.bounds.size.width;
-    io.DisplaySize.y = view.bounds.size.height;
+    io.DisplaySize.x = static_cast<float>(view.bounds.size.width);
+    io.DisplaySize.y = static_cast<float>(view.bounds.size.height);
 
     CGFloat framebufferScale = view.window.screen.backingScaleFactor ?: NSScreen.mainScreen.backingScaleFactor;
     io.DisplayFramebufferScale = ImVec2(framebufferScale, framebufferScale);
@@ -401,8 +398,8 @@ static bool shouldResizeOffScreen = false;
     //here we divide by the scale factor so our engine will work with the
     //real sizes if needed and not scaled up views
     CGFloat scaling = view.window.screen.backingScaleFactor;
-    SirMetal::CONTEXT->screenWidth = size.width / scaling;
-    SirMetal::CONTEXT->screenHeight = size.height / scaling;
+    SirMetal::CONTEXT->screenWidth = static_cast<float>(size.width / scaling);
+    SirMetal::CONTEXT->screenHeight = static_cast<float>(size.height / scaling);
 }
 
 @end
