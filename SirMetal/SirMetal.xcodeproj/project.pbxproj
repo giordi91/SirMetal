@@ -29,6 +29,7 @@
 		C9EA90772113DB2D1A5104A5 /* editorUI.mm in Sources */ = {isa = PBXBuildFile; fileRef = C9EA9133493C7B1654F27F1B /* editorUI.mm */; };
 		C9EA90C06E83A42EB0350008 /* shaderManager.mm in Sources */ = {isa = PBXBuildFile; fileRef = C9EA9636D11C613CC48E42E5 /* shaderManager.mm */; };
 		C9EA91FBA8214D4CB4CED2E5 /* textureManager.mm in Sources */ = {isa = PBXBuildFile; fileRef = C9EA975B59388E141EDF5924 /* textureManager.mm */; };
+		C9EA93572B32E2E600549526 /* materialWidget.mm in Sources */ = {isa = PBXBuildFile; fileRef = C9EA90FB6B6D3F415F3B77F8 /* materialWidget.mm */; };
 		C9EA93BDE3F0E48EBCBC15CD /* Shaders.metal in Sources */ = {isa = PBXBuildFile; fileRef = C9EA9177C2222C58DC35911F /* Shaders.metal */; };
 		C9EA96ED3CD28C517C3C3F84 /* engineContext.mm in Sources */ = {isa = PBXBuildFile; fileRef = C9EA97F345427A0F723A6B51 /* engineContext.mm */; };
 		C9EA9FAC99E3F1E233069DCB /* log.mm in Sources */ = {isa = PBXBuildFile; fileRef = C9EA963FCCB27C5D4FE9E3EA /* log.mm */; };
@@ -156,6 +157,7 @@
 		C0DF949224C255F40005DB07 /* libfreetype.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libfreetype.a; path = ../../../../../usr/local/Cellar/freetype/2.10.2/lib/libfreetype.a; sourceTree = "<group>"; };
 		C0DF949724C2D04A0005DB07 /* imgui_impl_osx.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = imgui_impl_osx.mm; sourceTree = "<group>"; };
 		C0DF949824C2D04A0005DB07 /* imgui_impl_osx.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = imgui_impl_osx.h; sourceTree = "<group>"; };
+		C9EA90FB6B6D3F415F3B77F8 /* materialWidget.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = materialWidget.mm; sourceTree = "<group>"; };
 		C9EA9133493C7B1654F27F1B /* editorUI.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = editorUI.mm; sourceTree = "<group>"; };
 		C9EA9177C2222C58DC35911F /* Shaders.metal */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.metal; path = Shaders.metal; sourceTree = "<group>"; };
 		C9EA93B2EBB4A176221347C1 /* editorUI.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = editorUI.h; sourceTree = "<group>"; };
@@ -163,6 +165,7 @@
 		C9EA963FCCB27C5D4FE9E3EA /* log.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = log.mm; sourceTree = "<group>"; };
 		C9EA964743E3B7294ACFE312 /* engineContext.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = engineContext.h; sourceTree = "<group>"; };
 		C9EA969077EF5A2EB3AAB5B1 /* textureManager.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = textureManager.h; sourceTree = "<group>"; };
+		C9EA975654E1741125C8874D /* materialWidget.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = materialWidget.h; sourceTree = "<group>"; };
 		C9EA975B59388E141EDF5924 /* textureManager.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = textureManager.mm; sourceTree = "<group>"; };
 		C9EA97F345427A0F723A6B51 /* engineContext.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = engineContext.mm; sourceTree = "<group>"; };
 		C9EA9ABA4846DFE76E16BC72 /* shaderManager.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = shaderManager.h; sourceTree = "<group>"; };
@@ -429,6 +432,8 @@
 			children = (
 				C9EA9133493C7B1654F27F1B /* editorUI.mm */,
 				C9EA93B2EBB4A176221347C1 /* editorUI.h */,
+				C9EA90FB6B6D3F415F3B77F8 /* materialWidget.mm */,
+				C9EA975654E1741125C8874D /* materialWidget.h */,
 			);
 			path = ui;
 			sourceTree = "<group>";
@@ -540,6 +545,7 @@
 				C9EA91FBA8214D4CB4CED2E5 /* textureManager.mm in Sources */,
 				C9EA90C06E83A42EB0350008 /* shaderManager.mm in Sources */,
 				C9EA9FAC99E3F1E233069DCB /* log.mm in Sources */,
+				C9EA93572B32E2E600549526 /* materialWidget.mm in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

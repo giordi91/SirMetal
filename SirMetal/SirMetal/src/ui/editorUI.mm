@@ -8,6 +8,7 @@
 #import "engineContext.h"
 #import "editorUI.h"
 #import "imgui_internal.h"
+#import "log.h"
 
 namespace SirMetal {
     bool EditorUI::show(int width, int height) {
@@ -71,10 +72,20 @@ namespace SirMetal {
                 .root, ImGuiCond_Appearing);
         ImGui::Begin("Viewport", (bool *) 0);
 
+        //if our viewport is hovered we set the flag, that will allow
+        //our camera controller to behave properly
+        bool isViewportHovered = ImGui::IsWindowHovered(ImGuiHoveredFlags_None);
+        if (isViewportHovered) {
+            CONTEXT->flags.interaction |= InteractionFlagsBits::InteractionViewportHovered;
+        } else {
+            CONTEXT->flags.interaction &= ~InteractionFlagsBits::InteractionViewportHovered;
+        }
+
+
         ImVec2 newViewportSize = ImGui::GetContentRegionAvail();
         bool shouldRefreshTextureSize = newViewportSize.x != viewportPanelSize.x || newViewportSize.y != viewportPanelSize.y;
-        viewportPanelSize= newViewportSize;
-        ImGui::Image( SirMetal::CONTEXT->viewportTexture, viewportPanelSize);
+        viewportPanelSize = newViewportSize;
+        ImGui::Image(SirMetal::CONTEXT->viewportTexture, viewportPanelSize);
         ImGui::End();
 
         ImGui::SetNextWindowDockID(dockIds
@@ -107,8 +118,8 @@ namespace SirMetal {
 
         ImGui::End();
 
-        return shouldRefreshTextureSize;
         //ImGui::ShowDemoWindow((bool*)0);
+        return shouldRefreshTextureSize;
 
     }
 

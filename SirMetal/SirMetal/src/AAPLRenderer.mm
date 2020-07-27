@@ -197,8 +197,8 @@ static bool shouldResizeOffScreen = false;
 
 - (void)updateUniformsForView:(float)screenWidth :(float)screenHeight {
 
-    //float duration = 0.01;
-    float duration = 0.00;
+    float duration = 0.01;
+    //float duration = 0.00;
     self.time += duration;
     self.rotationX += duration * (M_PI / 2);
     self.rotationY += duration * (M_PI / 3);
@@ -276,13 +276,14 @@ static bool shouldResizeOffScreen = false;
         SirMetal::TextureManager *texManager = SirMetal::CONTEXT->managers.textureManager;
         bool viewportResult = texManager->resizeTexture(_device, self.viewportHandle, viewportSize.x, viewportSize.y);
         bool depthResult = texManager->resizeTexture(_device, self.depthHandle, viewportSize.x, viewportSize.y);
-        if (viewportResult | depthResult) {
-
+        if ((!viewportResult) | (!depthResult)) {
+            SIR_CORE_FATAL("Could not resize viewport color or depth buffer");
+        } else {
+            //if we got no error we extract the new texture so that can be used
+            self.offScreenTexture = texManager->getNativeFromHandle(self.viewportHandle);
+            self.depthTexture = texManager->getNativeFromHandle(self.depthHandle);
+            SirMetal::CONTEXT->viewportTexture = self.offScreenTexture;
         }
-        SIR_CORE_FATAL("Could not resize viewport color or depth buffer");
-        self.offScreenTexture = texManager->getNativeFromHandle(self.viewportHandle);
-        self.depthTexture = texManager->getNativeFromHandle(self.depthHandle);
-        SirMetal::CONTEXT->viewportTexture = self.offScreenTexture;
         shouldResizeOffScreen = false;
     }
 
