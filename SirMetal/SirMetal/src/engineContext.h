@@ -1,6 +1,8 @@
 #pragma once
 
 #import <cstdint>
+#import "graphics/camera.h"
+#import "core/input.h"
 
 const char *readFile(const char *filePath);
 
@@ -17,7 +19,7 @@ namespace SirMetal {
 
     enum InteractionFlagsBits {
         InteractionNone = 0,
-        InteractionViewportHovered = 1
+        InteractionViewportFocused = 1
     };
 
     typedef uint32_t InteractionFlags ;
@@ -35,6 +37,12 @@ namespace SirMetal {
         void *viewportTexture;
         Resources managers;
         EditorFlags flags;
+        Input input;
+        //for now the camera lives here until we start to have a more
+        //proper rendering context;
+        Camera camera;
+        FPSCameraController cameraController;
+
     };
 
 

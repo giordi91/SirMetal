@@ -197,8 +197,8 @@ static bool shouldResizeOffScreen = false;
 
 - (void)updateUniformsForView:(float)screenWidth :(float)screenHeight {
 
-    float duration = 0.01;
-    //float duration = 0.00;
+    //float duration = 0.01;
+    float duration = 0.00;
     self.time += duration;
     self.rotationX += duration * (M_PI / 2);
     self.rotationY += duration * (M_PI / 3);
@@ -210,8 +210,29 @@ static bool shouldResizeOffScreen = false;
     const matrix_float4x4 scale = matrix_float4x4_uniform_scale(scaleFactor);
     const matrix_float4x4 modelMatrix = matrix_multiply(matrix_multiply(xRot, yRot), scale);
 
-    const vector_float3 cameraTranslation = {0, 0, -5};
-    const matrix_float4x4 viewMatrix = matrix_float4x4_translation(cameraTranslation);
+    static vector_float3 camPos = {0,0,-5};
+    if((SirMetal::CONTEXT->flags.interaction & SirMetal::InteractionFlagsBits::InteractionViewportFocused) > 0) {
+        if (SirMetal::CONTEXT->input.isKeyDown(SirMetal::KEY_CODES::A)) {
+            camPos += vector_float3{0.1, 0, 0};
+        }
+        if (SirMetal::CONTEXT->input.isKeyDown(SirMetal::KEY_CODES::D)) {
+            camPos += vector_float3{-0.1, 0, 0};
+        }
+        if (SirMetal::CONTEXT->input.isKeyDown(SirMetal::KEY_CODES::W)) {
+            camPos += vector_float3{0, 0.0, 0.1};
+        }
+        if (SirMetal::CONTEXT->input.isKeyDown(SirMetal::KEY_CODES::S)) {
+            camPos += vector_float3{0, 0, -0.1};
+        }
+        if (SirMetal::CONTEXT->input.isKeyDown(SirMetal::KEY_CODES::Q)) {
+            camPos += vector_float3{0, 0.1, 0};
+        }
+        if (SirMetal::CONTEXT->input.isKeyDown(SirMetal::KEY_CODES::E)) {
+            camPos += vector_float3{0, -0.1, 0};
+        }
+    }
+    const matrix_float4x4 viewMatrix = matrix_float4x4_translation(camPos);
+
 
     const float aspect = screenWidth / screenHeight;
     const float fov = (2 * M_PI) / 5;
@@ -263,7 +284,6 @@ static bool shouldResizeOffScreen = false;
     ImGui::Render();
     ImDrawData *drawData = ImGui::GetDrawData();
     ImGui_ImplMetal_RenderDrawData(drawData, commandBuffer, renderPass);
-
 }
 
 /// Called whenever the view needs to render a frame.

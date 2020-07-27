@@ -74,18 +74,15 @@ namespace SirMetal {
 
         //if our viewport is hovered we set the flag, that will allow
         //our camera controller to behave properly
-        bool isViewportHovered = ImGui::IsWindowHovered(ImGuiHoveredFlags_None);
-        if (isViewportHovered) {
-            CONTEXT->flags.interaction |= InteractionFlagsBits::InteractionViewportHovered;
-        } else {
-            CONTEXT->flags.interaction &= ~InteractionFlagsBits::InteractionViewportHovered;
-        }
-
+        //from https://stackoverflow.com/questions/47981/how-do-you-set-clear-and-toggle-a-single-bit
+        //this allows us to set in a single go without the branch for using |= or &=
+        int  isViewportHovered = static_cast<int>(ImGui::IsWindowFocused(ImGuiFocusedFlags_RootWindow));
+        CONTEXT->flags.interaction ^= (-isViewportHovered ^CONTEXT->flags.interaction) &InteractionFlagsBits::InteractionViewportFocused;
 
         ImVec2 newViewportSize = ImGui::GetContentRegionAvail();
         bool shouldRefreshTextureSize = newViewportSize.x != viewportPanelSize.x || newViewportSize.y != viewportPanelSize.y;
         viewportPanelSize = newViewportSize;
-        ImGui::Image(SirMetal::CONTEXT->viewportTexture, viewportPanelSize);
+        ImGui::Image(SirMetal::CONTEXT->viewportTexture, viewportPanelSize, ImVec2(0, 1), ImVec2(1, 0));
         ImGui::End();
 
         ImGui::SetNextWindowDockID(dockIds

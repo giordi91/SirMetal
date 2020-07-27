@@ -65,6 +65,8 @@ namespace SirMetal {
             textureManager,
             shaderManager,
         }};
+        CONTEXT->cameraController.setCamera(&CONTEXT->camera);
+
     }
 
 

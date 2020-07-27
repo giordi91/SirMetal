@@ -32,6 +32,7 @@
 		C9EA93572B32E2E600549526 /* materialWidget.mm in Sources */ = {isa = PBXBuildFile; fileRef = C9EA90FB6B6D3F415F3B77F8 /* materialWidget.mm */; };
 		C9EA93BDE3F0E48EBCBC15CD /* Shaders.metal in Sources */ = {isa = PBXBuildFile; fileRef = C9EA9177C2222C58DC35911F /* Shaders.metal */; };
 		C9EA96ED3CD28C517C3C3F84 /* engineContext.mm in Sources */ = {isa = PBXBuildFile; fileRef = C9EA97F345427A0F723A6B51 /* engineContext.mm */; };
+		C9EA9B3D539841D0888CB89C /* camera.mm in Sources */ = {isa = PBXBuildFile; fileRef = C9EA9153D1DD5FEF3F4DF469 /* camera.mm */; };
 		C9EA9FAC99E3F1E233069DCB /* log.mm in Sources */ = {isa = PBXBuildFile; fileRef = C9EA963FCCB27C5D4FE9E3EA /* log.mm */; };
 /* End PBXBuildFile section */
 
@@ -159,8 +160,10 @@
 		C0DF949824C2D04A0005DB07 /* imgui_impl_osx.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = imgui_impl_osx.h; sourceTree = "<group>"; };
 		C9EA90FB6B6D3F415F3B77F8 /* materialWidget.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = materialWidget.mm; sourceTree = "<group>"; };
 		C9EA9133493C7B1654F27F1B /* editorUI.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = editorUI.mm; sourceTree = "<group>"; };
+		C9EA9153D1DD5FEF3F4DF469 /* camera.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = camera.mm; sourceTree = "<group>"; };
 		C9EA9177C2222C58DC35911F /* Shaders.metal */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.metal; path = Shaders.metal; sourceTree = "<group>"; };
 		C9EA93B2EBB4A176221347C1 /* editorUI.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = editorUI.h; sourceTree = "<group>"; };
+		C9EA94A9EB80CCD900528510 /* input.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = input.h; sourceTree = "<group>"; };
 		C9EA9636D11C613CC48E42E5 /* shaderManager.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = shaderManager.mm; sourceTree = "<group>"; };
 		C9EA963FCCB27C5D4FE9E3EA /* log.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = log.mm; sourceTree = "<group>"; };
 		C9EA964743E3B7294ACFE312 /* engineContext.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = engineContext.h; sourceTree = "<group>"; };
@@ -168,6 +171,7 @@
 		C9EA975654E1741125C8874D /* materialWidget.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = materialWidget.h; sourceTree = "<group>"; };
 		C9EA975B59388E141EDF5924 /* textureManager.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = textureManager.mm; sourceTree = "<group>"; };
 		C9EA97F345427A0F723A6B51 /* engineContext.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = engineContext.mm; sourceTree = "<group>"; };
+		C9EA99B11A0783C8CB4A0751 /* camera.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = camera.h; sourceTree = "<group>"; };
 		C9EA9ABA4846DFE76E16BC72 /* shaderManager.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = shaderManager.h; sourceTree = "<group>"; };
 		C9EA9D12B9FF22064E77E489 /* handle.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = handle.h; sourceTree = "<group>"; };
 		C9EA9FBDF22767D636150A8A /* log.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = log.h; sourceTree = "<group>"; };
@@ -385,6 +389,7 @@
 				C9EA9A0A831D1A44CAB4CC87 /* ui */,
 				C9EA9BBF0E6E791A2D0F709E /* resources */,
 				C9EA9CDA1EED06D10BBA2316 /* core */,
+				C9EA99545457CD5970515234 /* graphics */,
 			);
 			path = src;
 			sourceTree = "<group>";
@@ -427,6 +432,15 @@
 			path = shaders;
 			sourceTree = "<group>";
 		};
+		C9EA99545457CD5970515234 /* graphics */ = {
+			isa = PBXGroup;
+			children = (
+				C9EA9153D1DD5FEF3F4DF469 /* camera.mm */,
+				C9EA99B11A0783C8CB4A0751 /* camera.h */,
+			);
+			path = graphics;
+			sourceTree = "<group>";
+		};
 		C9EA9A0A831D1A44CAB4CC87 /* ui */ = {
 			isa = PBXGroup;
 			children = (
@@ -455,6 +469,7 @@
 			children = (
 				C9EA963FCCB27C5D4FE9E3EA /* log.mm */,
 				C9EA9FBDF22767D636150A8A /* log.h */,
+				C9EA94A9EB80CCD900528510 /* input.h */,
 			);
 			path = core;
 			sourceTree = "<group>";
@@ -546,6 +561,7 @@
 				C9EA90C06E83A42EB0350008 /* shaderManager.mm in Sources */,
 				C9EA9FAC99E3F1E233069DCB /* log.mm in Sources */,
 				C9EA93572B32E2E600549526 /* materialWidget.mm in Sources */,
+				C9EA9B3D539841D0888CB89C /* camera.mm in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
