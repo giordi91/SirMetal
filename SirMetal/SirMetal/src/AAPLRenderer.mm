@@ -36,6 +36,7 @@ static const uint32_t MBEBufferAlignment = 256;
 //temporary until i figure out what to do with this
 static SirMetal::EditorUI editorUI = SirMetal::EditorUI();
 static bool shouldResizeOffScreen = false;
+static matrix_float4x4 viewMatrix;
 
 @interface AAPLRenderer ()
 @property(strong) id <MTLRenderPipelineState> renderPipelineState;
@@ -117,6 +118,8 @@ static bool shouldResizeOffScreen = false;
     //TODO probably grab the start viewport size from the context
     [self createOffscreenTexture:256 :256];
 
+    //view matrix
+    viewMatrix = matrix_float4x4_translation(vector_float3{0, 0, 5});
 
     MTLTextureDescriptor *descriptor =
             [MTLTextureDescriptor texture2DDescriptorWithPixelFormat:MTLPixelFormatDepth32Float_Stencil8 width:w height:h mipmapped:NO];
@@ -210,29 +213,57 @@ static bool shouldResizeOffScreen = false;
     const matrix_float4x4 scale = matrix_float4x4_uniform_scale(scaleFactor);
     const matrix_float4x4 modelMatrix = matrix_multiply(matrix_multiply(xRot, yRot), scale);
 
-    static vector_float3 camPos = {0,0,-5};
-    if((SirMetal::CONTEXT->flags.interaction & SirMetal::InteractionFlagsBits::InteractionViewportFocused) > 0) {
-        if (SirMetal::CONTEXT->input.isKeyDown(SirMetal::KEY_CODES::A)) {
-            camPos += vector_float3{0.1, 0, 0};
-        }
-        if (SirMetal::CONTEXT->input.isKeyDown(SirMetal::KEY_CODES::D)) {
-            camPos += vector_float3{-0.1, 0, 0};
-        }
-        if (SirMetal::CONTEXT->input.isKeyDown(SirMetal::KEY_CODES::W)) {
-            camPos += vector_float3{0, 0.0, 0.1};
-        }
-        if (SirMetal::CONTEXT->input.isKeyDown(SirMetal::KEY_CODES::S)) {
-            camPos += vector_float3{0, 0, -0.1};
-        }
-        if (SirMetal::CONTEXT->input.isKeyDown(SirMetal::KEY_CODES::Q)) {
-            camPos += vector_float3{0, 0.1, 0};
-        }
-        if (SirMetal::CONTEXT->input.isKeyDown(SirMetal::KEY_CODES::E)) {
-            camPos += vector_float3{0, -0.1, 0};
-        }
-    }
-    const matrix_float4x4 viewMatrix = matrix_float4x4_translation(camPos);
+    SirMetal::Input &input = SirMetal::CONTEXT->input;
+    static vector_float3 camPos = {0, 0, -5};
+    if ((SirMetal::CONTEXT->flags.interaction & SirMetal::InteractionFlagsBits::InteractionViewportFocused) > 0) {
 
+        simd_float4 pos = viewMatrix.columns[3];
+        //resetting position
+        viewMatrix.columns[3] = simd_float4{0, 0, 0, 1};
+
+
+        //simd_float4 up = viewMatrix.columns[1];
+        simd_float4 up = simd_float4{0, 1, 0, 0};
+        const matrix_float4x4 camRotY = matrix_float4x4_rotation(vector_float3{up.x, up.y, up.z}, input.m_mouseDeltaX * -0.01f);
+        if(input.m_mouse[SirMetal::MOUSE_BUTTONS::LEFT]){
+            viewMatrix = matrix_multiply(camRotY, viewMatrix);
+        }
+
+
+        simd_float4 side = viewMatrix.columns[0];
+        const matrix_float4x4 camRotX = matrix_float4x4_rotation(vector_float3{side.x, side.y, side.z}, input.m_mouseDeltaY * 0.01f);
+        if(input.m_mouse[SirMetal::MOUSE_BUTTONS::LEFT]) {
+            viewMatrix = matrix_multiply(camRotX, viewMatrix);
+        }
+
+        simd_float4 forward= viewMatrix.columns[2];
+
+        if (input.isKeyDown(SirMetal::KEY_CODES::A)) {
+            pos -= side*0.1;
+        }
+        if (input.isKeyDown(SirMetal::KEY_CODES::D)) {
+            pos += side*0.1;
+        }
+        if (input.isKeyDown(SirMetal::KEY_CODES::W)) {
+            pos -= forward*0.1;
+
+        }
+        if (input.isKeyDown(SirMetal::KEY_CODES::S)) {
+            pos += forward*0.1;
+        }
+        if (input.isKeyDown(SirMetal::KEY_CODES::Q)) {
+            pos += vector_float4{0, 0.1, 0, 0};
+        }
+        if (input.isKeyDown(SirMetal::KEY_CODES::E)) {
+            pos += vector_float4{0, -0.1, 0, 0};
+        }
+
+
+        viewMatrix.columns[3] = pos;
+    }
+
+
+    simd_float4x4 viewInv = simd_inverse(viewMatrix);
 
     const float aspect = screenWidth / screenHeight;
     const float fov = (2 * M_PI) / 5;
@@ -241,7 +272,7 @@ static bool shouldResizeOffScreen = false;
     const matrix_float4x4 projectionMatrix = matrix_float4x4_perspective(aspect, fov, near, far);
 
     MBEUniforms uniforms;
-    uniforms.modelViewProjectionMatrix = matrix_multiply(projectionMatrix, matrix_multiply(viewMatrix, modelMatrix));
+    uniforms.modelViewProjectionMatrix = matrix_multiply(projectionMatrix, matrix_multiply(viewInv, modelMatrix));
 
     const NSUInteger uniformBufferOffset = AlignUp(sizeof(MBEUniforms), MBEBufferAlignment) * self.bufferIndex;
     memcpy((char *) ([self.uniformBuffer contents]) + uniformBufferOffset, &uniforms, sizeof(uniforms));
@@ -400,6 +431,8 @@ static bool shouldResizeOffScreen = false;
 
 
         [uiPass endEncoding];
+
+        SirMetal::endFrame(SirMetal::CONTEXT);
     }
 
     [commandBuffer presentDrawable:view.currentDrawable];

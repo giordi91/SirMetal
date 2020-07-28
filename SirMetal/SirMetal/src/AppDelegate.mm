@@ -9,6 +9,7 @@
 #import "AAPLRenderer.h"
 #import "core/input.h"
 #import "engineContext.h"
+#import "log.h"
 
 @implementation SirMTKView
 - (void)customInit {
@@ -46,18 +47,19 @@
     ImGui_ImplOSX_HandleEvent(event, self);
     NSPoint mousePoint = event.locationInWindow;
     SirMetal::CONTEXT->input.setMousePos(mousePoint.x, mousePoint.y);
+    SirMetal::CONTEXT->input.setMouseDelta(static_cast<float>(event.deltaX), static_cast<float>(event.deltaY));
 }
 
 - (void)mouseDown:(NSEvent *)event {
     ImGui_ImplOSX_HandleEvent(event, self);
     ImGuiIO &io = ImGui::GetIO();
     io.MouseDown[static_cast<int>(event.buttonNumber)] = true;
-    SirMetal::CONTEXT->input.setMouse(SirMetal::MOUSE_BUTTONS::LEFT,1);
+    SirMetal::CONTEXT->input.setMouse(SirMetal::MOUSE_BUTTONS::LEFT, 1);
 }
 
 - (void)rightMouseDown:(NSEvent *)event {
     ImGui_ImplOSX_HandleEvent(event, self);
-    SirMetal::CONTEXT->input.setMouse(SirMetal::MOUSE_BUTTONS::RIGHT,1);
+    SirMetal::CONTEXT->input.setMouse(SirMetal::MOUSE_BUTTONS::RIGHT, 1);
 }
 
 - (void)otherMouseDown:(NSEvent *)event {
@@ -66,13 +68,13 @@
 
 - (void)mouseUp:(NSEvent *)event {
     ImGui_ImplOSX_HandleEvent(event, self);
-    SirMetal::CONTEXT->input.setMouse(SirMetal::MOUSE_BUTTONS::LEFT,0);
+    SirMetal::CONTEXT->input.setMouse(SirMetal::MOUSE_BUTTONS::LEFT, 0);
 
 }
 
 - (void)rightMouseUp:(NSEvent *)event {
     ImGui_ImplOSX_HandleEvent(event, self);
-    SirMetal::CONTEXT->input.setMouse(SirMetal::MOUSE_BUTTONS::RIGHT,0);
+    SirMetal::CONTEXT->input.setMouse(SirMetal::MOUSE_BUTTONS::RIGHT, 0);
 }
 
 - (void)otherMouseUp:(NSEvent *)event {
@@ -81,6 +83,9 @@
 
 - (void)mouseDragged:(NSEvent *)event {
     ImGui_ImplOSX_HandleEvent(event, self);
+    NSPoint mousePoint = event.locationInWindow;
+    SirMetal::CONTEXT->input.setMousePos(mousePoint.x, mousePoint.y);
+    SirMetal::CONTEXT->input.setMouseDelta(static_cast<float>(event.deltaX), static_cast<float>(event.deltaY));
 }
 
 - (void)rightMouseDragged:(NSEvent *)event {
@@ -108,10 +113,14 @@
         io.ConfigFlags ^= ImGuiConfigFlags_DockingEnable;
     }
     SirMetal::CONTEXT->input.keyDown(event.keyCode);
+    //to detect shift do
+    //if([event modifierFlags] & NSEventModifierFlagShift)
+    //{
+    //}
 
 }
 
-- (void)keyUp: (NSEvent*)event{
+- (void)keyUp:(NSEvent *)event {
     SirMetal::CONTEXT->input.keyUp(event.keyCode);
 }
 

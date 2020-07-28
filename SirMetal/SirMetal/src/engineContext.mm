@@ -69,5 +69,12 @@ namespace SirMetal {
 
     }
 
+    void endFrame(EngineContext *context) {
+        //we clear the mouse delta such that
+        //if anything relies on it does not continue getting triggered
+        context->input.m_mouseDeltaX = 0;
+        context->input.m_mouseDeltaY = 0;
+    }
+
 
 }

@@ -24,10 +24,6 @@ namespace SirMetal {
     public:
         static constexpr int SIZE_OF_KEYS = 256;
 
-        Input() = default;
-
-        ~Input() = default;
-
         Input(const Input &) = delete;
 
         Input &operator=(const Input &) = delete;
@@ -77,6 +73,10 @@ namespace SirMetal {
             m_mousePosX = x;
             m_mousePosY = y;
         }
+        inline void setMouseDelta(float deltaX, float deltaY) {
+            m_mouseDeltaX = deltaX;
+            m_mouseDeltaY = deltaY;
+        }
 
         void swapFrameKey() {
             // copying current keys to the previous frame
@@ -86,7 +86,10 @@ namespace SirMetal {
         int m_mouse[4]{};
         float m_mousePosX = 0;
         float m_mousePosY = 0;
+        float m_mouseDeltaX = 0;
+        float m_mouseDeltaY = 0;
         uint32_t m_keys[SIZE_OF_KEYS]{};
         uint32_t m_keysPrev[SIZE_OF_KEYS]{};
+
     };
 }

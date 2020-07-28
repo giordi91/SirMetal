@@ -47,6 +47,7 @@ namespace SirMetal {
 
 
     void initializeContext(const char *projectPath);
+    void endFrame(EngineContext* context);
 
     extern EngineContext *CONTEXT;
 }
