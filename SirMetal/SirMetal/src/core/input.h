@@ -57,7 +57,7 @@ namespace SirMetal {
         // the key was pressed in the previous frame and this frame, which
         // might be most likely the case with every press since a user cannot
         // press that fast
-        inline bool isKeyRepeaded(const uint32_t input) const {
+        inline bool isKeyRepeated(const uint32_t input) const {
             return (m_keys[input] != 0) & (m_keysPrev[input] != 0);
         }
 

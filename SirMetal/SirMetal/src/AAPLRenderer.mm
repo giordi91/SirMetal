@@ -37,6 +37,8 @@ static const uint32_t MBEBufferAlignment = 256;
 static SirMetal::EditorUI editorUI = SirMetal::EditorUI();
 static bool shouldResizeOffScreen = false;
 static matrix_float4x4 viewMatrix;
+static SirMetal::Camera camera;
+static SirMetal::FPSCameraController cameraController;
 
 @interface AAPLRenderer ()
 @property(strong) id <MTLRenderPipelineState> renderPipelineState;
@@ -47,27 +49,11 @@ static matrix_float4x4 viewMatrix;
 @property(nonatomic, strong) id <MTLBuffer> vertexBuffer;
 @property(strong) id <MTLBuffer> indexBuffer;
 @property(strong) id <MTLBuffer> uniformBuffer;
-//@property(assign) ImVec2 viewportSize;
-//@property(assign) ImVec2 viewportPanelSize;
 @property(strong) dispatch_semaphore_t displaySemaphore;
 @property(assign) NSInteger bufferIndex;
 @property(assign) float rotationX, rotationY, time;
-//@property(assign) bool shouldResizeOffScreen;
-
 @end
 
-/*
-@property (strong) id<MTLDevice> device;
-@property (strong) id<MTLBuffer> vertexBuffer;
-@property (strong) id<MTLBuffer> indexBuffer;
-@property (strong) id<MTLBuffer> uniformBuffer;
-@property (strong) id<MTLCommandQueue> commandQueue;
-@property (strong) id<MTLRenderPipelineState> renderPipelineState;
-@property (strong) id<MTLDepthStencilState> depthStencilState;
-@property (strong) dispatch_semaphore_t displaySemaphore;
-@property (assign) NSInteger bufferIndex;
-@property (assign) float rotationX, rotationY, time;
-*/
 // Main class performing the rendering
 @implementation AAPLRenderer {
     id <MTLDevice> _device;
@@ -120,6 +106,13 @@ static matrix_float4x4 viewMatrix;
 
     //view matrix
     viewMatrix = matrix_float4x4_translation(vector_float3{0, 0, 5});
+    //initializing the camera to the identity
+    camera.viewMatrix = matrix_float4x4_translation(vector_float3{0, 0, 0});
+    camera.fov = M_PI/4;
+    camera.nearPlane = 1;
+    camera.farPlane = 100;
+    cameraController.setCamera(&camera);
+    cameraController.setPosition(0,0,5);
 
     MTLTextureDescriptor *descriptor =
             [MTLTextureDescriptor texture2DDescriptorWithPixelFormat:MTLPixelFormatDepth32Float_Stencil8 width:w height:h mipmapped:NO];
@@ -144,7 +137,6 @@ static matrix_float4x4 viewMatrix;
     pipelineDescriptor.fragmentFunction = [rawLib newFunctionWithName:@"fragment_flatcolor"];
     pipelineDescriptor.colorAttachments[0].pixelFormat = MTLPixelFormatBGRA8Unorm;
     pipelineDescriptor.depthAttachmentPixelFormat = MTLPixelFormatDepth32Float_Stencil8;
-    //pipelineDescriptor.depthAttachmentPixelFormat = MTLPixelFormatDepth32Float;
 
     MTLDepthStencilDescriptor *depthStencilDescriptor = [MTLDepthStencilDescriptor new];
     depthStencilDescriptor.depthCompareFunction = MTLCompareFunctionLess;
@@ -200,79 +192,12 @@ static matrix_float4x4 viewMatrix;
 
 - (void)updateUniformsForView:(float)screenWidth :(float)screenHeight {
 
-    //float duration = 0.01;
-    float duration = 0.00;
-    self.time += duration;
-    self.rotationX += duration * (M_PI / 2);
-    self.rotationY += duration * (M_PI / 3);
-    float scaleFactor = sinf(5 * self.time) * 0.25 + 1;
-    const vector_float3 xAxis = {1, 0, 0};
-    const vector_float3 yAxis = {0, 1, 0};
-    const matrix_float4x4 xRot = matrix_float4x4_rotation(xAxis, self.rotationX);
-    const matrix_float4x4 yRot = matrix_float4x4_rotation(yAxis, self.rotationY);
-    const matrix_float4x4 scale = matrix_float4x4_uniform_scale(scaleFactor);
-    const matrix_float4x4 modelMatrix = matrix_multiply(matrix_multiply(xRot, yRot), scale);
+    const matrix_float4x4 modelMatrix = matrix_float4x4_translation(vector_float3{0,0,0});
 
     SirMetal::Input &input = SirMetal::CONTEXT->input;
-    static vector_float3 camPos = {0, 0, -5};
-    if ((SirMetal::CONTEXT->flags.interaction & SirMetal::InteractionFlagsBits::InteractionViewportFocused) > 0) {
-
-        simd_float4 pos = viewMatrix.columns[3];
-        //resetting position
-        viewMatrix.columns[3] = simd_float4{0, 0, 0, 1};
-
-
-        //simd_float4 up = viewMatrix.columns[1];
-        simd_float4 up = simd_float4{0, 1, 0, 0};
-        const matrix_float4x4 camRotY = matrix_float4x4_rotation(vector_float3{up.x, up.y, up.z}, input.m_mouseDeltaX * -0.01f);
-        if(input.m_mouse[SirMetal::MOUSE_BUTTONS::LEFT]){
-            viewMatrix = matrix_multiply(camRotY, viewMatrix);
-        }
-
-
-        simd_float4 side = viewMatrix.columns[0];
-        const matrix_float4x4 camRotX = matrix_float4x4_rotation(vector_float3{side.x, side.y, side.z}, input.m_mouseDeltaY * 0.01f);
-        if(input.m_mouse[SirMetal::MOUSE_BUTTONS::LEFT]) {
-            viewMatrix = matrix_multiply(camRotX, viewMatrix);
-        }
-
-        simd_float4 forward= viewMatrix.columns[2];
-
-        if (input.isKeyDown(SirMetal::KEY_CODES::A)) {
-            pos -= side*0.1;
-        }
-        if (input.isKeyDown(SirMetal::KEY_CODES::D)) {
-            pos += side*0.1;
-        }
-        if (input.isKeyDown(SirMetal::KEY_CODES::W)) {
-            pos -= forward*0.1;
-
-        }
-        if (input.isKeyDown(SirMetal::KEY_CODES::S)) {
-            pos += forward*0.1;
-        }
-        if (input.isKeyDown(SirMetal::KEY_CODES::Q)) {
-            pos += vector_float4{0, 0.1, 0, 0};
-        }
-        if (input.isKeyDown(SirMetal::KEY_CODES::E)) {
-            pos += vector_float4{0, -0.1, 0, 0};
-        }
-
-
-        viewMatrix.columns[3] = pos;
-    }
-
-
-    simd_float4x4 viewInv = simd_inverse(viewMatrix);
-
-    const float aspect = screenWidth / screenHeight;
-    const float fov = (2 * M_PI) / 5;
-    const float near = 1;
-    const float far = 100;
-    const matrix_float4x4 projectionMatrix = matrix_float4x4_perspective(aspect, fov, near, far);
-
+    cameraController.update(&input,screenWidth,screenHeight);
     MBEUniforms uniforms;
-    uniforms.modelViewProjectionMatrix = matrix_multiply(projectionMatrix, matrix_multiply(viewInv, modelMatrix));
+    uniforms.modelViewProjectionMatrix = matrix_multiply(camera.VP, modelMatrix);
 
     const NSUInteger uniformBufferOffset = AlignUp(sizeof(MBEUniforms), MBEBufferAlignment) * self.bufferIndex;
     memcpy((char *) ([self.uniformBuffer contents]) + uniformBufferOffset, &uniforms, sizeof(uniforms));
