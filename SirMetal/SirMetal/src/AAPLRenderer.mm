@@ -194,13 +194,23 @@ static SirMetal::FPSCameraController cameraController;
 
     const matrix_float4x4 modelMatrix = matrix_float4x4_translation(vector_float3{0,0,0});
 
-    SirMetal::Input &input = SirMetal::CONTEXT->input;
-    cameraController.update(&input,screenWidth,screenHeight);
-    MBEUniforms uniforms;
-    uniforms.modelViewProjectionMatrix = matrix_multiply(camera.VP, modelMatrix);
+    ImGuiIO &io = ImGui::GetIO();
+    //we wish to update the camera aka move it only when we are in
+    //viewport mode, if the viewport is in focus, or when we are not
+    //in viewport mode, meaning fullscreen. if one of those two conditions
+    //is true we update the camera.
+    bool isViewport = (io.ConfigFlags & ImGuiConfigFlags_DockingEnable) > 0;
+    bool isViewportInFocus = (SirMetal::CONTEXT->flags.interaction & SirMetal::InteractionFlagsBits::InteractionViewportFocused) > 0;
+    bool shouldControlViewport = isViewport & isViewportInFocus;
+    if (shouldControlViewport | (!isViewport)) {
+        SirMetal::Input &input = SirMetal::CONTEXT->input;
+        cameraController.update(&input, screenWidth, screenHeight);
+        MBEUniforms uniforms;
+        uniforms.modelViewProjectionMatrix = matrix_multiply(camera.VP, modelMatrix);
 
-    const NSUInteger uniformBufferOffset = AlignUp(sizeof(MBEUniforms), MBEBufferAlignment) * self.bufferIndex;
-    memcpy((char *) ([self.uniformBuffer contents]) + uniformBufferOffset, &uniforms, sizeof(uniforms));
+        const NSUInteger uniformBufferOffset = AlignUp(sizeof(MBEUniforms), MBEBufferAlignment) * self.bufferIndex;
+        memcpy((char *) ([self.uniformBuffer contents]) + uniformBufferOffset, &uniforms, sizeof(uniforms));
+    }
 }
 
 - (void)createOffscreenTexture:(int)width :(int)height {
