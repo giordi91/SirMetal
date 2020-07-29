@@ -3,8 +3,18 @@
 #import <simd/matrix_types.h>
 
 namespace SirMetal {
-
+    //forward declares
     class Input;
+
+    struct CameraManipulationConfig {
+        float leftRightLookDirection = 1;
+        float upDownLookDirection = -1;
+        float leftRightMovementDirection = -1;
+        float forwardBackMovementDirection = -1;
+        float upDownMovementDirection= 1;
+        float movementSpeed = 0.2f;
+        float lookSpeed = 0.005f;
+    };
 
     struct Camera {
         matrix_float4x4 viewMatrix;
