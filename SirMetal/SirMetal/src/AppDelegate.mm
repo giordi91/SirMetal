@@ -10,6 +10,7 @@
 #import "core/input.h"
 #import "engineContext.h"
 #import "log.h"
+#import "project.h"
 
 @implementation SirMTKView
 - (void)customInit {
@@ -193,6 +194,16 @@
 
     [window makeFirstResponder:view];
     NSLog(@"subviews are: %@", [self.window.contentView subviews]);
+
+    SirMetal::Editor::initializeProject();
+    /*
+    */
+
+    /*
+    NSUserDefaults *defaults = [NSUserDefaults standardUserDefaults];
+    [defaults setInteger:101 forKey:@”RollNo”];
+    [defaults synchronize];
+     */
 
 }
 

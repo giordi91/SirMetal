@@ -1,15 +1,14 @@
-//
-// Created by Marco Giordano on 29/07/2020.
-// Copyright (c) 2020 Marco Giordano. All rights reserved.
-//
+#pragma once
 
-#ifndef SIRMETAL_PROJECT_H
-#define SIRMETAL_PROJECT_H
+namespace SirMetal {
+    namespace Editor {
+        class Project {
 
 
-class project {
+        };
 
-};
+        void initializeProject();
+        extern Project *PROJECT;
 
-
-#endif //SIRMETAL_PROJECT_H
+    }
+}
