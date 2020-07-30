@@ -41,6 +41,7 @@ namespace SirMetal {
         ImGui::PopStyleVar();
         ImGui::PopStyleVar(2);
 
+        static bool showCamera = false;
         //shorcut_menu_bar();
         if (ImGui::BeginMenuBar()) {
             if (ImGui::BeginMenu("File")) {
@@ -57,6 +58,9 @@ namespace SirMetal {
                     if (ImGui::MenuItem("Flag: PassthruCentralNode", "", (dockspace_flags & ImGuiDockNodeFlags_PassthruCentralNode) != 0)) dockspace_flags ^= ImGuiDockNodeFlags_PassthruCentralNode;
                     if (ImGui::MenuItem("Flag: AutoHideTabBar", "", (dockspace_flags & ImGuiDockNodeFlags_AutoHideTabBar) != 0)) dockspace_flags ^= ImGuiDockNodeFlags_AutoHideTabBar;
                     ImGui::EndMenu();
+                }
+                if (ImGui::Button("Camera Settings")) {
+                    showCamera=true;
                 }
                 ImGui::EndMenu();
             }
@@ -115,6 +119,10 @@ namespace SirMetal {
 
         ImGui::End();
 
+        if(showCamera) {
+            ImGui::Begin("Camera settings", &showCamera);
+            ImGui::End();
+        }
         //ImGui::ShowDemoWindow((bool*)0);
         return shouldRefreshTextureSize;
 

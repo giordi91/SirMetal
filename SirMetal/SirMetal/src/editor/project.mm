@@ -12,6 +12,10 @@
 
 namespace SirMetal {
     namespace Editor {
+        namespace PROJECT_KEY {
+            static const std::string defaultProjectName = "Empty Project";
+            static const std::string projectName = "projectName";
+        }
 
         namespace CAMERA_KEY {
             static const CameraManipulationConfig defaultValues = {1.0f, -1.0f, -1.0f, -1.0f, 1.0f, 0.2f, 0.005f};
@@ -89,6 +93,7 @@ namespace SirMetal {
             if (jobj.empty()) {
                 return false;
             }
+            m_settings.m_projectName = getValueIfInJson(jobj, PROJECT_KEY::projectName, PROJECT_KEY::defaultProjectName);
             bool result = parseCameraSettings(jobj);
             if (!result) {
                 SIR_CORE_ERROR("Could not parse camera settings, default will be used");
@@ -97,9 +102,9 @@ namespace SirMetal {
         }
 
         bool Project::parseCameraSettings(const nlohmann::json &jobj) {
-            m_settings.m_cameraConfig.leftRightLookDirection= getValueIfInJson(jobj,
+            m_settings.m_cameraConfig.leftRightLookDirection = getValueIfInJson(jobj,
                     CAMERA_KEY::lrLookDir, CAMERA_KEY::defaultValues.leftRightLookDirection);
-            m_settings.m_cameraConfig.upDownLookDirection= getValueIfInJson(jobj,
+            m_settings.m_cameraConfig.upDownLookDirection = getValueIfInJson(jobj,
                     CAMERA_KEY::udLookDir, CAMERA_KEY::defaultValues.upDownLookDirection);
             m_settings.m_cameraConfig.leftRightMovementDirection = getValueIfInJson(jobj,
                     CAMERA_KEY::lrMovDir, CAMERA_KEY::defaultValues.leftRightMovementDirection);
