@@ -10,7 +10,6 @@ int main(int argc, const char * argv[]) {
     NSAutoreleasePool * pool = [[NSAutoreleasePool alloc] init];
     NSApplication *NSApp = [NSApplication sharedApplication];
 
-    SirMetal::initializeContext(argv[1]);
 
     AppDelegate *appDelegate = [[AppDelegate alloc] init];
     [NSApp setDelegate:appDelegate];

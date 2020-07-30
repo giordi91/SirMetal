@@ -142,14 +142,13 @@
 - (void)applicationDidFinishLaunching:(NSNotification *)aNotification {
 //    Create Main Window
 
+    SirMetal::Log::init();
+    SirMetal::Editor::initializeProject();
+    SirMetal::initializeContext();
 
     NSScreen *screen = NSScreen.mainScreen;
     NSRect screenRect = [screen visibleFrame];
     NSLog(@"Screen size %.1f-%.1f %.1fx%.1f", screenRect.origin.x, screenRect.origin.y, screenRect.size.width, screenRect.size.height);
-
-    //2880.0x1480.0
-    //2880.0x1594.0
-    //screenRect = NSMakeRect(0, 0, 1440, 795);
 
     window = [[[NSWindow alloc] initWithContentRect:screenRect
                                           styleMask:NSWindowStyleMaskTitled | NSWindowStyleMaskClosable | NSWindowStyleMaskResizable
@@ -194,16 +193,6 @@
 
     [window makeFirstResponder:view];
     NSLog(@"subviews are: %@", [self.window.contentView subviews]);
-
-    SirMetal::Editor::initializeProject();
-    /*
-    */
-
-    /*
-    NSUserDefaults *defaults = [NSUserDefaults standardUserDefaults];
-    [defaults setInteger:101 forKey:@”RollNo”];
-    [defaults synchronize];
-     */
 
 }
 

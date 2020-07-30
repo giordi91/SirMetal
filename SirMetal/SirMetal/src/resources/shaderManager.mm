@@ -13,7 +13,7 @@ namespace SirMetal {
         }
 
         //loading the actual shader library
-        NSString *shaderPath = [NSString stringWithCString:SirMetal::CONTEXT->projectPath
+        NSString *shaderPath = [NSString stringWithCString:m_resourcePath.c_str()
                                                   encoding:[NSString defaultCStringEncoding]];
         __autoreleasing NSError *errorLib = nil;
         shaderPath = [shaderPath stringByAppendingString:@"/shaders/Shaders.metal"];

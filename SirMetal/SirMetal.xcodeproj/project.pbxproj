@@ -33,6 +33,7 @@
 		C9EA93BDE3F0E48EBCBC15CD /* Shaders.metal in Sources */ = {isa = PBXBuildFile; fileRef = C9EA9177C2222C58DC35911F /* Shaders.metal */; };
 		C9EA96ED3CD28C517C3C3F84 /* engineContext.mm in Sources */ = {isa = PBXBuildFile; fileRef = C9EA97F345427A0F723A6B51 /* engineContext.mm */; };
 		C9EA971266D1DF3F3D7FFCF4 /* settings.mm in Sources */ = {isa = PBXBuildFile; fileRef = C9EA9A0497A232A0FECA2BE9 /* settings.mm */; };
+		C9EA975C8EE857168E3AA25C /* entryPoint.mm in Sources */ = {isa = PBXBuildFile; fileRef = C9EA987FA45D97D90C540393 /* entryPoint.mm */; };
 		C9EA9B3D539841D0888CB89C /* camera.mm in Sources */ = {isa = PBXBuildFile; fileRef = C9EA9153D1DD5FEF3F4DF469 /* camera.mm */; };
 		C9EA9B7EB771331DBA5DF92A /* project.mm in Sources */ = {isa = PBXBuildFile; fileRef = C9EA9B5D604E5F9F39AD7216 /* project.mm */; };
 		C9EA9FAC99E3F1E233069DCB /* log.mm in Sources */ = {isa = PBXBuildFile; fileRef = C9EA963FCCB27C5D4FE9E3EA /* log.mm */; };
@@ -127,6 +128,7 @@
 		C00CBE2024CD5572009167CB /* pattern_formatter.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = pattern_formatter.h; sourceTree = "<group>"; };
 		C00CBE2124CD5572009167CB /* logger.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = logger.h; sourceTree = "<group>"; };
 		C00CBE2224CD5572009167CB /* spdlog-inl.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = "spdlog-inl.h"; sourceTree = "<group>"; };
+		C00CBE2524D29064009167CB /* json.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = json.hpp; sourceTree = "<group>"; };
 		C08F5E3024B3D93900CC95FC /* SirMetal.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = SirMetal.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		C08F5E3624B3D93A00CC95FC /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		C08F5E3924B3D93A00CC95FC /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.xib; name = Base; path = Base.lproj/MainMenu.xib; sourceTree = "<group>"; };
@@ -165,6 +167,7 @@
 		C9EA9133493C7B1654F27F1B /* editorUI.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = editorUI.mm; sourceTree = "<group>"; };
 		C9EA9153D1DD5FEF3F4DF469 /* camera.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = camera.mm; sourceTree = "<group>"; };
 		C9EA9177C2222C58DC35911F /* Shaders.metal */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.metal; path = Shaders.metal; sourceTree = "<group>"; };
+		C9EA9396061B7B7C34100AC2 /* entryPoint.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = entryPoint.h; sourceTree = "<group>"; };
 		C9EA93B2EBB4A176221347C1 /* editorUI.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = editorUI.h; sourceTree = "<group>"; };
 		C9EA94A9EB80CCD900528510 /* input.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = input.h; sourceTree = "<group>"; };
 		C9EA9636D11C613CC48E42E5 /* shaderManager.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = shaderManager.mm; sourceTree = "<group>"; };
@@ -174,6 +177,7 @@
 		C9EA975654E1741125C8874D /* materialWidget.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = materialWidget.h; sourceTree = "<group>"; };
 		C9EA975B59388E141EDF5924 /* textureManager.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = textureManager.mm; sourceTree = "<group>"; };
 		C9EA97F345427A0F723A6B51 /* engineContext.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = engineContext.mm; sourceTree = "<group>"; };
+		C9EA987FA45D97D90C540393 /* entryPoint.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = entryPoint.mm; sourceTree = "<group>"; };
 		C9EA99B11A0783C8CB4A0751 /* camera.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = camera.h; sourceTree = "<group>"; };
 		C9EA99F10C0218BE7927D8B9 /* project.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = project.h; sourceTree = "<group>"; };
 		C9EA9A0497A232A0FECA2BE9 /* settings.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = settings.mm; sourceTree = "<group>"; };
@@ -335,6 +339,14 @@
 			path = cfg;
 			sourceTree = "<group>";
 		};
+		C00CBE2424D29064009167CB /* json */ = {
+			isa = PBXGroup;
+			children = (
+				C00CBE2524D29064009167CB /* json.hpp */,
+			);
+			path = json;
+			sourceTree = "<group>";
+		};
 		C08F5E2724B3D93900CC95FC = {
 			isa = PBXGroup;
 			children = (
@@ -397,6 +409,8 @@
 				C9EA9CDA1EED06D10BBA2316 /* core */,
 				C9EA99545457CD5970515234 /* graphics */,
 				C9EA9A6242E865737BA87FC3 /* editor */,
+				C9EA987FA45D97D90C540393 /* entryPoint.mm */,
+				C9EA9396061B7B7C34100AC2 /* entryPoint.h */,
 			);
 			path = src;
 			sourceTree = "<group>";
@@ -404,6 +418,7 @@
 		C0DF946924C250F40005DB07 /* vendors */ = {
 			isa = PBXGroup;
 			children = (
+				C00CBE2424D29064009167CB /* json */,
 				C00CBDC524CD5571009167CB /* spdlog */,
 				C0DF946A24C250F40005DB07 /* imgui */,
 			);
@@ -582,6 +597,7 @@
 				C9EA9B3D539841D0888CB89C /* camera.mm in Sources */,
 				C9EA9B7EB771331DBA5DF92A /* project.mm in Sources */,
 				C9EA971266D1DF3F3D7FFCF4 /* settings.mm in Sources */,
+				C9EA975C8EE857168E3AA25C /* entryPoint.mm in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

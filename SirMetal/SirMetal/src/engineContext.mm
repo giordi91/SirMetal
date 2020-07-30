@@ -45,22 +45,26 @@ buffer to hold the text */
 #import "resources/shaderManager.h"
 #import "resources/textureManager.h"
 #import "log.h"
+#import "project.h"
 
 namespace SirMetal {
 
     EngineContext *CONTEXT = nullptr;
 
-    void initializeContext(const char *projectPath)
+    void initializeContext()
     {
-        SirMetal::Log::init();
-        SIR_CORE_INFO("Initializing sir metal project at: %s\n", projectPath);
+
+        //NOTE this is something that could be fed from outside, such that we
+        //are not tight to the project and editor namespace, say in the case
+        //we deploy a game
+        const std::string& projectPath = SirMetal::Editor::PROJECT->getProjectPath();
 
         ShaderManager* shaderManager = new ShaderManager;
-        shaderManager->initialize();
+        shaderManager->initialize(projectPath);
         TextureManager* textureManager = new TextureManager;
         textureManager->initialize();
 
-        CONTEXT = new EngineContext{projectPath, 0,0, nullptr
+        CONTEXT = new EngineContext{ 0,0, nullptr
         ,{
             textureManager,
             shaderManager,

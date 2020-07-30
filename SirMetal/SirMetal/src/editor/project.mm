@@ -5,8 +5,18 @@
 
 #import <AppKit/AppKit.h>
 
+#include <filesystem>
+
 namespace SirMetal {
     namespace Editor {
+
+        Project *PROJECT = nullptr;
+
+        inline std::string getPathName(const std::string &path) {
+            const auto expPath = std::__fs::filesystem::path(path);
+            return expPath.parent_path().string();
+        }
+
         //Open a dialog to get a project path file from the user
         NSString* getProjectPathFromUser() {
             NSOpenPanel *panel;
@@ -50,7 +60,14 @@ namespace SirMetal {
 
         void initializeProject() {
             const std::string path = getProjectPathCached();
+            PROJECT = new Project();
+            PROJECT->initialize(path);
             SIR_CORE_INFO("Opening project at path {}", path);
+        }
+
+        void Project::initialize(const std::string &path) {
+            m_projectFilePath = path;
+            m_projectPath = getPathName(path);
         }
     }
 }

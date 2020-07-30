@@ -12,6 +12,7 @@
 #import "imgui_internal.h"
 #import "editorUI.h"
 #import "log.h"
+#import "project.h"
 
 typedef struct {
     vector_float4 position;
@@ -128,7 +129,8 @@ static SirMetal::FPSCameraController cameraController;
 - (void)makePipeline {
 
     char buffer[256];
-    sprintf(buffer, "%s/%s", SirMetal::CONTEXT->projectPath, "/shaders/Shaders.metal");
+    const std::string& projectPath = SirMetal::Editor::PROJECT->getProjectPath();
+    sprintf(buffer, "%s/%s", projectPath.c_str(), "/shaders/Shaders.metal");
     SirMetal::LibraryHandle lh = SirMetal::CONTEXT->managers.shaderManager->loadShader(buffer, _device);
     id <MTLLibrary> rawLib = SirMetal::CONTEXT->managers.shaderManager->getLibraryFromHandle(lh);
 

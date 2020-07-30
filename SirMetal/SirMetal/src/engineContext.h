@@ -32,7 +32,6 @@ namespace SirMetal {
 
 
     struct EngineContext {
-        const char *projectPath;
         uint32_t screenWidth;
         uint32_t screenHeight;
         void *viewportTexture;
@@ -48,7 +47,7 @@ namespace SirMetal {
 
     };
 
-    void initializeContext(const char *projectPath);
+    void initializeContext();
     void endFrame(EngineContext* context);
 
     extern EngineContext *CONTEXT;
