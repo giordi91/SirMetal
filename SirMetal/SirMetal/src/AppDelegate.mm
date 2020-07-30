@@ -144,7 +144,10 @@
 - (void)applicationDidFinishLaunching:(NSNotification *)aNotification {
 
     //Initialize the engine
-    SirMetal::startup();
+    bool result = SirMetal::startup();
+    if (!result) {
+        [window close];
+    }
 
     //Create Main Window
     NSScreen *screen = NSScreen.mainScreen;

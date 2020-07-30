@@ -8,6 +8,7 @@
 #include <filesystem>
 
 #include "../platform/file.h"
+#include "../core/jsonParse.h"
 
 namespace SirMetal {
     namespace Editor {
@@ -56,18 +57,28 @@ namespace SirMetal {
             return toReturn;
         }
 
-        void initializeProject() {
+        bool initializeProject() {
             const std::string path = getProjectPathCached();
             PROJECT = new Project();
-            PROJECT->initialize(path);
             SIR_CORE_INFO("Opening project at path {}", path);
+            return PROJECT->initialize(path);
         }
 
-        void Project::initialize(const std::string &path) {
+        bool Project::initialize(const std::string &path) {
             m_projectFilePath = path;
             m_projectPath = getPathName(path);
 
             //let us read up the content of the project
+
+            auto jobj =getJsonObj(path);
+            if(jobj.empty())
+            {
+                return false;
+            }
+
+
+            return true;
+
         }
     }
 }

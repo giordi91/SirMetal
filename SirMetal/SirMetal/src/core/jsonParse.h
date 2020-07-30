@@ -46,7 +46,7 @@ namespace SirMetal {
                 std::rethrow_exception(ex);
             }
         } else {
-            assert(0);
+            SIR_CORE_ERROR("Provided file path does not exists:{}",path);
             return nlohmann::json();
         }
     }

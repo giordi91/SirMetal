@@ -47,7 +47,7 @@ namespace SirMetal {
 
     };
 
-    void initializeContext();
+    bool initializeContext();
     void endFrame(EngineContext* context);
 
     extern EngineContext *CONTEXT;

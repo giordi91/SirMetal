@@ -7,7 +7,7 @@ namespace SirMetal {
         class Project {
 
         public:
-            void initialize(const std::string &path);
+            bool initialize(const std::string &path);
             const std::string& getProjectFilePath() const{
                 return m_projectFilePath;
             }
@@ -19,7 +19,7 @@ namespace SirMetal {
             std::string m_projectPath;
         };
 
-        void initializeProject();
+        bool initializeProject();
         extern Project *PROJECT;
 
     }

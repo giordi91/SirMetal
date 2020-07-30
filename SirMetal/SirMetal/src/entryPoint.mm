@@ -5,14 +5,19 @@
 #import "engineContext.h"
 
 namespace SirMetal {
-    void startup() {
+    bool startup() {
         Log::init();
-        Editor::initializeProject();
-        initializeContext();
+        bool result = Editor::initializeProject();
+        if(!result ){return false;}
+        result = initializeContext();
+        if(!result ){return false;}
+        return true;
+
     }
 
     void shutdown() {
         delete CONTEXT;
         delete Editor::PROJECT;
+        Log::free();
     }
 }

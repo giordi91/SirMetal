@@ -51,7 +51,7 @@ namespace SirMetal {
 
     EngineContext *CONTEXT = nullptr;
 
-    void initializeContext()
+    bool initializeContext()
     {
 
         //NOTE this is something that could be fed from outside, such that we
@@ -70,6 +70,8 @@ namespace SirMetal {
             shaderManager,
         }};
         CONTEXT->cameraController.setCamera(&CONTEXT->camera);
+
+        return true;
 
     }
 

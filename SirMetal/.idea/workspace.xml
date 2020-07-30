@@ -30,6 +30,10 @@
     </configuration>
   </component>
   <component name="WindowStateProjectService">
+    <state x="395" y="259" key="#com.intellij.fileTypes.FileTypeChooser" timestamp="1596090628785">
+      <screen x="0" y="23" width="1440" height="797" />
+    </state>
+    <state x="395" y="259" key="#com.intellij.fileTypes.FileTypeChooser/0.23.1440.797@0.23.1440.797" timestamp="1596090628785" />
     <state x="458" y="204" key="#com.intellij.refactoring.safeDelete.UnsafeUsagesDialog" timestamp="1594589156266">
       <screen x="0" y="0" width="1440" height="900" />
     </state>
@@ -38,25 +42,25 @@
       <screen x="0" y="0" width="1440" height="900" />
     </state>
     <state width="492" height="466" key="DebuggerActiveHint/0.0.1440.900@0.0.1440.900" timestamp="1595539629798" />
-    <state width="1398" height="181" key="GridCell.Tab.0.bottom" timestamp="1596090248973">
+    <state width="1398" height="181" key="GridCell.Tab.0.bottom" timestamp="1596091697501">
       <screen x="0" y="0" width="1440" height="900" />
     </state>
-    <state width="1398" height="181" key="GridCell.Tab.0.bottom/0.0.1440.900@0.0.1440.900" timestamp="1596090248973" />
+    <state width="1398" height="181" key="GridCell.Tab.0.bottom/0.0.1440.900@0.0.1440.900" timestamp="1596091697501" />
     <state width="1398" height="181" key="GridCell.Tab.0.bottom/0.23.1440.797@0.23.1440.797" timestamp="1595579734390" />
-    <state width="1398" height="181" key="GridCell.Tab.0.center" timestamp="1596090248972">
+    <state width="1398" height="181" key="GridCell.Tab.0.center" timestamp="1596091697500">
       <screen x="0" y="0" width="1440" height="900" />
     </state>
-    <state width="1398" height="181" key="GridCell.Tab.0.center/0.0.1440.900@0.0.1440.900" timestamp="1596090248972" />
+    <state width="1398" height="181" key="GridCell.Tab.0.center/0.0.1440.900@0.0.1440.900" timestamp="1596091697500" />
     <state width="1398" height="181" key="GridCell.Tab.0.center/0.23.1440.797@0.23.1440.797" timestamp="1595579734388" />
-    <state width="1398" height="181" key="GridCell.Tab.0.left" timestamp="1596090248971">
+    <state width="1398" height="181" key="GridCell.Tab.0.left" timestamp="1596091697499">
       <screen x="0" y="0" width="1440" height="900" />
     </state>
-    <state width="1398" height="181" key="GridCell.Tab.0.left/0.0.1440.900@0.0.1440.900" timestamp="1596090248971" />
+    <state width="1398" height="181" key="GridCell.Tab.0.left/0.0.1440.900@0.0.1440.900" timestamp="1596091697499" />
     <state width="1398" height="181" key="GridCell.Tab.0.left/0.23.1440.797@0.23.1440.797" timestamp="1595579734387" />
-    <state width="1398" height="181" key="GridCell.Tab.0.right" timestamp="1596090248972">
+    <state width="1398" height="181" key="GridCell.Tab.0.right" timestamp="1596091697500">
       <screen x="0" y="0" width="1440" height="900" />
     </state>
-    <state width="1398" height="181" key="GridCell.Tab.0.right/0.0.1440.900@0.0.1440.900" timestamp="1596090248972" />
+    <state width="1398" height="181" key="GridCell.Tab.0.right/0.0.1440.900@0.0.1440.900" timestamp="1596091697500" />
     <state width="1398" height="181" key="GridCell.Tab.0.right/0.23.1440.797@0.23.1440.797" timestamp="1595579734388" />
     <state width="1398" height="329" key="GridCell.Tab.1.bottom" timestamp="1596089146003">
       <screen x="0" y="0" width="1440" height="900" />
@@ -89,18 +93,18 @@
       <screen x="0" y="0" width="1440" height="900" />
     </state>
     <state width="720" height="450" key="XDebugger.FullValuePopup/0.0.1440.900@0.0.1440.900" timestamp="1594674414337" />
-    <state x="343" y="67" key="com.intellij.openapi.editor.actions.MultiplePasteAction$ClipboardContentChooser" timestamp="1596089170783">
+    <state x="343" y="67" key="com.intellij.openapi.editor.actions.MultiplePasteAction$ClipboardContentChooser" timestamp="1596091967039">
       <screen x="0" y="0" width="1440" height="900" />
     </state>
-    <state x="343" y="67" key="com.intellij.openapi.editor.actions.MultiplePasteAction$ClipboardContentChooser/0.0.1440.900@0.0.1440.900" timestamp="1596089170783" />
+    <state x="343" y="67" key="com.intellij.openapi.editor.actions.MultiplePasteAction$ClipboardContentChooser/0.0.1440.900@0.0.1440.900" timestamp="1596091967039" />
     <state x="471" y="247" key="refactoring.ChangeSignatureDialog" timestamp="1596089516257">
       <screen x="0" y="0" width="1440" height="900" />
     </state>
     <state x="471" y="247" key="refactoring.ChangeSignatureDialog/0.0.1440.900@0.0.1440.900" timestamp="1596089516257" />
-    <state x="385" y="196" width="670" height="676" key="search.everywhere.popup" timestamp="1596090159170">
+    <state x="385" y="196" width="670" height="676" key="search.everywhere.popup" timestamp="1596091318125">
       <screen x="0" y="0" width="1440" height="900" />
     </state>
-    <state x="385" y="196" width="670" height="676" key="search.everywhere.popup/0.0.1440.900@0.0.1440.900" timestamp="1596090159170" />
+    <state x="385" y="196" width="670" height="676" key="search.everywhere.popup/0.0.1440.900@0.0.1440.900" timestamp="1596091318125" />
   </component>
   <component name="XDebuggerManager">
     <breakpoint-manager>
