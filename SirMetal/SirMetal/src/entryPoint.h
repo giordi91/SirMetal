@@ -1,5 +1,7 @@
 #pragma once
 
+namespace SirMetal {
+    void startup();
 
-void startup();
-void shutdown();
+    void shutdown();
+}

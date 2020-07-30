@@ -11,6 +11,7 @@
 #import "engineContext.h"
 #import "log.h"
 #import "project.h"
+#import "entryPoint.h"
 
 @implementation SirMTKView
 - (void)customInit {
@@ -105,6 +106,7 @@
     NSLog(@"key down %i", event.keyCode);
     //53 == esc
     if (event.keyCode == 53) {
+        SirMetal::shutdown();
         [self.window close];
         return;
     }
@@ -140,12 +142,11 @@
 
 
 - (void)applicationDidFinishLaunching:(NSNotification *)aNotification {
-//    Create Main Window
 
-    SirMetal::Log::init();
-    SirMetal::Editor::initializeProject();
-    SirMetal::initializeContext();
+    //Initialize the engine
+    SirMetal::startup();
 
+    //Create Main Window
     NSScreen *screen = NSScreen.mainScreen;
     NSRect screenRect = [screen visibleFrame];
     NSLog(@"Screen size %.1f-%.1f %.1fx%.1f", screenRect.origin.x, screenRect.origin.y, screenRect.size.width, screenRect.size.height);

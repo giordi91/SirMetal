@@ -38,25 +38,25 @@
       <screen x="0" y="0" width="1440" height="900" />
     </state>
     <state width="492" height="466" key="DebuggerActiveHint/0.0.1440.900@0.0.1440.900" timestamp="1595539629798" />
-    <state width="1398" height="329" key="GridCell.Tab.0.bottom" timestamp="1596089146001">
+    <state width="1398" height="181" key="GridCell.Tab.0.bottom" timestamp="1596090248973">
       <screen x="0" y="0" width="1440" height="900" />
     </state>
-    <state width="1398" height="329" key="GridCell.Tab.0.bottom/0.0.1440.900@0.0.1440.900" timestamp="1596089146001" />
+    <state width="1398" height="181" key="GridCell.Tab.0.bottom/0.0.1440.900@0.0.1440.900" timestamp="1596090248973" />
     <state width="1398" height="181" key="GridCell.Tab.0.bottom/0.23.1440.797@0.23.1440.797" timestamp="1595579734390" />
-    <state width="1398" height="329" key="GridCell.Tab.0.center" timestamp="1596089146000">
+    <state width="1398" height="181" key="GridCell.Tab.0.center" timestamp="1596090248972">
       <screen x="0" y="0" width="1440" height="900" />
     </state>
-    <state width="1398" height="329" key="GridCell.Tab.0.center/0.0.1440.900@0.0.1440.900" timestamp="1596089146000" />
+    <state width="1398" height="181" key="GridCell.Tab.0.center/0.0.1440.900@0.0.1440.900" timestamp="1596090248972" />
     <state width="1398" height="181" key="GridCell.Tab.0.center/0.23.1440.797@0.23.1440.797" timestamp="1595579734388" />
-    <state width="1398" height="329" key="GridCell.Tab.0.left" timestamp="1596089145999">
+    <state width="1398" height="181" key="GridCell.Tab.0.left" timestamp="1596090248971">
       <screen x="0" y="0" width="1440" height="900" />
     </state>
-    <state width="1398" height="329" key="GridCell.Tab.0.left/0.0.1440.900@0.0.1440.900" timestamp="1596089145999" />
+    <state width="1398" height="181" key="GridCell.Tab.0.left/0.0.1440.900@0.0.1440.900" timestamp="1596090248971" />
     <state width="1398" height="181" key="GridCell.Tab.0.left/0.23.1440.797@0.23.1440.797" timestamp="1595579734387" />
-    <state width="1398" height="329" key="GridCell.Tab.0.right" timestamp="1596089146000">
+    <state width="1398" height="181" key="GridCell.Tab.0.right" timestamp="1596090248972">
       <screen x="0" y="0" width="1440" height="900" />
     </state>
-    <state width="1398" height="329" key="GridCell.Tab.0.right/0.0.1440.900@0.0.1440.900" timestamp="1596089146000" />
+    <state width="1398" height="181" key="GridCell.Tab.0.right/0.0.1440.900@0.0.1440.900" timestamp="1596090248972" />
     <state width="1398" height="181" key="GridCell.Tab.0.right/0.23.1440.797@0.23.1440.797" timestamp="1595579734388" />
     <state width="1398" height="329" key="GridCell.Tab.1.bottom" timestamp="1596089146003">
       <screen x="0" y="0" width="1440" height="900" />
@@ -93,14 +93,14 @@
       <screen x="0" y="0" width="1440" height="900" />
     </state>
     <state x="343" y="67" key="com.intellij.openapi.editor.actions.MultiplePasteAction$ClipboardContentChooser/0.0.1440.900@0.0.1440.900" timestamp="1596089170783" />
-    <state x="471" y="247" key="refactoring.ChangeSignatureDialog" timestamp="1596086649604">
+    <state x="471" y="247" key="refactoring.ChangeSignatureDialog" timestamp="1596089516257">
       <screen x="0" y="0" width="1440" height="900" />
     </state>
-    <state x="471" y="247" key="refactoring.ChangeSignatureDialog/0.0.1440.900@0.0.1440.900" timestamp="1596086649604" />
-    <state x="385" y="196" width="670" height="676" key="search.everywhere.popup" timestamp="1596089155129">
+    <state x="471" y="247" key="refactoring.ChangeSignatureDialog/0.0.1440.900@0.0.1440.900" timestamp="1596089516257" />
+    <state x="385" y="196" width="670" height="676" key="search.everywhere.popup" timestamp="1596090159170">
       <screen x="0" y="0" width="1440" height="900" />
     </state>
-    <state x="385" y="196" width="670" height="676" key="search.everywhere.popup/0.0.1440.900@0.0.1440.900" timestamp="1596089155129" />
+    <state x="385" y="196" width="670" height="676" key="search.everywhere.popup/0.0.1440.900@0.0.1440.900" timestamp="1596090159170" />
   </component>
   <component name="XDebuggerManager">
     <breakpoint-manager>

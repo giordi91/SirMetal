@@ -7,15 +7,13 @@
 
 #include <filesystem>
 
+#include "../platform/file.h"
+
 namespace SirMetal {
     namespace Editor {
 
         Project *PROJECT = nullptr;
 
-        inline std::string getPathName(const std::string &path) {
-            const auto expPath = std::__fs::filesystem::path(path);
-            return expPath.parent_path().string();
-        }
 
         //Open a dialog to get a project path file from the user
         NSString* getProjectPathFromUser() {
@@ -68,6 +66,8 @@ namespace SirMetal {
         void Project::initialize(const std::string &path) {
             m_projectFilePath = path;
             m_projectPath = getPathName(path);
+
+            //let us read up the content of the project
         }
     }
 }

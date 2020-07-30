@@ -1,10 +1,18 @@
 
 #include "entryPoint.h"
+#import "log.h"
+#import "project.h"
+#import "engineContext.h"
 
-void startup() {
+namespace SirMetal {
+    void startup() {
+        Log::init();
+        Editor::initializeProject();
+        initializeContext();
+    }
 
-}
-
-void shutdown() {
-
+    void shutdown() {
+        delete CONTEXT;
+        delete Editor::PROJECT;
+    }
 }
