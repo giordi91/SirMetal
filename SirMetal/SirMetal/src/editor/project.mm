@@ -13,11 +13,23 @@
 namespace SirMetal {
     namespace Editor {
 
+        namespace CAMERA_KEY {
+            static const CameraManipulationConfig defaultValues = {1.0f, -1.0f, -1.0f, -1.0f, 1.0f, 0.2f, 0.005f};
+            static const std::string lrLookDir = "leftRightLookDirection";
+            static const std::string udLookDir = "upDownLookDirection";
+            static const std::string lrMovDir = "leftRightMovementDirection";
+            static const std::string fbMovDir = "forwardBackMovementDirection";
+            static const std::string udMovDir = "upDownMovementDirection";
+            static const std::string movSpeed = "movementSpeed";
+            static const std::string lookSpeed = "lookSpeed";
+        }
+
+
         Project *PROJECT = nullptr;
 
 
         //Open a dialog to get a project path file from the user
-        NSString* getProjectPathFromUser() {
+        NSString *getProjectPathFromUser() {
             NSOpenPanel *panel;
             NSArray *fileTypes = [NSArray arrayWithObjects:@"SirMetalProject", nil];
             panel = [NSOpenPanel openPanel];
@@ -46,13 +58,12 @@ namespace SirMetal {
             NSUserDefaults *prefs = [NSUserDefaults standardUserDefaults];// getting an NSString
             NSString *cachedPath = [prefs stringForKey:@"lastProjectPath"];
             std::string toReturn;
-            if(cachedPath == nil)
-            {
-                NSString*  path = getProjectPathFromUser();
-                [prefs setObject: path forKey: @"lastProjectPath"];
-                toReturn =  std::string([path UTF8String]);
-            } else{
-                toReturn =  std::string([cachedPath UTF8String]);
+            if (cachedPath == nil) {
+                NSString *path = getProjectPathFromUser();
+                [prefs setObject:path forKey:@"lastProjectPath"];
+                toReturn = std::string([path UTF8String]);
+            } else {
+                toReturn = std::string([cachedPath UTF8String]);
             }
             return toReturn;
         }
@@ -69,16 +80,38 @@ namespace SirMetal {
             m_projectPath = getPathName(path);
 
             //let us read up the content of the project
+            return parseProjectFile(path);
+        }
 
-            auto jobj =getJsonObj(path);
-            if(jobj.empty())
-            {
+        bool Project::parseProjectFile(const std::string &path) {
+
+            const nlohmann::json jobj = getJsonObj(path);
+            if (jobj.empty()) {
                 return false;
             }
-
-
+            bool result = parseCameraSettings(jobj);
+            if (!result) {
+                SIR_CORE_ERROR("Could not parse camera settings, default will be used");
+            }
             return true;
+        }
 
+        bool Project::parseCameraSettings(const nlohmann::json &jobj) {
+            m_settings.m_cameraConfig.leftRightLookDirection= getValueIfInJson(jobj,
+                    CAMERA_KEY::lrLookDir, CAMERA_KEY::defaultValues.leftRightLookDirection);
+            m_settings.m_cameraConfig.upDownLookDirection= getValueIfInJson(jobj,
+                    CAMERA_KEY::udLookDir, CAMERA_KEY::defaultValues.upDownLookDirection);
+            m_settings.m_cameraConfig.leftRightMovementDirection = getValueIfInJson(jobj,
+                    CAMERA_KEY::lrMovDir, CAMERA_KEY::defaultValues.leftRightMovementDirection);
+            m_settings.m_cameraConfig.forwardBackMovementDirection = getValueIfInJson(jobj,
+                    CAMERA_KEY::fbMovDir, CAMERA_KEY::defaultValues.forwardBackMovementDirection);
+            m_settings.m_cameraConfig.upDownMovementDirection = getValueIfInJson(jobj,
+                    CAMERA_KEY::udMovDir, CAMERA_KEY::defaultValues.upDownMovementDirection);
+            m_settings.m_cameraConfig.movementSpeed = getValueIfInJson(jobj,
+                    CAMERA_KEY::movSpeed, CAMERA_KEY::defaultValues.movementSpeed);
+            m_settings.m_cameraConfig.lookSpeed = getValueIfInJson(jobj, CAMERA_KEY::lookSpeed,
+                    CAMERA_KEY::defaultValues.lookSpeed);
+            return true;
         }
     }
 }

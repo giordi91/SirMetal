@@ -7,13 +7,13 @@ namespace SirMetal {
     class Input;
 
     struct CameraManipulationConfig {
-        float leftRightLookDirection = 1;
-        float upDownLookDirection = -1;
-        float leftRightMovementDirection = -1;
-        float forwardBackMovementDirection = -1;
-        float upDownMovementDirection= 1;
-        float movementSpeed = 0.2f;
-        float lookSpeed = 0.005f;
+        float leftRightLookDirection;
+        float upDownLookDirection;
+        float leftRightMovementDirection;
+        float forwardBackMovementDirection;
+        float upDownMovementDirection;
+        float movementSpeed;
+        float lookSpeed;
     };
 
     struct Camera {
@@ -43,7 +43,7 @@ namespace SirMetal {
         Camera *m_camera = nullptr;
     };
 
-    class FPSCameraController : public CameraController {
+    class EditorFPSCameraController : public CameraController {
     public:
         void update(Input *input, float screenWidth, float screenHeight) override;
 

@@ -3,13 +3,14 @@
 
 #import "engineContext.h"
 #import "MBEMathUtilities.h"
+#import "project.h"
 
 namespace SirMetal {
 
-    void FPSCameraController::update(Input *input, float screenWidth, float screenHeight) {
+    void EditorFPSCameraController::update(Input *input, float screenWidth, float screenHeight) {
 
 
-        const CameraManipulationConfig &camConfig = CONTEXT->settings.m_cameraConfig;
+        const CameraManipulationConfig &camConfig = Editor::PROJECT->getSettings().m_cameraConfig;
 
         //resetting position
         simd_float4 pos = m_camera->viewMatrix.columns[3];
@@ -77,7 +78,7 @@ namespace SirMetal {
         m_camera->VP = simd_mul(m_camera->projection, m_camera->viewInverse);
     }
 
-    void FPSCameraController::setPosition(float x, float y, float z) {
+    void EditorFPSCameraController::setPosition(float x, float y, float z) {
         //Should this update the inverse matrix? Up for discussion
         //for now the only place where that happens is in update
         m_camera->viewMatrix.columns[3] = simd_float4{x, y, z, 1.0f};

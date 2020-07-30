@@ -3,7 +3,6 @@
 #import <cstdint>
 #import "graphics/camera.h"
 #import "core/input.h"
-#import "editor/settings.h"
 
 const char *readFile(const char *filePath);
 
@@ -41,8 +40,7 @@ namespace SirMetal {
         //for now the camera lives here until we start to have a more
         //proper rendering context;
         Camera camera;
-        FPSCameraController cameraController;
-        Editor::Settings settings;
+        EditorFPSCameraController cameraController;
 
 
     };

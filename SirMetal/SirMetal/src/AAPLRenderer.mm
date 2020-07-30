@@ -39,7 +39,7 @@ static SirMetal::EditorUI editorUI = SirMetal::EditorUI();
 static bool shouldResizeOffScreen = false;
 static matrix_float4x4 viewMatrix;
 static SirMetal::Camera camera;
-static SirMetal::FPSCameraController cameraController;
+static SirMetal::EditorFPSCameraController cameraController;
 
 @interface AAPLRenderer ()
 @property(strong) id <MTLRenderPipelineState> renderPipelineState;
