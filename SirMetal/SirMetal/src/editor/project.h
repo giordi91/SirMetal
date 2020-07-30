@@ -16,7 +16,7 @@ namespace SirMetal {
             const std::string& getProjectPath() const{
                 return m_projectPath;
             }
-            const Settings& getSettings() const{
+            Settings& getSettings() {
                 return m_settings;
             }
         private:

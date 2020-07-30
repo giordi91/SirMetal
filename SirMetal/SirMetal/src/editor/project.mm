@@ -18,7 +18,7 @@ namespace SirMetal {
         }
 
         namespace CAMERA_KEY {
-            static const CameraManipulationConfig defaultValues = {1.0f, -1.0f, -1.0f, -1.0f, 1.0f, 0.2f, 0.005f};
+            static const CameraManipulationConfig defaultValues = {1.0f, -1.0f, 1.0f, 1.0f, 1.0f, 0.2f, 0.005f};
             static const std::string lrLookDir = "leftRightLookDirection";
             static const std::string udLookDir = "upDownLookDirection";
             static const std::string lrMovDir = "leftRightMovementDirection";
@@ -74,6 +74,9 @@ namespace SirMetal {
 
         bool initializeProject() {
             const std::string path = getProjectPathCached();
+            std::string editorLogPath = getPathName(path) += "/editor.log";
+            Log::init(editorLogPath);
+
             PROJECT = new Project();
             SIR_CORE_INFO("Opening project at path {}", path);
             return PROJECT->initialize(path);

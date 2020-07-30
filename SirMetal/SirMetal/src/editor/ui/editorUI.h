@@ -1,6 +1,7 @@
 #pragma once
 
 #import "imgui.h"
+#import "cameraSettingsWidget.h"
 
 namespace SirMetal {
     class EditorUI {
@@ -25,8 +26,7 @@ namespace SirMetal {
     private:
         DockIDs dockIds{};
         ImVec2 viewportPanelSize = {256, 256};
-
-
+        Editor::CameraSettingsWidget m_cameraSettings;
     };
 }
 

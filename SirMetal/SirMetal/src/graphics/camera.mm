@@ -44,15 +44,15 @@ namespace SirMetal {
         pos += side * (-leftRightFactor) * applicationFactor;
 
         applicationFactor = input->isKeyDown(SirMetal::KEY_CODES::D);
-        pos += side * leftRightFactor * applicationFactor;
+        pos += side * (leftRightFactor) * applicationFactor;
 
         //forward and back
         float fbFactor = camConfig.forwardBackMovementDirection * camConfig.movementSpeed;
         applicationFactor = input->isKeyDown(SirMetal::KEY_CODES::W);
-        pos += forward * fbFactor * applicationFactor;
+        pos += forward * (-fbFactor) * applicationFactor;
 
         applicationFactor = input->isKeyDown(SirMetal::KEY_CODES::S);
-        pos += forward * (-fbFactor) * applicationFactor;
+        pos += forward * fbFactor * applicationFactor;
 
         //up and down
         float udFactor = camConfig.upDownMovementDirection * camConfig.movementSpeed;

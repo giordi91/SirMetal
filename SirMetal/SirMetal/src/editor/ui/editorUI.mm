@@ -9,6 +9,7 @@
 #import "editorUI.h"
 #import "imgui_internal.h"
 #import "log.h"
+#import "project.h"
 
 namespace SirMetal {
     bool EditorUI::show(int width, int height) {
@@ -99,8 +100,8 @@ namespace SirMetal {
         ImGui::SetNextWindowDockID(dockIds
                 .bottom, ImGuiCond_Appearing);
         ImGui::Begin("log", (bool *) 0);
-        ImGui::Text("console output brrrrr");
-
+        const std::string* buff = Log::getBuffer();
+        ImGui::Text(buff->c_str());
         ImGui::End();
 
         ImGui::SetNextWindowDockID(dockIds
@@ -120,8 +121,7 @@ namespace SirMetal {
         ImGui::End();
 
         if(showCamera) {
-            ImGui::Begin("Camera settings", &showCamera);
-            ImGui::End();
+            m_cameraSettings.render(&Editor::PROJECT->getSettings().m_cameraConfig, &showCamera);
         }
         //ImGui::ShowDemoWindow((bool*)0);
         return shouldRefreshTextureSize;

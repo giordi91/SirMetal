@@ -2,41 +2,45 @@
 #include <iostream>
 #include "spdlog/sinks/stdout_color_sinks.h"
 #import "basic_file_sink.h"
+#include "spdlog/async.h"
 
 namespace SirMetal {
 
     std::shared_ptr<spdlog::logger> Log::s_coreLogger;
-    std::shared_ptr<spdlog::logger> Log::s_clientLogger;
-    //auto file_logger = spdlog::basic_logger_mt("basic_logger", "logs/basic.txt");
+    std::shared_ptr<spdlog::logger> Log::s_asyncFileLogger;
+    BufferedSink_mt *Log::bufferedSink;
 
-    void Log::init()
-    {
-        /*
+    void Log::init(const std::string &path) {
         std::vector<spdlog::sink_ptr> sinks;
-        auto async_file = spdlog::basic_logger_mt<spdlog::async_factory>("async_file_logger", "logs/async_log.txt");
-        sinks.push_back(std::make_shared<spdlog::sinks::stdout_sink_st>());
-        sinks.push_back(std::make_shared<spdlog::sinks::daily_file_sink_st>("logfile", 23, 59));
-        auto combined_logger = std::make_shared<spdlog::logger>("name", begin(sinks), end(sinks));
-//register it if you need to access it globally
-        spdlog::register_logger(combined_logger);
-         */
+        sinks.push_back(std::make_shared<spdlog::sinks::stdout_color_sink_mt>());
 
-        spdlog::set_pattern("%^[%T] %n: %v%$");
-        s_coreLogger = spdlog::stdout_color_mt("SirEngine");
+        bufferedSink = new BufferedSink_mt;
+        sinks.push_back(std::shared_ptr<BufferedSink_mt>(bufferedSink));
+
+        sinks[0]->set_pattern("%^[%T] %n: %v%$");
+        sinks[1]->set_pattern("%v%$");
+        s_coreLogger = std::make_shared<spdlog::logger>("SirEngine", begin(sinks), end(sinks));
+        //register it if you need to access it globally
+        //spdlog::register_logger(s_coreLogger);
+
+        //s_coreLogger = spdlog::stdout_color_mt("SirEngine");
         //s_coreLogger = spdlog::basic_logger_mt("basic_logger", "/Users/marcogiordano/WORK_IN_PROGRESS/SirMetalProject/basic.txt");;
         s_coreLogger->set_level(spdlog::level::trace);
-        s_clientLogger= spdlog::stdout_color_mt("APP");
-        s_clientLogger->set_level(spdlog::level::trace);
+
+        std::cout<<"dfjsldfjsl "<<path<<std::endl;
+        s_asyncFileLogger = spdlog::basic_logger_mt<spdlog::async_factory>("async_file_logger", path.c_str());
+        s_asyncFileLogger->set_pattern("%^[%T] %n: %v%$");
+        spdlog::flush_every(std::chrono::seconds(5));
     }
 
-    void Log::free()
-    {
+    void Log::free() {
 
         spdlog::drop(s_coreLogger->name());
-        spdlog::drop(s_clientLogger->name());
         s_coreLogger.reset();
-        s_clientLogger.reset();
         s_coreLogger = nullptr;
-        s_clientLogger= nullptr;
+
+        spdlog::drop(s_asyncFileLogger->name());
+        s_asyncFileLogger.reset();
+        s_asyncFileLogger= nullptr;
     }
 }

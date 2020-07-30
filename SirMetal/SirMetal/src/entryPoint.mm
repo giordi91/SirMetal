@@ -6,7 +6,6 @@
 
 namespace SirMetal {
     bool startup() {
-        Log::init();
         bool result = Editor::initializeProject();
         if(!result ){return false;}
         result = initializeContext();
