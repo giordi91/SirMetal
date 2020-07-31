@@ -15,6 +15,10 @@ namespace SirMetal {
     }
 
     void shutdown() {
+
+        Editor::PROJECT->save();
+
+
         delete CONTEXT;
         delete Editor::PROJECT;
         Log::free();

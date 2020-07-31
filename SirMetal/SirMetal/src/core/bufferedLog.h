@@ -10,7 +10,11 @@ namespace SirMetal {
 
     protected:
         void sink_it_(const spdlog::details::log_msg &msg) override {
-            buffer += fmt::to_string(msg.payload);
+            spdlog::memory_buf_t formatted;
+            spdlog::sinks::base_sink<Mutex>::formatter_->format(msg, formatted);
+            std::cout << fmt::to_string(formatted);
+            buffer += fmt::to_string(formatted) ;
+            buffer += "\n";
         }
 
         void flush_() override {

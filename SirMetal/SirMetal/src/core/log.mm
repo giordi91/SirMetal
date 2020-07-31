@@ -15,19 +15,16 @@ namespace SirMetal {
         sinks.push_back(std::make_shared<spdlog::sinks::stdout_color_sink_mt>());
 
         bufferedSink = new BufferedSink_mt;
+        bufferedSink->set_pattern("[%l] %v%$");
         sinks.push_back(std::shared_ptr<BufferedSink_mt>(bufferedSink));
 
-        sinks[0]->set_pattern("%^[%T] %n: %v%$");
-        sinks[1]->set_pattern("%v%$");
+        sinks[0]->set_pattern("%^[%T] %n [%l]: %v%$");
         s_coreLogger = std::make_shared<spdlog::logger>("SirEngine", begin(sinks), end(sinks));
-        //register it if you need to access it globally
-        //spdlog::register_logger(s_coreLogger);
 
         //s_coreLogger = spdlog::stdout_color_mt("SirEngine");
         //s_coreLogger = spdlog::basic_logger_mt("basic_logger", "/Users/marcogiordano/WORK_IN_PROGRESS/SirMetalProject/basic.txt");;
         s_coreLogger->set_level(spdlog::level::trace);
 
-        std::cout<<"dfjsldfjsl "<<path<<std::endl;
         s_asyncFileLogger = spdlog::basic_logger_mt<spdlog::async_factory>("async_file_logger", path.c_str());
         s_asyncFileLogger->set_pattern("%^[%T] %n: %v%$");
         spdlog::flush_every(std::chrono::seconds(5));

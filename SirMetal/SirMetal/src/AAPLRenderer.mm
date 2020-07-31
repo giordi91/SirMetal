@@ -36,7 +36,7 @@ static const uint32_t MBEBufferAlignment = 256;
 
 
 //temporary until i figure out what to do with this
-static SirMetal::EditorUI editorUI = SirMetal::EditorUI();
+static SirMetal::Editor::EditorUI editorUI = SirMetal::Editor::EditorUI();
 static bool shouldResizeOffScreen = false;
 static matrix_float4x4 viewMatrix;
 static SirMetal::Camera camera;

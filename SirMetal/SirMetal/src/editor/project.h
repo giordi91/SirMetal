@@ -19,6 +19,9 @@ namespace SirMetal {
             Settings& getSettings() {
                 return m_settings;
             }
+
+            void save();
+
         private:
             bool parseProjectFile(const std::string& path);
             bool parseCameraSettings(const nlohmann::json& jobj);
@@ -27,6 +30,7 @@ namespace SirMetal {
             std::string m_projectPath;
             Settings m_settings{};
 
+            void saveCameraSettings(nlohmann::json &json);
         };
 
         bool initializeProject();

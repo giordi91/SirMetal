@@ -31,7 +31,7 @@ namespace SirMetal {
 
 #define SIR_CORE_TRACE(...) ::SirMetal::Log::getCoreLogger()->trace(__VA_ARGS__)
 #define SIR_CORE_INFO(...) ::SirMetal::Log::getCoreLogger()->info(__VA_ARGS__);::SirMetal::Log::getAsyncFileLogger()->info(__VA_ARGS__)
-#define SIR_CORE_WARN(...) ::SirMetal::Log::getCoreLogger()->warn(__VA_ARGS__)
-#define SIR_CORE_ERROR(...) ::SirMetal::Log::getCoreLogger()->error(__VA_ARGS__)
-#define SIR_CORE_FATAL(...) ::SirMetal::Log::getCoreLogger()->critical(__VA_ARGS__)
+#define SIR_CORE_WARN(...) ::SirMetal::Log::getCoreLogger()->warn(__VA_ARGS__);::SirMetal::Log::getAsyncFileLogger()->info(__VA_ARGS__)
+#define SIR_CORE_ERROR(...) ::SirMetal::Log::getCoreLogger()->error(__VA_ARGS__);::SirMetal::Log::getAsyncFileLogger()->info(__VA_ARGS__)
+#define SIR_CORE_FATAL(...) ::SirMetal::Log::getCoreLogger()->critical(__VA_ARGS__);::SirMetal::Log::getAsyncFileLogger()->info(__VA_ARGS__)
 

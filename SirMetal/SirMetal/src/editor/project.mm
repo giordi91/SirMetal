@@ -26,6 +26,7 @@ namespace SirMetal {
             static const std::string udMovDir = "upDownMovementDirection";
             static const std::string movSpeed = "movementSpeed";
             static const std::string lookSpeed = "lookSpeed";
+            static const std::string cameraSettings = "cameraSettings";
         }
 
 
@@ -35,15 +36,15 @@ namespace SirMetal {
         //Open a dialog to get a project path file from the user
         NSString *getProjectPathFromUser() {
             NSOpenPanel *panel;
-            NSArray *fileTypes = [NSArray arrayWithObjects:@"SirMetalProject", nil];
+            NSArray *fileTypes = @[@"SirMetalProject"];
             panel = [NSOpenPanel openPanel];
             [panel setFloatingPanel:YES];
             [panel setCanChooseDirectories:NO];
             [panel setCanChooseFiles:YES];
             [panel setAllowsMultipleSelection:YES];
             [panel setAllowedFileTypes:fileTypes];
-            int i = [panel runModal];
-            if (i == NSModalResponseOK) {
+            NSModalResponse response = [panel runModal];
+            if (response == NSModalResponseOK) {
                 for (NSURL *URL in [panel URLs]) {
                     NSLog(@"%@", [URL path]);
                     NSString *urlString = URL.path;
@@ -105,21 +106,64 @@ namespace SirMetal {
         }
 
         bool Project::parseCameraSettings(const nlohmann::json &jobj) {
-            m_settings.m_cameraConfig.leftRightLookDirection = getValueIfInJson(jobj,
+
+            if(!inJson(jobj, CAMERA_KEY::cameraSettings))
+            {
+                m_settings.m_cameraConfig = CAMERA_KEY::defaultValues;
+                SIR_CORE_WARN("Could not find camera settings in project");
+                return true;
+            }
+
+            const auto& jsetting = jobj[CAMERA_KEY::cameraSettings];
+
+
+            m_settings.m_cameraConfig.leftRightLookDirection = getValueIfInJson(jsetting,
                     CAMERA_KEY::lrLookDir, CAMERA_KEY::defaultValues.leftRightLookDirection);
-            m_settings.m_cameraConfig.upDownLookDirection = getValueIfInJson(jobj,
+            m_settings.m_cameraConfig.upDownLookDirection = getValueIfInJson(jsetting,
                     CAMERA_KEY::udLookDir, CAMERA_KEY::defaultValues.upDownLookDirection);
-            m_settings.m_cameraConfig.leftRightMovementDirection = getValueIfInJson(jobj,
+            m_settings.m_cameraConfig.leftRightMovementDirection = getValueIfInJson(jsetting,
                     CAMERA_KEY::lrMovDir, CAMERA_KEY::defaultValues.leftRightMovementDirection);
-            m_settings.m_cameraConfig.forwardBackMovementDirection = getValueIfInJson(jobj,
+            m_settings.m_cameraConfig.forwardBackMovementDirection = getValueIfInJson(jsetting,
                     CAMERA_KEY::fbMovDir, CAMERA_KEY::defaultValues.forwardBackMovementDirection);
-            m_settings.m_cameraConfig.upDownMovementDirection = getValueIfInJson(jobj,
+            m_settings.m_cameraConfig.upDownMovementDirection = getValueIfInJson(jsetting,
                     CAMERA_KEY::udMovDir, CAMERA_KEY::defaultValues.upDownMovementDirection);
-            m_settings.m_cameraConfig.movementSpeed = getValueIfInJson(jobj,
+            m_settings.m_cameraConfig.movementSpeed = getValueIfInJson(jsetting,
                     CAMERA_KEY::movSpeed, CAMERA_KEY::defaultValues.movementSpeed);
-            m_settings.m_cameraConfig.lookSpeed = getValueIfInJson(jobj, CAMERA_KEY::lookSpeed,
+            m_settings.m_cameraConfig.lookSpeed = getValueIfInJson(jsetting, CAMERA_KEY::lookSpeed,
                     CAMERA_KEY::defaultValues.lookSpeed);
             return true;
+        }
+
+        void Project::save() {
+            nlohmann::json jobj;
+            //saving camera settings
+            jobj[PROJECT_KEY::projectName] = m_settings.m_projectName;
+            saveCameraSettings(jobj);
+
+            const std::string data = jobj.dump(4);
+
+            const std::string& tempSave = m_projectFilePath +"temp";
+            std::ofstream out(tempSave);
+            out << data;
+            out.close();
+            //removing old file
+            std::__fs::filesystem::remove(m_projectFilePath);
+            //removing moving new file to correct position
+            std::__fs::filesystem::rename(tempSave,m_projectFilePath);
+
+        }
+
+        void Project::saveCameraSettings(nlohmann::json &jobj) {
+            CameraManipulationConfig &settings = m_settings.m_cameraConfig;
+
+            auto& jsettings = jobj[CAMERA_KEY::cameraSettings];
+            jsettings[CAMERA_KEY::lrLookDir] = settings.leftRightLookDirection;
+            jsettings[CAMERA_KEY::udLookDir] = settings.upDownLookDirection;
+            jsettings[CAMERA_KEY::lrMovDir] = settings.leftRightMovementDirection;
+            jsettings[CAMERA_KEY::fbMovDir] = settings.forwardBackMovementDirection;
+            jsettings[CAMERA_KEY::udMovDir] = settings.upDownMovementDirection;
+            jsettings[CAMERA_KEY::movSpeed] = settings.movementSpeed;
+            jsettings[CAMERA_KEY::lookSpeed] = settings.lookSpeed;
         }
     }
 }
