@@ -9,6 +9,7 @@
 #import "MBEMathUtilities.h"
 #import "vendors/imgui/imgui.h"
 #import "vendors/imgui/imgui_impl_metal.h"
+#import "resources/meshes/wavefrontobj.h"
 #import "imgui_impl_osx.h"
 #import "imgui_internal.h"
 #import "editorUI.h"
@@ -123,6 +124,14 @@ static SirMetal::EditorFPSCameraController cameraController;
     descriptor.pixelFormat = MTLPixelFormatDepth32Float_Stencil8;
     self.depthTextureGUI = [_device newTextureWithDescriptor:descriptor];
     self.depthTextureGUI.label = @"DepthStencilGUI";
+
+    //load mesh
+    Mesh result;
+    std::string path = SirMetal::Editor::PROJECT->getProjectPath();
+    path += "/cube.obj";
+    loadMesh(result, path.c_str());
+
+
 
     return self;
 }

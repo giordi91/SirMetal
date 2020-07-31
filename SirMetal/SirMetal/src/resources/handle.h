@@ -47,4 +47,12 @@ namespace SirMetal {
         }
         static const HANDLE_TYPE type = HANDLE_TYPE::SHADER_LIBRARY;
     };
+    struct MeshHandle final {
+        uint32_t handle;
+
+        [[nodiscard]] bool isHandleValid() const {
+            return handle != 0;
+        }
+        static const HANDLE_TYPE type = HANDLE_TYPE::MESH;
+    };
 }
