@@ -4,9 +4,9 @@
 
 struct Vertex
 {
-    float vx, vy, vz;
-    float nx, ny, nz;
-    float tu, tv;
+    float vx, vy, vz, vw;
+    //float nx, ny, nz;
+    //float tu, tv;
 };
 
 struct Mesh

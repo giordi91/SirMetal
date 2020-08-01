@@ -46,7 +46,6 @@
 		C9EA91F42689C5FD7375B82D /* objparser.mm in Sources */ = {isa = PBXBuildFile; fileRef = C9EA9C2B5ECA91D908F3B869 /* objparser.mm */; };
 		C9EA91FBA8214D4CB4CED2E5 /* textureManager.mm in Sources */ = {isa = PBXBuildFile; fileRef = C9EA975B59388E141EDF5924 /* textureManager.mm */; };
 		C9EA92106742EDF158653897 /* materialWidget.mm in Sources */ = {isa = PBXBuildFile; fileRef = C9EA920FC29E744172D4C637 /* materialWidget.mm */; };
-		C9EA93BDE3F0E48EBCBC15CD /* Shaders.metal in Sources */ = {isa = PBXBuildFile; fileRef = C9EA9177C2222C58DC35911F /* Shaders.metal */; };
 		C9EA96ED3CD28C517C3C3F84 /* engineContext.mm in Sources */ = {isa = PBXBuildFile; fileRef = C9EA97F345427A0F723A6B51 /* engineContext.mm */; };
 		C9EA971266D1DF3F3D7FFCF4 /* settings.mm in Sources */ = {isa = PBXBuildFile; fileRef = C9EA9A0497A232A0FECA2BE9 /* settings.mm */; };
 		C9EA975C8EE857168E3AA25C /* entryPoint.mm in Sources */ = {isa = PBXBuildFile; fileRef = C9EA987FA45D97D90C540393 /* entryPoint.mm */; };
@@ -201,7 +200,6 @@
 		C9EA90AA5E471F6C4856CC3A /* jsonParse.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = jsonParse.h; sourceTree = "<group>"; };
 		C9EA90C6B125CDBC30E96091 /* settings.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = settings.h; sourceTree = "<group>"; };
 		C9EA9153D1DD5FEF3F4DF469 /* camera.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = camera.mm; sourceTree = "<group>"; };
-		C9EA9177C2222C58DC35911F /* Shaders.metal */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.metal; path = Shaders.metal; sourceTree = "<group>"; };
 		C9EA919072B5737B7279FB12 /* cameraSettingsWidget.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = cameraSettingsWidget.mm; sourceTree = "<group>"; };
 		C9EA920FC29E744172D4C637 /* materialWidget.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = materialWidget.mm; sourceTree = "<group>"; };
 		C9EA9396061B7B7C34100AC2 /* entryPoint.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = entryPoint.h; sourceTree = "<group>"; };
@@ -473,7 +471,6 @@
 				C08F5E4C24B4449000CC95FC /* AppDelegate.mm */,
 				C9EA964743E3B7294ACFE312 /* engineContext.h */,
 				C9EA97F345427A0F723A6B51 /* engineContext.mm */,
-				C9EA92E04014502FD07D0A8C /* shaders */,
 				C9EA9BBF0E6E791A2D0F709E /* resources */,
 				C9EA9CDA1EED06D10BBA2316 /* core */,
 				C9EA99545457CD5970515234 /* graphics */,
@@ -517,14 +514,6 @@
 				C9EA9473B60D7FFC21F823D7 /* fast_obj.h */,
 			);
 			path = imgui;
-			sourceTree = "<group>";
-		};
-		C9EA92E04014502FD07D0A8C /* shaders */ = {
-			isa = PBXGroup;
-			children = (
-				C9EA9177C2222C58DC35911F /* Shaders.metal */,
-			);
-			path = shaders;
 			sourceTree = "<group>";
 		};
 		C9EA9335838F74CE3EEF2F83 /* objparser */ = {
@@ -702,7 +691,6 @@
 				C00CBE3924D4B611009167CB /* overdrawanalyzer.cpp in Sources */,
 				C08F5E4F24B4449000CC95FC /* AppDelegate.mm in Sources */,
 				C9EA96ED3CD28C517C3C3F84 /* engineContext.mm in Sources */,
-				C9EA93BDE3F0E48EBCBC15CD /* Shaders.metal in Sources */,
 				C9EA91FBA8214D4CB4CED2E5 /* textureManager.mm in Sources */,
 				C00CBE3724D4B611009167CB /* vertexfilter.cpp in Sources */,
 				C00CBE3824D4B611009167CB /* vertexcodec.cpp in Sources */,

@@ -17,6 +17,7 @@ namespace SirMetal {
                                                   encoding:[NSString defaultCStringEncoding]];
         __autoreleasing NSError *errorLib = nil;
         shaderPath = [shaderPath stringByAppendingString:@"/shaders/Shaders.metal"];
+        NSLog(@"%@", errorLib);
 
         NSString *content = [NSString stringWithContentsOfFile:shaderPath encoding:NSUTF8StringEncoding error:nil];
         id <MTLLibrary> libraryRaw = [device newLibraryWithSource:content options:nil error:&errorLib];

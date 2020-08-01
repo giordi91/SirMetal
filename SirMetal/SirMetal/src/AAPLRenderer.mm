@@ -15,15 +15,16 @@
 #import "editorUI.h"
 #import "log.h"
 #import "project.h"
-
+/*
 typedef struct {
     vector_float4 position;
     vector_float4 color;
 } MBEVertex;
+*/
 static const NSInteger MBEInFlightBufferCount = 3;
 
-typedef uint16_t MBEIndex;
-const MTLIndexType MBEIndexType = MTLIndexTypeUInt16;
+//typedef uint16_t MBEIndex;
+const MTLIndexType MBEIndexType = MTLIndexTypeUInt32;
 
 typedef struct {
     matrix_float4x4 modelViewProjectionMatrix;
@@ -125,11 +126,6 @@ static SirMetal::EditorFPSCameraController cameraController;
     self.depthTextureGUI = [_device newTextureWithDescriptor:descriptor];
     self.depthTextureGUI.label = @"DepthStencilGUI";
 
-    //load mesh
-    Mesh result;
-    std::string path = SirMetal::Editor::PROJECT->getProjectPath();
-    path += "/cube.obj";
-    loadMesh(result, path.c_str());
 
 
 
@@ -165,6 +161,7 @@ static SirMetal::EditorFPSCameraController cameraController;
 }
 
 - (void)makeBuffers {
+    /*
     static const MBEVertex vertices[] =
             {
                     {.position = {-1, 1, 1, 1}, .color = {0, 1, 1, 1}},
@@ -176,7 +173,9 @@ static SirMetal::EditorFPSCameraController cameraController;
                     {.position = {1, -1, -1, 1}, .color = {1, 0, 0, 1}},
                     {.position = {1, 1, -1, 1}, .color = {1, 1, 0, 1}}
             };
+            */
 
+    /*
     static const MBEIndex indices[] =
             {
                     3, 2, 6, 6, 7, 3,
@@ -186,7 +185,26 @@ static SirMetal::EditorFPSCameraController cameraController;
                     0, 1, 2, 2, 3, 0,
                     7, 6, 5, 5, 4, 7
             };
+            */
 
+
+    //load mesh
+    Mesh result;
+    std::string path = SirMetal::Editor::PROJECT->getProjectPath();
+    path += "/cube.obj";
+    loadMesh(result, path.c_str());
+
+    _vertexBuffer = [_device newBufferWithBytes:result.vertices.data()
+                                         length:sizeof(Vertex)*result.vertices.size()
+                                        options:MTLResourceOptionCPUCacheModeDefault];
+    [_vertexBuffer setLabel:@"Vertices"];
+
+    _indexBuffer = [_device newBufferWithBytes:result.indices.data()
+                                        length:result.indices.size()*sizeof(uint32_t)
+                                       options:MTLResourceOptionCPUCacheModeDefault];
+    [_indexBuffer setLabel:@"Indices"];
+
+    /*
     _vertexBuffer = [_device newBufferWithBytes:vertices
                                          length:sizeof(vertices)
                                         options:MTLResourceOptionCPUCacheModeDefault];
@@ -196,6 +214,7 @@ static SirMetal::EditorFPSCameraController cameraController;
                                         length:sizeof(indices)
                                        options:MTLResourceOptionCPUCacheModeDefault];
     [_indexBuffer setLabel:@"Indices"];
+     */
 
     _uniformBuffer = [_device newBufferWithLength:AlignUp(sizeof(MBEUniforms), MBEBufferAlignment) * MBEInFlightBufferCount
                                           options:MTLResourceOptionCPUCacheModeDefault];
@@ -345,7 +364,7 @@ static SirMetal::EditorFPSCameraController cameraController;
     [renderPass setVertexBuffer:self.uniformBuffer offset:uniformBufferOffset atIndex:1];
 
     [renderPass drawIndexedPrimitives:MTLPrimitiveTypeTriangle
-                           indexCount:[self.indexBuffer length] / sizeof(MBEIndex)
+                           indexCount:[self.indexBuffer length] / sizeof(uint32_t)
                             indexType:MBEIndexType
                           indexBuffer:self.indexBuffer
                     indexBufferOffset:0];
