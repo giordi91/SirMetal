@@ -57,10 +57,10 @@ namespace SirMetal {
         //up and down
         float udFactor = camConfig.upDownMovementDirection * camConfig.movementSpeed;
         applicationFactor = input->isKeyDown(SirMetal::KEY_CODES::Q);
-        pos += vector_float4{0, 1, 0, 0} * applicationFactor * udFactor;
+        pos += vector_float4{0, 1, 0, 0} * (applicationFactor) * (-udFactor);
 
         applicationFactor = input->isKeyDown(SirMetal::KEY_CODES::E);
-        pos += vector_float4{0, 1, 0, 0} * applicationFactor * (-udFactor);
+        pos += vector_float4{0, 1, 0, 0} * applicationFactor * (udFactor);
 
         m_camera->viewMatrix.columns[3] = pos;
 

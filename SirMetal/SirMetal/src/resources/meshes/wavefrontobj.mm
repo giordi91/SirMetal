@@ -30,13 +30,11 @@ bool loadMesh(Mesh& result, const char* path)
         v.vy = file.v[vi * 3 + 1];
         v.vz = file.v[vi * 3 + 2];
         v.vw = 1.0f;
-        /*
         v.nx = vni < 0 ? 0.f : file.vn[vni * 3 + 0];
         v.ny = vni < 0 ? 0.f : file.vn[vni * 3 + 1];
         v.nz = vni < 0 ? 1.f : file.vn[vni * 3 + 2];
         v.tu = vti < 0 ? 0.f : file.vt[vti * 3 + 0];
         v.tv = vti < 0 ? 0.f : file.vt[vti * 3 + 1];
-         */
     }
 
     std::vector<uint32_t> remap(index_count);

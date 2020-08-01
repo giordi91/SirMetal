@@ -5,8 +5,8 @@
 struct Vertex
 {
     float vx, vy, vz, vw;
-    //float nx, ny, nz;
-    //float tu, tv;
+    float nx, ny, nz,nw;
+    float tu, tv, pad1,pad2;
 };
 
 struct Mesh

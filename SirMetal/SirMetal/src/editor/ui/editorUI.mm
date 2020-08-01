@@ -88,7 +88,7 @@ namespace SirMetal {
             ImVec2 newViewportSize = ImGui::GetContentRegionAvail();
             bool shouldRefreshTextureSize = newViewportSize.x != viewportPanelSize.x || newViewportSize.y != viewportPanelSize.y;
             viewportPanelSize = newViewportSize;
-            ImGui::Image(SirMetal::CONTEXT->viewportTexture, viewportPanelSize, ImVec2(0, 1), ImVec2(1, 0));
+            ImGui::Image(SirMetal::CONTEXT->viewportTexture, viewportPanelSize);
             ImGui::End();
 
             ImGui::SetNextWindowDockID(dockIds
