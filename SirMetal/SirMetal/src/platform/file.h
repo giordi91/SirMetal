@@ -2,8 +2,7 @@
 
 #include <filesystem>
 
-namespace SirMetal
-{
+namespace SirMetal {
 
     inline void listFilesInFolder(const char *folderPath,
             std::vector<std::string> &filePaths,
@@ -24,10 +23,12 @@ namespace SirMetal
             }
         }
     }
+
     inline std::string getFileName(const std::string &path) {
         const auto expPath = std::__fs::filesystem::path(path);
         return expPath.stem().string();
     }
+
     inline std::string getFileExtension(const std::string &path) {
         const auto expPath = std::__fs::filesystem::path(path);
         return expPath.extension().string();
@@ -41,6 +42,7 @@ namespace SirMetal
     inline bool fileExists(const std::string &name) {
         return std::__fs::filesystem::exists(name);
     }
+
     inline bool filePathExists(const std::string &name) {
         const std::__fs::filesystem::path path(name);
         const std::__fs::filesystem::path parent = path.parent_path();
@@ -49,5 +51,11 @@ namespace SirMetal
 
     inline bool isPathDirectory(const std::string &name) {
         return std::__fs::filesystem::is_directory(name);
+    }
+
+    inline void ensureDirectory(const std::string &path) {
+        if (!std::__fs::filesystem::is_directory(path) || !std::__fs::filesystem::exists(path)) { // Check if src folder exists
+            std::__fs::filesystem::create_directory(path); // create src folder
+        }
     }
 }

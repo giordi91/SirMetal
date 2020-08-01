@@ -15,15 +15,8 @@
 #import "editorUI.h"
 #import "log.h"
 #import "project.h"
-/*
-typedef struct {
-    vector_float4 position;
-    vector_float4 color;
-} MBEVertex;
-*/
-static const NSInteger MBEInFlightBufferCount = 3;
 
-//typedef uint16_t MBEIndex;
+static const NSInteger MBEInFlightBufferCount = 3;
 const MTLIndexType MBEIndexType = MTLIndexTypeUInt32;
 
 typedef struct {
@@ -126,9 +119,6 @@ static SirMetal::EditorFPSCameraController cameraController;
     self.depthTextureGUI = [_device newTextureWithDescriptor:descriptor];
     self.depthTextureGUI.label = @"DepthStencilGUI";
 
-
-
-
     return self;
 }
 
@@ -161,33 +151,6 @@ static SirMetal::EditorFPSCameraController cameraController;
 }
 
 - (void)makeBuffers {
-    /*
-    static const MBEVertex vertices[] =
-            {
-                    {.position = {-1, 1, 1, 1}, .color = {0, 1, 1, 1}},
-                    {.position = {-1, -1, 1, 1}, .color = {0, 0, 1, 1}},
-                    {.position = {1, -1, 1, 1}, .color = {1, 0, 1, 1}},
-                    {.position = {1, 1, 1, 1}, .color = {1, 1, 1, 1}},
-                    {.position = {-1, 1, -1, 1}, .color = {0, 1, 0, 1}},
-                    {.position = {-1, -1, -1, 1}, .color = {0, 0, 0, 1}},
-                    {.position = {1, -1, -1, 1}, .color = {1, 0, 0, 1}},
-                    {.position = {1, 1, -1, 1}, .color = {1, 1, 0, 1}}
-            };
-            */
-
-    /*
-    static const MBEIndex indices[] =
-            {
-                    3, 2, 6, 6, 7, 3,
-                    4, 5, 1, 1, 0, 4,
-                    4, 0, 3, 3, 7, 4,
-                    1, 5, 6, 6, 2, 1,
-                    0, 1, 2, 2, 3, 0,
-                    7, 6, 5, 5, 4, 7
-            };
-            */
-
-
     //load mesh
     Mesh result;
     std::string path = SirMetal::Editor::PROJECT->getProjectPath();
@@ -203,18 +166,6 @@ static SirMetal::EditorFPSCameraController cameraController;
                                         length:result.indices.size()*sizeof(uint32_t)
                                        options:MTLResourceOptionCPUCacheModeDefault];
     [_indexBuffer setLabel:@"Indices"];
-
-    /*
-    _vertexBuffer = [_device newBufferWithBytes:vertices
-                                         length:sizeof(vertices)
-                                        options:MTLResourceOptionCPUCacheModeDefault];
-    [_vertexBuffer setLabel:@"Vertices"];
-
-    _indexBuffer = [_device newBufferWithBytes:indices
-                                        length:sizeof(indices)
-                                       options:MTLResourceOptionCPUCacheModeDefault];
-    [_indexBuffer setLabel:@"Indices"];
-     */
 
     _uniformBuffer = [_device newBufferWithLength:AlignUp(sizeof(MBEUniforms), MBEBufferAlignment) * MBEInFlightBufferCount
                                           options:MTLResourceOptionCPUCacheModeDefault];

@@ -12,6 +12,9 @@
 
 namespace SirMetal {
     namespace Editor {
+        const std::string Project::CACHE_FOLDER_NAME = "cache";
+        const std::unordered_set<std::string> IGNORE_FILES = {".DS_Store","editor.log"};
+        const std::unordered_set<std::string> IGNORE_EXT= {".SirMetalProject",".log"};
         namespace PROJECT_KEY {
             static const std::string defaultProjectName = "Empty Project";
             static const std::string projectName = "projectName";
@@ -86,6 +89,8 @@ namespace SirMetal {
         bool Project::initialize(const std::string &path) {
             m_projectFilePath = path;
             m_projectPath = getPathName(path);
+            m_projectCachePath = m_projectPath + "/" + Project::CACHE_FOLDER_NAME;
+            ensureDirectory(m_projectPath);
 
             //let us read up the content of the project
             return parseProjectFile(path);
@@ -107,14 +112,13 @@ namespace SirMetal {
 
         bool Project::parseCameraSettings(const nlohmann::json &jobj) {
 
-            if(!inJson(jobj, CAMERA_KEY::cameraSettings))
-            {
+            if (!inJson(jobj, CAMERA_KEY::cameraSettings)) {
                 m_settings.m_cameraConfig = CAMERA_KEY::defaultValues;
                 SIR_CORE_WARN("Could not find camera settings in project");
                 return true;
             }
 
-            const auto& jsetting = jobj[CAMERA_KEY::cameraSettings];
+            const auto &jsetting = jobj[CAMERA_KEY::cameraSettings];
 
 
             m_settings.m_cameraConfig.leftRightLookDirection = getValueIfInJson(jsetting,
@@ -142,21 +146,21 @@ namespace SirMetal {
 
             const std::string data = jobj.dump(4);
 
-            const std::string& tempSave = m_projectFilePath +"temp";
+            const std::string &tempSave = m_projectFilePath + "temp";
             std::ofstream out(tempSave);
             out << data;
             out.close();
             //removing old file
             std::__fs::filesystem::remove(m_projectFilePath);
             //removing moving new file to correct position
-            std::__fs::filesystem::rename(tempSave,m_projectFilePath);
+            std::__fs::filesystem::rename(tempSave, m_projectFilePath);
 
         }
 
         void Project::saveCameraSettings(nlohmann::json &jobj) {
             CameraManipulationConfig &settings = m_settings.m_cameraConfig;
 
-            auto& jsettings = jobj[CAMERA_KEY::cameraSettings];
+            auto &jsettings = jobj[CAMERA_KEY::cameraSettings];
             jsettings[CAMERA_KEY::lrLookDir] = settings.leftRightLookDirection;
             jsettings[CAMERA_KEY::udLookDir] = settings.upDownLookDirection;
             jsettings[CAMERA_KEY::lrMovDir] = settings.leftRightMovementDirection;
@@ -164,6 +168,30 @@ namespace SirMetal {
             jsettings[CAMERA_KEY::udMovDir] = settings.upDownMovementDirection;
             jsettings[CAMERA_KEY::movSpeed] = settings.movementSpeed;
             jsettings[CAMERA_KEY::lookSpeed] = settings.lookSpeed;
+        }
+
+        bool Project::processProjectAssets() {
+
+            using recursive_directory_iterator = std::__fs::filesystem::recursive_directory_iterator;
+            for (const auto &dirEntry : recursive_directory_iterator(m_projectPath)) {
+
+                auto dirPath  = dirEntry.path();
+                bool isDir = dirEntry.is_directory();
+                if(isDir) { continue; }
+                std::string fileName = dirPath.stem().string();
+                bool isIgnoreFile = IGNORE_FILES.find(fileName) != IGNORE_FILES.end();
+                if (isIgnoreFile) {
+                    continue;
+                }
+
+                std::string ext = dirPath.extension();
+                bool isIgnoreExt = IGNORE_EXT.find(ext) != IGNORE_EXT.end();
+                if(isIgnoreExt)
+                {continue;}
+
+                SIR_CORE_INFO("file to load {}", dirPath);
+            }
+            return true;
         }
     }
 }

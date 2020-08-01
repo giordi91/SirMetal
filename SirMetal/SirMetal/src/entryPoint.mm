@@ -10,7 +10,8 @@ namespace SirMetal {
         if(!result ){return false;}
         result = initializeContext();
         if(!result ){return false;}
-        return true;
+        result = Editor::PROJECT->processProjectAssets();
+        return result;
 
     }
 
