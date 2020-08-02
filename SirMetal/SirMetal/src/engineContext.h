@@ -10,12 +10,13 @@ const char *readFile(const char *filePath);
 namespace SirMetal {
 
     class ShaderManager;
-
     class TextureManager;
+    class MeshManager;
 
     struct Resources {
         TextureManager *textureManager = nullptr;
         ShaderManager *shaderManager = nullptr;
+        MeshManager *meshManager= nullptr;
     };
 
     enum InteractionFlagsBits {

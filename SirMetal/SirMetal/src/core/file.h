@@ -4,27 +4,11 @@
 
 namespace SirMetal {
 
-    /*
-    inline void listFilesInFolder(const char *folderPath,
-            std::vector<std::string> &filePaths,
-            std::string extension = "NONE") {
-        bool shouldFilter = extension != "NONE";
-        std::string _extension = "." + extension;
-        auto program_p = std::__fs::filesystem::path(folderPath);
-        auto dirIt = std::__fs::filesystem::directory_iterator(program_p);
-        for (auto p : dirIt) {
-            bool isDir = std::__fs::filesystem::is_directory(p);
-            if (!isDir) {
-                auto path = std::__fs::filesystem::path(p);
-
-                if (shouldFilter && !(path.extension() == _extension)) {
-                    continue;
-                }
-                filePaths.push_back(path.u8string());
-            }
-        }
-    }
-     */
+    enum class FILE_EXT {
+        NONE = 0,
+        OBJ = 1,
+        METAL = 2
+    };
 
     inline std::string getFileName(const std::string &path) {
         const auto expPath = std::__fs::filesystem::path(path);
@@ -60,4 +44,5 @@ namespace SirMetal {
             std::__fs::filesystem::create_directory(path); // create src folder
         }
     }
+    FILE_EXT getFileExtFromStr(const std::string &ext);
 }

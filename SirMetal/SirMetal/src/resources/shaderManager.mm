@@ -2,6 +2,7 @@
 #include "shaderManager.h"
 #import "file.h"
 #import "engineContext.h"
+#import "log.h"
 
 namespace SirMetal {
     LibraryHandle ShaderManager::loadShader(const char *path) {
@@ -14,15 +15,18 @@ namespace SirMetal {
         }
 
         //loading the actual shader library
-        NSString *shaderPath = [NSString stringWithCString:m_resourcePath.c_str()
+        NSString *shaderPath = [NSString stringWithCString: path
                                                   encoding:[NSString defaultCStringEncoding]];
         __autoreleasing NSError *errorLib = nil;
-        shaderPath = [shaderPath stringByAppendingString:@"/shaders/Shaders.metal"];
 
         NSString *content = [NSString stringWithContentsOfFile:shaderPath encoding:NSUTF8StringEncoding error:nil];
         id <MTLDevice> currDevice = m_device;
         id <MTLLibrary> libraryRaw = [currDevice newLibraryWithSource:content options:nil error:&errorLib];
-        NSLog(@"%@", errorLib);
+        if(libraryRaw == nil) {
+            NSString* errorStr = [errorLib localizedDescription];
+            SIR_CORE_ERROR("Error in compiling shader {}:\n {}",fileName, [errorStr UTF8String]);
+            return {};
+        }
         uint32_t index = m_libraryCounter++;
 
         //updating the look ups

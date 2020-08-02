@@ -1,5 +1,5 @@
 #include "../vendors/json/json.hpp"
-#include "../platform/file.h"
+#include "file.h"
 #include "log.h"
 
 #include <fstream>

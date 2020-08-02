@@ -10,6 +10,7 @@
 #import "vendors/imgui/imgui.h"
 #import "vendors/imgui/imgui_impl_metal.h"
 #import "resources/meshes/wavefrontobj.h"
+#import "resources/meshes/meshManager.h"
 #import "imgui_impl_osx.h"
 #import "imgui_internal.h"
 #import "editorUI.h"
@@ -131,7 +132,6 @@ static SirMetal::EditorFPSCameraController cameraController;
     const std::string& projectPath = SirMetal::Editor::PROJECT->getProjectPath();
     sprintf(buffer, "%s/%s", projectPath.c_str(), "/shaders/Shaders.metal");
     SirMetal::LibraryHandle lh = SirMetal::CONTEXT->managers.shaderManager->getHandleFromName("Shaders");
-    //SirMetal::LibraryHandle lh = SirMetal::CONTEXT->managers.shaderManager->loadShader(buffer);
     id <MTLLibrary> rawLib = SirMetal::CONTEXT->managers.shaderManager->getLibraryFromHandle(lh);
 
     MTLRenderPipelineDescriptor *pipelineDescriptor = [MTLRenderPipelineDescriptor new];
@@ -155,22 +155,6 @@ static SirMetal::EditorFPSCameraController cameraController;
 }
 
 - (void)makeBuffers {
-    //load mesh
-    Mesh result;
-    std::string path = SirMetal::Editor::PROJECT->getProjectPath();
-    path += "/cube.obj";
-    loadMesh(result, path.c_str());
-
-    _vertexBuffer = [_device newBufferWithBytes:result.vertices.data()
-                                         length:sizeof(Vertex)*result.vertices.size()
-                                        options:MTLResourceOptionCPUCacheModeDefault];
-    [_vertexBuffer setLabel:@"Vertices"];
-
-    _indexBuffer = [_device newBufferWithBytes:result.indices.data()
-                                        length:result.indices.size()*sizeof(uint32_t)
-                                       options:MTLResourceOptionCPUCacheModeDefault];
-    [_indexBuffer setLabel:@"Indices"];
-
     _uniformBuffer = [_device newBufferWithLength:AlignUp(sizeof(MBEUniforms), MBEBufferAlignment) * MBEInFlightBufferCount
                                           options:MTLResourceOptionCPUCacheModeDefault];
     [_uniformBuffer setLabel:@"Uniforms"];
@@ -315,13 +299,16 @@ static SirMetal::EditorFPSCameraController cameraController;
 
     const NSUInteger uniformBufferOffset = AlignUp(sizeof(MBEUniforms), MBEBufferAlignment) * self.bufferIndex;
 
-    [renderPass setVertexBuffer:self.vertexBuffer offset:0 atIndex:0];
     [renderPass setVertexBuffer:self.uniformBuffer offset:uniformBufferOffset atIndex:1];
 
+    SirMetal::MeshHandle mesh = SirMetal::CONTEXT->managers.meshManager->getHandleFromName("lucy");
+    const SirMetal::MeshData* meshData =SirMetal::CONTEXT->managers.meshManager->getMeshData(mesh);
+
+    [renderPass setVertexBuffer:meshData->vertexBuffer offset:0 atIndex:0];
     [renderPass drawIndexedPrimitives:MTLPrimitiveTypeTriangle
-                           indexCount:[self.indexBuffer length] / sizeof(uint32_t)
+                           indexCount: meshData->primitivesCount
                             indexType:MBEIndexType
-                          indexBuffer:self.indexBuffer
+                          indexBuffer:meshData->indexBuffer
                     indexBufferOffset:0];
 
     [renderPass endEncoding];

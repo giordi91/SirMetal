@@ -9,12 +9,12 @@ struct Vertex
     float tu, tv, pad1,pad2;
 };
 
-struct Mesh
+struct MeshObj
 {
     std::vector<Vertex> vertices;
     std::vector<uint32_t> indices;
 };
 
-bool loadMesh(Mesh& result, const char* path);
+bool loadMeshObj(MeshObj& result, const char* path);
 
 

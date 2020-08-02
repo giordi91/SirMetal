@@ -6,6 +6,7 @@
 
 #import "resources/shaderManager.h"
 #import "resources/textureManager.h"
+#import "resources/meshes/meshManager.h"
 #import "log.h"
 #import "project.h"
 
@@ -26,11 +27,14 @@ namespace SirMetal {
         shaderManager->initialize(device,projectPath);
         TextureManager* textureManager = new TextureManager;
         textureManager->initialize();
+        MeshManager* meshManager= new MeshManager;
+        meshManager->initialize(device);
 
         CONTEXT = new EngineContext{ 0,0, nullptr
         ,{
             textureManager,
             shaderManager,
+            meshManager,
         }};
         CONTEXT->cameraController.setCamera(&CONTEXT->camera);
 

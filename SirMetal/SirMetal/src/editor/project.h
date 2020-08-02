@@ -7,11 +7,6 @@
 
 namespace SirMetal {
     namespace Editor {
-        enum class SUPPORTED_FILE_EXTENSION {
-            NONE = 0,
-            OBJ = 1,
-            METAL = 2
-        };
 
         class Project {
 

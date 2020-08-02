@@ -7,9 +7,10 @@
 
 #include <filesystem>
 
-#include "../platform/file.h"
+#include "file.h"
 #include "../core/jsonParse.h"
 #include "../resources/shaderManager.h"
+#include "../resources/meshes/meshManager.h"
 #import "engineContext.h"
 
 
@@ -18,17 +19,7 @@ namespace SirMetal {
         const std::string Project::CACHE_FOLDER_NAME = "cache";
         const std::unordered_set<std::string> IGNORE_FILES = {".DS_Store", "editor.log"};
         const std::unordered_set<std::string> IGNORE_EXT = {".SirMetalProject", ".log"};
-        const std::unordered_map<std::string, SUPPORTED_FILE_EXTENSION> stringToExt =
-                {
-                        {".obj", SUPPORTED_FILE_EXTENSION::OBJ},
-                        {".metal", SUPPORTED_FILE_EXTENSION::METAL},
-                };
 
-        SUPPORTED_FILE_EXTENSION getFileExtEnum(const std::string &ext) {
-            auto found = stringToExt.find(ext);
-            if (found != stringToExt.end()) {return found->second;}
-            return SUPPORTED_FILE_EXTENSION::NONE;
-        }
 
         namespace PROJECT_KEY {
             static const std::string defaultProjectName = "Empty Project";
@@ -214,13 +205,14 @@ namespace SirMetal {
 
                 SIR_CORE_INFO("file to load {}", path);
                 const std::string &extString = getFileExtension(path);
-                SUPPORTED_FILE_EXTENSION ext = getFileExtEnum(extString);
+                FILE_EXT ext = getFileExtFromStr(extString);
 
                 switch (ext) {
-                    case SUPPORTED_FILE_EXTENSION::OBJ: {
+                    case FILE_EXT::OBJ: {
+                        CONTEXT->managers.meshManager->loadMesh(path);
                         break;
                     }
-                    case SUPPORTED_FILE_EXTENSION::METAL: {
+                    case FILE_EXT::METAL: {
                         CONTEXT->managers.shaderManager->loadShader(path.c_str());
                         break;
                     }
@@ -231,5 +223,6 @@ namespace SirMetal {
             }
             return true;
         }
+
     }
 }

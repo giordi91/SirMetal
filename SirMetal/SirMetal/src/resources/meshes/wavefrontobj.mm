@@ -7,7 +7,7 @@
 #include "objparser.h"
 
 
-bool loadMesh(Mesh& result, const char* path)
+bool loadMeshObj(MeshObj& result, const char* path)
 {
 
     ObjFile file;
