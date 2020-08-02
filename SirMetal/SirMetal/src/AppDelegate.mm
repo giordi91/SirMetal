@@ -143,11 +143,6 @@
 
 - (void)applicationDidFinishLaunching:(NSNotification *)aNotification {
 
-    //Initialize the engine
-    bool result = SirMetal::startup();
-    if (!result) {
-        [window close];
-    }
 
     //Create Main Window
     NSScreen *screen = NSScreen.mainScreen;
@@ -189,8 +184,6 @@
         return;
     }
 
-    // Initialize the renderer with the view size.
-    [_renderer mtkView:view drawableSizeWillChange:view.drawableSize];
     view.delegate = _renderer;
     view.autoResizeDrawable = true;
     view.autoresizesSubviews = true;
@@ -198,6 +191,14 @@
     [window makeFirstResponder:view];
     NSLog(@"subviews are: %@", [self.window.contentView subviews]);
 
+    //Initialize the engine
+    bool result = SirMetal::startup(view.device);
+    if (!result) {
+        [window close];
+    }
+    [_renderer initGraphicsObjectsTemp];
+    // Initialize the renderer with the view size.
+    [_renderer mtkView:view drawableSizeWillChange:view.drawableSize];
 }
 
 - (BOOL)applicationShouldTerminateAfterLastWindowClosed:(NSApplication *)theApplication {

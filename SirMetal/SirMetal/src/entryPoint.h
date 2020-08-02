@@ -1,7 +1,9 @@
 #pragma once
 
+#import <objc/objc.h>
+
 namespace SirMetal {
-    bool startup();
+    bool startup(id device);
 
     void shutdown();
 }

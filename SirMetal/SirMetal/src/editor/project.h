@@ -7,29 +7,41 @@
 
 namespace SirMetal {
     namespace Editor {
+        enum class SUPPORTED_FILE_EXTENSION {
+            NONE = 0,
+            OBJ = 1,
+            METAL = 2
+        };
+
         class Project {
 
         public:
             bool initialize(const std::string &path);
-            const std::string& getProjectFilePath() const{
+
+            const std::string &getProjectFilePath() const {
                 return m_projectFilePath;
             }
-            const std::string& getProjectPath() const{
+
+            const std::string &getProjectPath() const {
                 return m_projectPath;
             }
-            Settings& getSettings() {
+
+            Settings &getSettings() {
                 return m_settings;
             }
 
             void save();
 
             bool processProjectAssets();
+
         public:
             static const std::string CACHE_FOLDER_NAME;
 
         private:
-            bool parseProjectFile(const std::string& path);
-            bool parseCameraSettings(const nlohmann::json& jobj);
+            bool parseProjectFile(const std::string &path);
+
+            bool parseCameraSettings(const nlohmann::json &jobj);
+
             void saveCameraSettings(nlohmann::json &json);
 
         private:
@@ -42,6 +54,7 @@ namespace SirMetal {
         };
 
         bool initializeProject();
+
         extern Project *PROJECT;
 
     }

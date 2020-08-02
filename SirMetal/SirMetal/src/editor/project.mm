@@ -9,12 +9,27 @@
 
 #include "../platform/file.h"
 #include "../core/jsonParse.h"
+#include "../resources/shaderManager.h"
+#import "engineContext.h"
+
 
 namespace SirMetal {
     namespace Editor {
         const std::string Project::CACHE_FOLDER_NAME = "cache";
-        const std::unordered_set<std::string> IGNORE_FILES = {".DS_Store","editor.log"};
-        const std::unordered_set<std::string> IGNORE_EXT= {".SirMetalProject",".log"};
+        const std::unordered_set<std::string> IGNORE_FILES = {".DS_Store", "editor.log"};
+        const std::unordered_set<std::string> IGNORE_EXT = {".SirMetalProject", ".log"};
+        const std::unordered_map<std::string, SUPPORTED_FILE_EXTENSION> stringToExt =
+                {
+                        {".obj", SUPPORTED_FILE_EXTENSION::OBJ},
+                        {".metal", SUPPORTED_FILE_EXTENSION::METAL},
+                };
+
+        SUPPORTED_FILE_EXTENSION getFileExtEnum(const std::string &ext) {
+            auto found = stringToExt.find(ext);
+            if (found != stringToExt.end()) {return found->second;}
+            return SUPPORTED_FILE_EXTENSION::NONE;
+        }
+
         namespace PROJECT_KEY {
             static const std::string defaultProjectName = "Empty Project";
             static const std::string projectName = "projectName";
@@ -170,26 +185,49 @@ namespace SirMetal {
             jsettings[CAMERA_KEY::lookSpeed] = settings.lookSpeed;
         }
 
+        bool isFileOfInterestToProject(const std::string &sourcePath) {
+
+
+            bool isDir = isPathDirectory(sourcePath);
+            if (isDir) {return false;}
+            std::string fileName = getFileName(sourcePath);
+            bool isIgnoreFile = IGNORE_FILES.find(fileName) != IGNORE_FILES.end();
+            if (isIgnoreFile) {
+                return false;
+            }
+
+            std::string ext = getFileExtension(sourcePath);
+            bool isIgnoreExt = IGNORE_EXT.find(ext) != IGNORE_EXT.end();
+            if (isIgnoreExt) {return false;}
+            return true;
+        }
+
+
         bool Project::processProjectAssets() {
 
             using recursive_directory_iterator = std::__fs::filesystem::recursive_directory_iterator;
             for (const auto &dirEntry : recursive_directory_iterator(m_projectPath)) {
 
-                auto dirPath  = dirEntry.path();
-                bool isDir = dirEntry.is_directory();
-                if(isDir) { continue; }
-                std::string fileName = dirPath.stem().string();
-                bool isIgnoreFile = IGNORE_FILES.find(fileName) != IGNORE_FILES.end();
-                if (isIgnoreFile) {
-                    continue;
+                const std::string &path = dirEntry.path().string();
+                bool result = isFileOfInterestToProject(path);
+                if (!result) {continue;}
+
+                SIR_CORE_INFO("file to load {}", path);
+                const std::string &extString = getFileExtension(path);
+                SUPPORTED_FILE_EXTENSION ext = getFileExtEnum(extString);
+
+                switch (ext) {
+                    case SUPPORTED_FILE_EXTENSION::OBJ: {
+                        break;
+                    }
+                    case SUPPORTED_FILE_EXTENSION::METAL: {
+                        CONTEXT->managers.shaderManager->loadShader(path.c_str());
+                        break;
+                    }
+                    default: {
+                        SIR_CORE_WARN("Unsupported file ext: {}", extString);
+                    }
                 }
-
-                std::string ext = dirPath.extension();
-                bool isIgnoreExt = IGNORE_EXT.find(ext) != IGNORE_EXT.end();
-                if(isIgnoreExt)
-                {continue;}
-
-                SIR_CORE_INFO("file to load {}", dirPath);
             }
             return true;
         }

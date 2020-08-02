@@ -91,9 +91,12 @@ static SirMetal::EditorFPSCameraController cameraController;
 
     mtkView.paused = NO;
 
-    int w = mtkView.drawableSize.width;
-    int h = mtkView.drawableSize.height;
+    self.screenWidth = mtkView.drawableSize.width;
+    self.screenHeight = mtkView.drawableSize.height;
 
+    return self;
+}
+- (void) initGraphicsObjectsTemp {
 
     //create the pipeline
     [self makePipeline];
@@ -112,14 +115,14 @@ static SirMetal::EditorFPSCameraController cameraController;
     cameraController.setPosition(0,0,5);
 
     MTLTextureDescriptor *descriptor =
-            [MTLTextureDescriptor texture2DDescriptorWithPixelFormat:MTLPixelFormatDepth32Float_Stencil8 width:w height:h mipmapped:NO];
+            [MTLTextureDescriptor texture2DDescriptorWithPixelFormat:MTLPixelFormatDepth32Float_Stencil8
+                    width:self.screenWidth height:self.screenHeight mipmapped:NO];
     descriptor.storageMode = MTLStorageModePrivate;
     descriptor.usage = MTLTextureUsageRenderTarget;
     descriptor.pixelFormat = MTLPixelFormatDepth32Float_Stencil8;
     self.depthTextureGUI = [_device newTextureWithDescriptor:descriptor];
     self.depthTextureGUI.label = @"DepthStencilGUI";
 
-    return self;
 }
 
 - (void)makePipeline {
@@ -127,7 +130,8 @@ static SirMetal::EditorFPSCameraController cameraController;
     char buffer[256];
     const std::string& projectPath = SirMetal::Editor::PROJECT->getProjectPath();
     sprintf(buffer, "%s/%s", projectPath.c_str(), "/shaders/Shaders.metal");
-    SirMetal::LibraryHandle lh = SirMetal::CONTEXT->managers.shaderManager->loadShader(buffer, _device);
+    SirMetal::LibraryHandle lh = SirMetal::CONTEXT->managers.shaderManager->getHandleFromName("Shaders");
+    //SirMetal::LibraryHandle lh = SirMetal::CONTEXT->managers.shaderManager->loadShader(buffer);
     id <MTLLibrary> rawLib = SirMetal::CONTEXT->managers.shaderManager->getLibraryFromHandle(lh);
 
     MTLRenderPipelineDescriptor *pipelineDescriptor = [MTLRenderPipelineDescriptor new];

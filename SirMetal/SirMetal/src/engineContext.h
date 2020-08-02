@@ -1,6 +1,7 @@
 #pragma once
 
 #import <cstdint>
+#import <objc/objc.h>
 #import "graphics/camera.h"
 #import "core/input.h"
 
@@ -45,7 +46,7 @@ namespace SirMetal {
 
     };
 
-    bool initializeContext();
+    bool initializeContext(id device);
     void endFrame(EngineContext* context);
 
     extern EngineContext *CONTEXT;

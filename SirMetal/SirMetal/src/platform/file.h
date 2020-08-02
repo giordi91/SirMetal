@@ -4,6 +4,7 @@
 
 namespace SirMetal {
 
+    /*
     inline void listFilesInFolder(const char *folderPath,
             std::vector<std::string> &filePaths,
             std::string extension = "NONE") {
@@ -23,6 +24,7 @@ namespace SirMetal {
             }
         }
     }
+     */
 
     inline std::string getFileName(const std::string &path) {
         const auto expPath = std::__fs::filesystem::path(path);

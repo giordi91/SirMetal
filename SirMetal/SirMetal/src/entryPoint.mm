@@ -5,15 +5,16 @@
 #import "engineContext.h"
 
 namespace SirMetal {
-    bool startup() {
+    bool startup(id device) {
         bool result = Editor::initializeProject();
         if(!result ){return false;}
-        result = initializeContext();
+        result = initializeContext(device);
         if(!result ){return false;}
         result = Editor::PROJECT->processProjectAssets();
         return result;
 
     }
+
 
     void shutdown() {
 
