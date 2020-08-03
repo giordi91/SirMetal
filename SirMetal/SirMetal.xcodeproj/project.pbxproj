@@ -8,21 +8,21 @@
 
 /* Begin PBXBuildFile section */
 		C00CBE2324CD5572009167CB /* LICENSE.rst in Resources */ = {isa = PBXBuildFile; fileRef = C00CBDD724CD5571009167CB /* LICENSE.rst */; };
-		C00CBE3724D4B611009167CB /* vertexfilter.cpp in Sources */ = {isa = PBXBuildFile; fileRef = C00CBE2724D4B611009167CB /* vertexfilter.cpp */; };
-		C00CBE3824D4B611009167CB /* vertexcodec.cpp in Sources */ = {isa = PBXBuildFile; fileRef = C00CBE2824D4B611009167CB /* vertexcodec.cpp */; };
-		C00CBE3924D4B611009167CB /* overdrawanalyzer.cpp in Sources */ = {isa = PBXBuildFile; fileRef = C00CBE2924D4B611009167CB /* overdrawanalyzer.cpp */; };
-		C00CBE3A24D4B611009167CB /* vcacheoptimizer.cpp in Sources */ = {isa = PBXBuildFile; fileRef = C00CBE2A24D4B611009167CB /* vcacheoptimizer.cpp */; };
-		C00CBE3B24D4B611009167CB /* overdrawoptimizer.cpp in Sources */ = {isa = PBXBuildFile; fileRef = C00CBE2B24D4B611009167CB /* overdrawoptimizer.cpp */; };
-		C00CBE3C24D4B611009167CB /* stripifier.cpp in Sources */ = {isa = PBXBuildFile; fileRef = C00CBE2D24D4B611009167CB /* stripifier.cpp */; };
+		C00CBE3724D4B611009167CB /* vertexfilter.cpp in Sources */ = {isa = PBXBuildFile; fileRef = C00CBE2724D4B611009167CB /* vertexfilter.cpp */; settings = {COMPILER_FLAGS = "-w"; }; };
+		C00CBE3824D4B611009167CB /* vertexcodec.cpp in Sources */ = {isa = PBXBuildFile; fileRef = C00CBE2824D4B611009167CB /* vertexcodec.cpp */; settings = {COMPILER_FLAGS = "-w"; }; };
+		C00CBE3924D4B611009167CB /* overdrawanalyzer.cpp in Sources */ = {isa = PBXBuildFile; fileRef = C00CBE2924D4B611009167CB /* overdrawanalyzer.cpp */; settings = {COMPILER_FLAGS = "-w"; }; };
+		C00CBE3A24D4B611009167CB /* vcacheoptimizer.cpp in Sources */ = {isa = PBXBuildFile; fileRef = C00CBE2A24D4B611009167CB /* vcacheoptimizer.cpp */; settings = {COMPILER_FLAGS = "-w"; }; };
+		C00CBE3B24D4B611009167CB /* overdrawoptimizer.cpp in Sources */ = {isa = PBXBuildFile; fileRef = C00CBE2B24D4B611009167CB /* overdrawoptimizer.cpp */; settings = {COMPILER_FLAGS = "-w"; }; };
+		C00CBE3C24D4B611009167CB /* stripifier.cpp in Sources */ = {isa = PBXBuildFile; fileRef = C00CBE2D24D4B611009167CB /* stripifier.cpp */; settings = {COMPILER_FLAGS = "-w"; }; };
 		C00CBE3D24D4B611009167CB /* vcacheanalyzer.cpp in Sources */ = {isa = PBXBuildFile; fileRef = C00CBE2E24D4B611009167CB /* vcacheanalyzer.cpp */; };
-		C00CBE3E24D4B611009167CB /* indexcodec.cpp in Sources */ = {isa = PBXBuildFile; fileRef = C00CBE2F24D4B611009167CB /* indexcodec.cpp */; };
-		C00CBE3F24D4B611009167CB /* vfetchoptimizer.cpp in Sources */ = {isa = PBXBuildFile; fileRef = C00CBE3024D4B611009167CB /* vfetchoptimizer.cpp */; };
-		C00CBE4024D4B611009167CB /* allocator.cpp in Sources */ = {isa = PBXBuildFile; fileRef = C00CBE3124D4B611009167CB /* allocator.cpp */; };
-		C00CBE4124D4B611009167CB /* spatialorder.cpp in Sources */ = {isa = PBXBuildFile; fileRef = C00CBE3224D4B611009167CB /* spatialorder.cpp */; };
-		C00CBE4224D4B611009167CB /* indexgenerator.cpp in Sources */ = {isa = PBXBuildFile; fileRef = C00CBE3324D4B611009167CB /* indexgenerator.cpp */; };
-		C00CBE4324D4B611009167CB /* vfetchanalyzer.cpp in Sources */ = {isa = PBXBuildFile; fileRef = C00CBE3424D4B611009167CB /* vfetchanalyzer.cpp */; };
+		C00CBE3E24D4B611009167CB /* indexcodec.cpp in Sources */ = {isa = PBXBuildFile; fileRef = C00CBE2F24D4B611009167CB /* indexcodec.cpp */; settings = {COMPILER_FLAGS = "-w"; }; };
+		C00CBE3F24D4B611009167CB /* vfetchoptimizer.cpp in Sources */ = {isa = PBXBuildFile; fileRef = C00CBE3024D4B611009167CB /* vfetchoptimizer.cpp */; settings = {COMPILER_FLAGS = "-w"; }; };
+		C00CBE4024D4B611009167CB /* allocator.cpp in Sources */ = {isa = PBXBuildFile; fileRef = C00CBE3124D4B611009167CB /* allocator.cpp */; settings = {COMPILER_FLAGS = "-w"; }; };
+		C00CBE4124D4B611009167CB /* spatialorder.cpp in Sources */ = {isa = PBXBuildFile; fileRef = C00CBE3224D4B611009167CB /* spatialorder.cpp */; settings = {COMPILER_FLAGS = "-w"; }; };
+		C00CBE4224D4B611009167CB /* indexgenerator.cpp in Sources */ = {isa = PBXBuildFile; fileRef = C00CBE3324D4B611009167CB /* indexgenerator.cpp */; settings = {COMPILER_FLAGS = "-w"; }; };
+		C00CBE4324D4B611009167CB /* vfetchanalyzer.cpp in Sources */ = {isa = PBXBuildFile; fileRef = C00CBE3424D4B611009167CB /* vfetchanalyzer.cpp */; settings = {COMPILER_FLAGS = "-w"; }; };
 		C00CBE4424D4B611009167CB /* clusterizer.cpp in Sources */ = {isa = PBXBuildFile; fileRef = C00CBE3524D4B611009167CB /* clusterizer.cpp */; };
-		C00CBE4524D4B611009167CB /* simplifier.cpp in Sources */ = {isa = PBXBuildFile; fileRef = C00CBE3624D4B611009167CB /* simplifier.cpp */; };
+		C00CBE4524D4B611009167CB /* simplifier.cpp in Sources */ = {isa = PBXBuildFile; fileRef = C00CBE3624D4B611009167CB /* simplifier.cpp */; settings = {COMPILER_FLAGS = "-w"; }; };
 		C08F5E3724B3D93A00CC95FC /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = C08F5E3624B3D93A00CC95FC /* Assets.xcassets */; };
 		C08F5E3A24B3D93A00CC95FC /* MainMenu.xib in Resources */ = {isa = PBXBuildFile; fileRef = C08F5E3824B3D93A00CC95FC /* MainMenu.xib */; };
 		C08F5E4824B3D96600CC95FC /* Metal.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = C08F5E4524B3D96600CC95FC /* Metal.framework */; };
@@ -37,8 +37,8 @@
 		C0DF944C24B84B930005DB07 /* MBEMathUtilities.mm in Sources */ = {isa = PBXBuildFile; fileRef = C0DF944B24B84B930005DB07 /* MBEMathUtilities.mm */; };
 		C0DF948D24C250F50005DB07 /* imgui_widgets.cpp in Sources */ = {isa = PBXBuildFile; fileRef = C0DF947B24C250F40005DB07 /* imgui_widgets.cpp */; };
 		C0DF948E24C250F50005DB07 /* imgui_impl_metal.mm in Sources */ = {isa = PBXBuildFile; fileRef = C0DF947D24C250F40005DB07 /* imgui_impl_metal.mm */; };
-		C0DF948F24C250F50005DB07 /* imgui.cpp in Sources */ = {isa = PBXBuildFile; fileRef = C0DF947E24C250F40005DB07 /* imgui.cpp */; };
-		C0DF949024C250F50005DB07 /* imgui_demo.cpp in Sources */ = {isa = PBXBuildFile; fileRef = C0DF948224C250F40005DB07 /* imgui_demo.cpp */; };
+		C0DF948F24C250F50005DB07 /* imgui.cpp in Sources */ = {isa = PBXBuildFile; fileRef = C0DF947E24C250F40005DB07 /* imgui.cpp */; settings = {COMPILER_FLAGS = "-w"; }; };
+		C0DF949024C250F50005DB07 /* imgui_demo.cpp in Sources */ = {isa = PBXBuildFile; fileRef = C0DF948224C250F40005DB07 /* imgui_demo.cpp */; settings = {COMPILER_FLAGS = "-w"; }; };
 		C0DF949124C250F50005DB07 /* imgui_draw.cpp in Sources */ = {isa = PBXBuildFile; fileRef = C0DF948324C250F40005DB07 /* imgui_draw.cpp */; };
 		C0DF949924C2D04B0005DB07 /* imgui_impl_osx.mm in Sources */ = {isa = PBXBuildFile; fileRef = C0DF949724C2D04A0005DB07 /* imgui_impl_osx.mm */; };
 		C9EA90B721A11CA8CA3C47B5 /* editorUI.mm in Sources */ = {isa = PBXBuildFile; fileRef = C9EA957869142439D70FD5D1 /* editorUI.mm */; };

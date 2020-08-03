@@ -1,6 +1,3 @@
-//
-// Created by Dhruv Govil on 2019-09-01.
-//
 
 #include <iostream>
 #import <AppKit/AppKit.h>
@@ -13,6 +10,10 @@
 #import "project.h"
 #import "entryPoint.h"
 
+//NOTE Main problem with this file was disabling ARC, that is mostly
+//due to me being new with the whole objective C and cocoa frameworks
+//I will revisit in the future to avoid leaking memory, altoug his just a start
+//up and shutdown thing, not a per frame issue
 @implementation SirMTKView
 - (void)customInit {
     auto context = ImGui::CreateContext();

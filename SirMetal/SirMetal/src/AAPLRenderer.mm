@@ -9,7 +9,6 @@
 #import "MBEMathUtilities.h"
 #import "vendors/imgui/imgui.h"
 #import "vendors/imgui/imgui_impl_metal.h"
-#import "resources/meshes/wavefrontobj.h"
 #import "resources/meshes/meshManager.h"
 #import "imgui_impl_osx.h"
 #import "imgui_internal.h"
@@ -34,22 +33,26 @@ static const uint32_t MBEBufferAlignment = 256;
 //temporary until i figure out what to do with this
 static SirMetal::Editor::EditorUI editorUI = SirMetal::Editor::EditorUI();
 static bool shouldResizeOffScreen = false;
-static matrix_float4x4 viewMatrix;
 static SirMetal::Camera camera;
 static SirMetal::EditorFPSCameraController cameraController;
 
 @interface AAPLRenderer ()
 @property(strong) id <MTLRenderPipelineState> renderPipelineState;
+@property(strong) id <MTLRenderPipelineState> jumpMaskPipelineState;
+@property(strong) id <MTLRenderPipelineState> jumpInitPipelineState;
 @property(strong) id <MTLDepthStencilState> depthStencilState;
 @property(strong) id <MTLTexture> depthTexture;
+@property(strong) id <MTLTexture> jumpTexture;
+@property(strong) id <MTLTexture> jumpTexture2;
+@property(strong) id <MTLTexture> jumpMaskTexture;
 @property(strong) id <MTLTexture> depthTextureGUI;
 @property(strong) id <MTLTexture> offScreenTexture;
-@property(nonatomic, strong) id <MTLBuffer> vertexBuffer;
-@property(strong) id <MTLBuffer> indexBuffer;
+@property(nonatomic) SirMetal::TextureHandle jumpHandle;
+@property(nonatomic) SirMetal::TextureHandle jumpHandle2;
+@property(nonatomic) SirMetal::TextureHandle jumpMaskHandle;
 @property(strong) id <MTLBuffer> uniformBuffer;
 @property(strong) dispatch_semaphore_t displaySemaphore;
 @property(assign) NSInteger bufferIndex;
-@property(assign) float rotationX, rotationY, time;
 @end
 
 // Main class performing the rendering
@@ -97,7 +100,8 @@ static SirMetal::EditorFPSCameraController cameraController;
 
     return self;
 }
-- (void) initGraphicsObjectsTemp {
+
+- (void)initGraphicsObjectsTemp {
 
     //create the pipeline
     [self makePipeline];
@@ -106,18 +110,17 @@ static SirMetal::EditorFPSCameraController cameraController;
     [self createOffscreenTexture:256 :256];
 
     //view matrix
-    viewMatrix = matrix_float4x4_translation(vector_float3{0, 0, 5});
     //initializing the camera to the identity
     camera.viewMatrix = matrix_float4x4_translation(vector_float3{0, 0, 0});
-    camera.fov = M_PI/4;
+    camera.fov = M_PI / 4;
     camera.nearPlane = 1;
     camera.farPlane = 100;
     cameraController.setCamera(&camera);
-    cameraController.setPosition(0,0,5);
+    cameraController.setPosition(0, 0, 5);
 
     MTLTextureDescriptor *descriptor =
             [MTLTextureDescriptor texture2DDescriptorWithPixelFormat:MTLPixelFormatDepth32Float_Stencil8
-                    width:self.screenWidth height:self.screenHeight mipmapped:NO];
+                                                               width:self.screenWidth height:self.screenHeight mipmapped:NO];
     descriptor.storageMode = MTLStorageModePrivate;
     descriptor.usage = MTLTextureUsageRenderTarget;
     descriptor.pixelFormat = MTLPixelFormatDepth32Float_Stencil8;
@@ -128,9 +131,11 @@ static SirMetal::EditorFPSCameraController cameraController;
 
 - (void)makePipeline {
 
+    /*
     char buffer[256];
     const std::string& projectPath = SirMetal::Editor::PROJECT->getProjectPath();
     sprintf(buffer, "%s/%s", projectPath.c_str(), "/shaders/Shaders.metal");
+     */
     SirMetal::LibraryHandle lh = SirMetal::CONTEXT->managers.shaderManager->getHandleFromName("Shaders");
     id <MTLLibrary> rawLib = SirMetal::CONTEXT->managers.shaderManager->getLibraryFromHandle(lh);
 
@@ -152,6 +157,35 @@ static SirMetal::EditorFPSCameraController cameraController;
     if (!self.renderPipelineState) {
         NSLog(@"Error occurred when creating render pipeline state: %@", error);
     }
+    //JUMP FLOOD MASK
+    lh = SirMetal::CONTEXT->managers.shaderManager->getHandleFromName("jumpMask");
+    rawLib = SirMetal::CONTEXT->managers.shaderManager->getLibraryFromHandle(lh);
+
+    pipelineDescriptor = [MTLRenderPipelineDescriptor new];
+    pipelineDescriptor.vertexFunction = [rawLib newFunctionWithName:@"vertex_project"];
+    pipelineDescriptor.fragmentFunction = [rawLib newFunctionWithName:@"fragment_flatcolor"];
+    pipelineDescriptor.colorAttachments[0].pixelFormat = MTLPixelFormatR8Unorm;
+
+    self.jumpMaskPipelineState = [_device newRenderPipelineStateWithDescriptor:pipelineDescriptor error:&error];
+
+    if (!self.jumpMaskPipelineState) {
+        NSLog(@"Error occurred when creating jump mask render pipeline state: %@", error);
+    }
+
+    //jump flo0d init
+    lh = SirMetal::CONTEXT->managers.shaderManager->getHandleFromName("jumpInit");
+    rawLib = SirMetal::CONTEXT->managers.shaderManager->getLibraryFromHandle(lh);
+
+    pipelineDescriptor = [MTLRenderPipelineDescriptor new];
+    pipelineDescriptor.vertexFunction = [rawLib newFunctionWithName:@"vertex_project"];
+    pipelineDescriptor.fragmentFunction = [rawLib newFunctionWithName:@"fragment_flatcolor"];
+    pipelineDescriptor.colorAttachments[0].pixelFormat = MTLPixelFormatRG8Unorm;
+
+    self.jumpInitPipelineState = [_device newRenderPipelineStateWithDescriptor:pipelineDescriptor error:&error];
+
+    if (!self.jumpInitPipelineState) {
+        NSLog(@"Error occurred when creating jump mask render pipeline state: %@", error);
+    }
 }
 
 - (void)makeBuffers {
@@ -162,7 +196,7 @@ static SirMetal::EditorFPSCameraController cameraController;
 
 - (void)updateUniformsForView:(float)screenWidth :(float)screenHeight {
 
-    const matrix_float4x4 modelMatrix = matrix_float4x4_translation(vector_float3{0,0,0});
+    const matrix_float4x4 modelMatrix = matrix_float4x4_translation(vector_float3{0, 0, 0});
 
     ImGuiIO &io = ImGui::GetIO();
     //we wish to update the camera aka move it only when we are in
@@ -172,15 +206,16 @@ static SirMetal::EditorFPSCameraController cameraController;
     bool isViewport = (io.ConfigFlags & ImGuiConfigFlags_DockingEnable) > 0;
     bool isViewportInFocus = (SirMetal::CONTEXT->flags.interaction & SirMetal::InteractionFlagsBits::InteractionViewportFocused) > 0;
     bool shouldControlViewport = isViewport & isViewportInFocus;
+    MBEUniforms uniforms;
+    uniforms.modelViewProjectionMatrix = matrix_multiply(camera.VP, modelMatrix);
     if (shouldControlViewport | (!isViewport)) {
         SirMetal::Input &input = SirMetal::CONTEXT->input;
         cameraController.update(&input, screenWidth, screenHeight);
-        MBEUniforms uniforms;
         uniforms.modelViewProjectionMatrix = matrix_multiply(camera.VP, modelMatrix);
 
-        const NSUInteger uniformBufferOffset = AlignUp(sizeof(MBEUniforms), MBEBufferAlignment) * self.bufferIndex;
-        memcpy((char *) ([self.uniformBuffer contents]) + uniformBufferOffset, &uniforms, sizeof(uniforms));
     }
+    const NSUInteger uniformBufferOffset = AlignUp(sizeof(MBEUniforms), MBEBufferAlignment) * self.bufferIndex;
+    memcpy((char *) ([self.uniformBuffer contents]) + uniformBufferOffset, &uniforms, sizeof(uniforms));
 }
 
 - (void)createOffscreenTexture:(int)width :(int)height {
@@ -204,6 +239,24 @@ static SirMetal::EditorFPSCameraController cameraController;
     };
     self.depthHandle = textureManager->allocate(_device, requestDepth);
     self.depthTexture = textureManager->getNativeFromHandle(self.depthHandle);
+    SirMetal::AllocTextureRequest jumpRequest{
+            static_cast<uint32_t>(width), static_cast<uint32_t>(height),
+            1, MTLTextureType2D, MTLPixelFormatRG8Unorm,
+            MTLTextureUsageRenderTarget | MTLTextureUsageShaderRead, MTLStorageModePrivate, 1, "jumpFloodTexture"
+    };
+    self.jumpHandle = textureManager->allocate(_device, jumpRequest);
+    self.jumpTexture = textureManager->getNativeFromHandle(self.jumpHandle);
+    //second texture used to do ping pong for selectin
+    self.jumpHandle2 = textureManager->allocate(_device, jumpRequest);
+    self.jumpTexture2 = textureManager->getNativeFromHandle(self.jumpHandle2);
+
+    SirMetal::AllocTextureRequest jumpMaskRequest{
+            static_cast<uint32_t>(width), static_cast<uint32_t>(height),
+            1, MTLTextureType2D, MTLPixelFormatR8Unorm,
+            MTLTextureUsageRenderTarget | MTLTextureUsageShaderRead, MTLStorageModePrivate, 1, "jumpFloodMaskTexture"
+    };
+    self.jumpMaskHandle = textureManager->allocate(_device, jumpMaskRequest);
+    self.jumpMaskTexture = textureManager->getNativeFromHandle(self.jumpMaskHandle);
 }
 
 - (void)renderUI:(MTKView *)view :(MTLRenderPassDescriptor *)passDescriptor :(id <MTLCommandBuffer>)commandBuffer
@@ -225,20 +278,27 @@ static SirMetal::EditorFPSCameraController cameraController;
 /// Called whenever the view needs to render a frame.
 - (void)drawInMTKView:(nonnull MTKView *)view {
 
-    //dispatch_semaphore_wait(self.displaySemaphore, DISPATCH_TIME_FOREVER);
+    dispatch_semaphore_wait(self.displaySemaphore, DISPATCH_TIME_FOREVER);
     ImVec2 viewportSize = editorUI.getViewportSize();
     if (shouldResizeOffScreen) {
         // [self createOffscreenTexture:(int) viewportSize.x :(int) viewportSize.y];
         SirMetal::TextureManager *texManager = SirMetal::CONTEXT->managers.textureManager;
         bool viewportResult = texManager->resizeTexture(_device, self.viewportHandle, viewportSize.x, viewportSize.y);
         bool depthResult = texManager->resizeTexture(_device, self.depthHandle, viewportSize.x, viewportSize.y);
-        if ((!viewportResult) | (!depthResult)) {
+        bool jumpResult = texManager->resizeTexture(_device, self.jumpHandle, viewportSize.x, viewportSize.y);
+        bool jumpResult2 = texManager->resizeTexture(_device, self.jumpHandle2, viewportSize.x, viewportSize.y);
+        bool jumpMaskResult = texManager->resizeTexture(_device, self.jumpMaskHandle, viewportSize.x, viewportSize.y);
+        if ((!viewportResult) | (!depthResult) | (!jumpResult)) {
             SIR_CORE_FATAL("Could not resize viewport color or depth buffer");
         } else {
             //if we got no error we extract the new texture so that can be used
             self.offScreenTexture = texManager->getNativeFromHandle(self.viewportHandle);
             self.depthTexture = texManager->getNativeFromHandle(self.depthHandle);
+            self.jumpTexture = texManager->getNativeFromHandle(self.jumpHandle);
+            self.jumpTexture2 = texManager->getNativeFromHandle(self.jumpHandle2);
+            self.jumpMaskTexture = texManager->getNativeFromHandle(self.jumpMaskHandle);
             SirMetal::CONTEXT->viewportTexture = self.offScreenTexture;
+            SirMetal::CONTEXT->viewportTexture = self.jumpTexture;
         }
         shouldResizeOffScreen = false;
     }
@@ -265,9 +325,11 @@ static SirMetal::EditorFPSCameraController cameraController;
     MTLRenderPassDescriptor *passDescriptor = [view currentRenderPassDescriptor];
     //passDescriptor.depthAttachment
 
+    float wToUse = isViewport ? viewportSize.x : w;
+    float hToUse = isViewport ? viewportSize.y : h;
 
-    passDescriptor.renderTargetWidth = isViewport ? viewportSize.x : w;
-    passDescriptor.renderTargetHeight = isViewport ? viewportSize.y : h;
+    passDescriptor.renderTargetWidth = wToUse;
+    passDescriptor.renderTargetHeight = hToUse;
     MTLRenderPassColorAttachmentDescriptor *colorAttachment = passDescriptor.colorAttachments[0];
     colorAttachment.texture = isViewport ? self.offScreenTexture : view.currentDrawable.texture;
     colorAttachment.clearColor = MTLClearColorMake(0.8, 0.8, 0.8, 1.0);
@@ -302,16 +364,19 @@ static SirMetal::EditorFPSCameraController cameraController;
     [renderPass setVertexBuffer:self.uniformBuffer offset:uniformBufferOffset atIndex:1];
 
     SirMetal::MeshHandle mesh = SirMetal::CONTEXT->managers.meshManager->getHandleFromName("lucy");
-    const SirMetal::MeshData* meshData =SirMetal::CONTEXT->managers.meshManager->getMeshData(mesh);
+    const SirMetal::MeshData *meshData = SirMetal::CONTEXT->managers.meshManager->getMeshData(mesh);
 
     [renderPass setVertexBuffer:meshData->vertexBuffer offset:0 atIndex:0];
     [renderPass drawIndexedPrimitives:MTLPrimitiveTypeTriangle
-                           indexCount: meshData->primitivesCount
+                           indexCount:meshData->primitivesCount
                             indexType:MBEIndexType
                           indexBuffer:meshData->indexBuffer
                     indexBufferOffset:0];
 
     [renderPass endEncoding];
+
+
+    [self renderSelection:wToUse :hToUse :commandBuffer];
 
 
     if (isViewport) {
@@ -345,14 +410,78 @@ static SirMetal::EditorFPSCameraController cameraController;
 
     [commandBuffer presentDrawable:view.currentDrawable];
 
-    //[commandBuffer addCompletedHandler:^(id<MTLCommandBuffer> commandBuffer) {
-    //    self.bufferIndex = (self.bufferIndex + 1) % MBEInFlightBufferCount;
-    //    dispatch_semaphore_signal(self.displaySemaphore);
-    //}];
+    [commandBuffer addCompletedHandler:^(id <MTLCommandBuffer> commandBuffer) {
+        self.bufferIndex = (self.bufferIndex + 1) % MBEInFlightBufferCount;
+        dispatch_semaphore_signal(self.displaySemaphore);
+    }];
 
     [commandBuffer commit];
 
 
+}
+
+- (void)renderSelection:(float)w :(float)h :(id <MTLCommandBuffer>)commandBuffer {
+
+    MTLRenderPassDescriptor *passDescriptor = [[MTLRenderPassDescriptor alloc] init];
+    MTLRenderPassColorAttachmentDescriptor *uiColorAttachment = passDescriptor.colorAttachments[0];
+    uiColorAttachment.texture = self.jumpMaskTexture;
+    uiColorAttachment.clearColor = MTLClearColorMake(0.0, 0.0, 0.0, 1.0);
+    uiColorAttachment.storeAction = MTLStoreActionStore;
+    uiColorAttachment.loadAction = MTLLoadActionClear;
+    passDescriptor.renderTargetWidth = w;
+    passDescriptor.renderTargetHeight = h;
+
+    id <MTLRenderCommandEncoder> renderPass = [commandBuffer renderCommandEncoderWithDescriptor:passDescriptor];
+
+    [renderPass setRenderPipelineState:self.jumpMaskPipelineState];
+    //[renderPass setDepthStencilState:nil];
+    [renderPass setFrontFacingWinding:MTLWindingCounterClockwise];
+    [renderPass setCullMode:MTLCullModeBack];
+
+    const NSUInteger uniformBufferOffset = AlignUp(sizeof(MBEUniforms), MBEBufferAlignment) * self.bufferIndex;
+
+    [renderPass setVertexBuffer:self.uniformBuffer offset:uniformBufferOffset atIndex:1];
+
+    SirMetal::MeshHandle mesh = SirMetal::CONTEXT->managers.meshManager->getHandleFromName("lucy");
+    const SirMetal::MeshData *meshData = SirMetal::CONTEXT->managers.meshManager->getMeshData(mesh);
+
+    [renderPass setVertexBuffer:meshData->vertexBuffer offset:0 atIndex:0];
+    [renderPass drawIndexedPrimitives:MTLPrimitiveTypeTriangle
+                           indexCount:meshData->primitivesCount
+                            indexType:MBEIndexType
+                          indexBuffer:meshData->indexBuffer
+                    indexBufferOffset:0];
+
+    [renderPass endEncoding];
+    //now do the position render
+    passDescriptor = [[MTLRenderPassDescriptor alloc] init];
+    MTLRenderPassColorAttachmentDescriptor *colorAttachment = passDescriptor.colorAttachments[0];
+    colorAttachment.texture = self.jumpTexture;
+    colorAttachment.clearColor = MTLClearColorMake(0.0, 0.0, 0.0, 1.0);
+    colorAttachment.storeAction = MTLStoreActionStore;
+    colorAttachment.loadAction = MTLLoadActionClear;
+    passDescriptor.renderTargetWidth = w;
+    passDescriptor.renderTargetHeight = h;
+
+    id <MTLRenderCommandEncoder> renderPass2 = [commandBuffer renderCommandEncoderWithDescriptor:passDescriptor];
+
+    [renderPass2 setRenderPipelineState:self.jumpInitPipelineState];
+    [renderPass2 setFrontFacingWinding:MTLWindingClockwise];
+    [renderPass2 setCullMode:MTLCullModeNone];
+    [renderPass2 setFragmentTexture:self.jumpMaskTexture atIndex:0];
+
+    [renderPass2 drawPrimitives:MTLPrimitiveTypeTriangle
+                   vertexStart:0 vertexCount:6];
+    /*
+    [renderPass drawIndexedPrimitives:MTLPrimitiveTypeTriangle
+                           indexCount:meshData->primitivesCount
+                            indexType:MBEIndexType
+                          indexBuffer:meshData->indexBuffer
+                    indexBufferOffset:0];
+                    */
+
+
+    [renderPass2 endEncoding];
 }
 
 - (void)mtkView:(nonnull MTKView *)view drawableSizeWillChange:(CGSize)size {
@@ -360,8 +489,8 @@ static SirMetal::EditorFPSCameraController cameraController;
     //here we divide by the scale factor so our engine will work with the
     //real sizes if needed and not scaled up views
     CGFloat scaling = view.window.screen.backingScaleFactor;
-    SirMetal::CONTEXT->screenWidth = static_cast<float>(size.width / scaling);
-    SirMetal::CONTEXT->screenHeight = static_cast<float>(size.height / scaling);
+    SirMetal::CONTEXT->screenWidth = static_cast<uint32_t>(size.width / scaling);
+    SirMetal::CONTEXT->screenHeight = static_cast<uint32_t>(size.height / scaling);
 }
 
 @end
