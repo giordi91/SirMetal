@@ -40,6 +40,7 @@ static SirMetal::EditorFPSCameraController cameraController;
 @property(strong) id <MTLRenderPipelineState> renderPipelineState;
 @property(strong) id <MTLRenderPipelineState> jumpMaskPipelineState;
 @property(strong) id <MTLRenderPipelineState> jumpInitPipelineState;
+@property(strong) id <MTLRenderPipelineState> jumpOutlinePipelineState;
 @property(strong) id <MTLRenderPipelineState> jumpPipelineState;
 @property(strong) id <MTLDepthStencilState> depthStencilState;
 @property(strong) id <MTLTexture> depthTexture;
@@ -56,6 +57,23 @@ static SirMetal::EditorFPSCameraController cameraController;
 @property(strong) dispatch_semaphore_t displaySemaphore;
 @property(assign) NSInteger bufferIndex;
 @end
+
+void updateVoidIndices(int w, int h , id<MTLBuffer> buffer)
+{
+    std::vector<int>indices;
+    indices.resize(256/4*16);
+    int N = pow(2,16);
+    for(int i =0; i < 16;++i)
+    {
+        int offset = pow(2, (log2(N) - i - 1));
+        int id = i*64;
+        indices[id] = offset;
+        indices[id+1] = w;
+        indices[id+2] = h;
+    }
+    memcpy((char *) ([buffer contents]) , indices.data(), sizeof(int)*indices.size());
+    
+}
 
 // Main class performing the rendering
 @implementation AAPLRenderer {
@@ -181,7 +199,7 @@ static SirMetal::EditorFPSCameraController cameraController;
     pipelineDescriptor = [MTLRenderPipelineDescriptor new];
     pipelineDescriptor.vertexFunction = [rawLib newFunctionWithName:@"vertex_project"];
     pipelineDescriptor.fragmentFunction = [rawLib newFunctionWithName:@"fragment_flatcolor"];
-    pipelineDescriptor.colorAttachments[0].pixelFormat = MTLPixelFormatRG8Snorm;
+    pipelineDescriptor.colorAttachments[0].pixelFormat = MTLPixelFormatRG32Float;
 
     self.jumpInitPipelineState = [_device newRenderPipelineStateWithDescriptor:pipelineDescriptor error:&error];
 
@@ -195,12 +213,34 @@ static SirMetal::EditorFPSCameraController cameraController;
     pipelineDescriptor = [MTLRenderPipelineDescriptor new];
     pipelineDescriptor.vertexFunction = [rawLib newFunctionWithName:@"vertex_project"];
     pipelineDescriptor.fragmentFunction = [rawLib newFunctionWithName:@"fragment_flatcolor"];
-    pipelineDescriptor.colorAttachments[0].pixelFormat = MTLPixelFormatRG8Snorm;
+    pipelineDescriptor.colorAttachments[0].pixelFormat = MTLPixelFormatRG32Float;
 
     self.jumpPipelineState = [_device newRenderPipelineStateWithDescriptor:pipelineDescriptor error:&error];
 
     if (!self.jumpPipelineState) {
         NSLog(@"Error occurred when creating jump render pipeline state: %@", error);
+    }
+    
+    //jump outline
+    lh = SirMetal::CONTEXT->managers.shaderManager->getHandleFromName("jumpOutline");
+    rawLib = SirMetal::CONTEXT->managers.shaderManager->getLibraryFromHandle(lh);
+    
+    pipelineDescriptor = [MTLRenderPipelineDescriptor new];
+    pipelineDescriptor.vertexFunction = [rawLib newFunctionWithName:@"vertex_project"];
+    pipelineDescriptor.fragmentFunction = [rawLib newFunctionWithName:@"fragment_flatcolor"];
+    pipelineDescriptor.colorAttachments[0].pixelFormat = MTLPixelFormatBGRA8Unorm;
+    pipelineDescriptor.colorAttachments[0].blendingEnabled = YES;
+    pipelineDescriptor.colorAttachments[0].rgbBlendOperation = MTLBlendOperationAdd;
+    pipelineDescriptor.colorAttachments[0].alphaBlendOperation = MTLBlendOperationAdd;
+    pipelineDescriptor.colorAttachments[0].sourceRGBBlendFactor = MTLBlendFactorSourceAlpha;
+    pipelineDescriptor.colorAttachments[0].sourceAlphaBlendFactor = MTLBlendFactorSourceAlpha;
+    pipelineDescriptor.colorAttachments[0].destinationRGBBlendFactor = MTLBlendFactorOneMinusSourceAlpha;
+    pipelineDescriptor.colorAttachments[0].destinationAlphaBlendFactor = MTLBlendFactorOneMinusSourceAlpha;
+
+    self.jumpOutlinePipelineState = [_device newRenderPipelineStateWithDescriptor:pipelineDescriptor error:&error];
+    
+    if (!self.jumpOutlinePipelineState) {
+        NSLog(@"Error occurred when creating jump outline render pipeline state: %@", error);
     }
 }
 
@@ -209,7 +249,6 @@ static SirMetal::EditorFPSCameraController cameraController;
                                           options:MTLResourceOptionCPUCacheModeDefault];
     [_uniformBuffer setLabel:@"Uniforms"];
 
-    int framesBuffer = 4;
     //allocating 16 values, then just moving the offset when binding, now
     //i am not sure what is the minimum stride so I am going for a 32*4 bits
     int sizeFlood = 256*16;
@@ -217,18 +256,11 @@ static SirMetal::EditorFPSCameraController cameraController;
                                           options:MTLResourceOptionCPUCacheModeDefault];
     [_uniformBuffer setLabel:@"floodUniforms"];
 
-    std::vector<int>indices;
-    indices.resize(256/4*16);
-    int N = pow(2,16);
-    for(int i =0; i < 16;++i)
-    {
-        int offset = pow(2, (log2(N) - i - 1));
-        int id = i*64;
-        indices[id] = offset;
-    }
-    memcpy((char *) ([self.floodUniform contents]) , indices.data(), sizeof(int)*indices.size());
-    int x =0;
+    int w = 256;
+    int h = 256;
+    updateVoidIndices(w,h, self.floodUniform);
 }
+
 
 - (void)updateUniformsForView:(float)screenWidth :(float)screenHeight {
 
@@ -277,7 +309,7 @@ static SirMetal::EditorFPSCameraController cameraController;
     self.depthTexture = textureManager->getNativeFromHandle(self.depthHandle);
     SirMetal::AllocTextureRequest jumpRequest{
             static_cast<uint32_t>(width), static_cast<uint32_t>(height),
-            1, MTLTextureType2D, MTLPixelFormatRG8Snorm,
+            1, MTLTextureType2D, MTLPixelFormatRG32Float,
             MTLTextureUsageRenderTarget | MTLTextureUsageShaderRead, MTLStorageModePrivate, 1, "jumpFloodTexture"
     };
     self.jumpHandle = textureManager->allocate(_device, jumpRequest);
@@ -335,8 +367,10 @@ static SirMetal::EditorFPSCameraController cameraController;
             self.jumpTexture2 = texManager->getNativeFromHandle(self.jumpHandle2);
             self.jumpMaskTexture = texManager->getNativeFromHandle(self.jumpMaskHandle);
             SirMetal::CONTEXT->viewportTexture = self.offScreenTexture;
-            SirMetal::CONTEXT->viewportTexture = self.jumpTexture2;
+            //SirMetal::CONTEXT->viewportTexture = self.jumpTexture2;
+            updateVoidIndices(viewportSize.x,viewportSize.y,self.floodUniform);
         }
+        
         shouldResizeOffScreen = false;
     }
 
@@ -522,47 +556,66 @@ static SirMetal::EditorFPSCameraController cameraController;
     //compute offset for jump flooding
     int passIndex =0;
     int x = w > h ? w : h;
-    int N =  pow(2, ceil(log(x)/log(2)));
+    int N =  32;
     int offset = 9999;
-    static bool cc = false;
-    if(!cc) {
-        while (offset != 1) {
-            offset = pow(2, (log2(N) - passIndex - 1));
-            //SIR_CORE_INFO("{}",offset);
-            passIndex +=1;
+    id<MTLTexture> outTex;
+    while (offset != 1) {
+        offset = pow(2, (log2(N) - passIndex - 1));
+        //SIR_CORE_INFO("{}",offset);
+        
+        //do render here
+        MTLRenderPassDescriptor *passDescriptorP = [[MTLRenderPassDescriptor alloc] init];
+        colorAttachment = passDescriptorP.colorAttachments[0];
+        colorAttachment.texture = passIndex % 2 == 0 ? self.jumpTexture2 : self.jumpTexture;
+        colorAttachment.clearColor = MTLClearColorMake(0.0, 0.0, 0.0, 1.0);
+        colorAttachment.storeAction = MTLStoreActionStore;
+        colorAttachment.loadAction = MTLLoadActionClear;
+        passDescriptorP.renderTargetWidth = w;
+        passDescriptorP.renderTargetHeight = h;
 
-            //do render here
-            MTLRenderPassDescriptor *passDescriptorP = [[MTLRenderPassDescriptor alloc] init];
-            colorAttachment = passDescriptorP.colorAttachments[0];
-            colorAttachment.texture = self.jumpTexture2;
-            colorAttachment.clearColor = MTLClearColorMake(0.0, 0.0, 0.0, 1.0);
-            colorAttachment.storeAction = MTLStoreActionStore;
-            colorAttachment.loadAction = MTLLoadActionClear;
-            passDescriptorP.renderTargetWidth = w;
-            passDescriptorP.renderTargetHeight = h;
+        id <MTLRenderCommandEncoder> renderPass3 = [commandBuffer renderCommandEncoderWithDescriptor:passDescriptorP];
 
-            id <MTLRenderCommandEncoder> renderPass3 = [commandBuffer renderCommandEncoderWithDescriptor:passDescriptorP];
-
-            [renderPass3 setRenderPipelineState:self.jumpPipelineState];
-            [renderPass3 setFrontFacingWinding:MTLWindingClockwise];
-            [renderPass3 setCullMode:MTLCullModeNone];
-            [renderPass3 setFragmentTexture:self.jumpTexture atIndex:0];
-            //const NSUInteger uniformBufferOffset = AlignUp(sizeof(MBEUniforms), MBEBufferAlignment) * self.bufferIndex;
-            //const NSUInteger uniformBufferOffset = AlignUp(sizeof(MBEUniforms), MBEBufferAlignment) * self.bufferIndex;
-            [renderPass3 setFragmentBuffer:self.floodUniform  offset:12*256 atIndex:0];
+        [renderPass3 setRenderPipelineState:self.jumpPipelineState];
+        [renderPass3 setFrontFacingWinding:MTLWindingClockwise];
+        [renderPass3 setCullMode:MTLCullModeNone];
+        [renderPass3 setFragmentTexture: passIndex %2 == 0 ? self.jumpTexture :self.jumpTexture2 atIndex:0];
+        //const NSUInteger uniformBufferOffset = AlignUp(sizeof(MBEUniforms), MBEBufferAlignment) * self.bufferIndex;
+        //const NSUInteger uniformBufferOffset = AlignUp(sizeof(MBEUniforms), MBEBufferAlignment) * self.bufferIndex;
+        [renderPass3 setFragmentBuffer:self.floodUniform  offset:9*256 + passIndex*256 atIndex:0];
 
 
-            //first screen pass
-            [renderPass3 drawPrimitives:MTLPrimitiveTypeTriangle
-                            vertexStart:0 vertexCount:6];
+        //first screen pass
+        [renderPass3 drawPrimitives:MTLPrimitiveTypeTriangle
+                        vertexStart:0 vertexCount:6];
 
-            [renderPass3 endEncoding];
-            return;
-
-
-        }
+        [renderPass3 endEncoding];
+        outTex = passIndex % 2 == 0 ? self.jumpTexture2 : self.jumpTexture;
+        passIndex +=1;
     }
-    cc=true;
+    
+    //render outline
+    //now do the position render
+    passDescriptor = [[MTLRenderPassDescriptor alloc] init];
+    colorAttachment = passDescriptor.colorAttachments[0];
+    colorAttachment.texture = self.offScreenTexture;
+    colorAttachment.clearColor = MTLClearColorMake(0.0, 0.0, 0.0, 1.0);
+    colorAttachment.storeAction = MTLStoreActionStore;
+    colorAttachment.loadAction = MTLLoadActionLoad;
+    passDescriptor.renderTargetWidth = w;
+    passDescriptor.renderTargetHeight = h;
+    
+    id <MTLRenderCommandEncoder> renderPass4 = [commandBuffer renderCommandEncoderWithDescriptor:passDescriptor];
+    
+    [renderPass4 setRenderPipelineState:self.jumpOutlinePipelineState];
+    [renderPass4 setFrontFacingWinding:MTLWindingClockwise];
+    [renderPass4 setCullMode:MTLCullModeNone];
+    [renderPass4 setFragmentTexture:self.jumpMaskTexture atIndex:0];
+    [renderPass4 setFragmentTexture:outTex atIndex:1];
+    
+    //first screen pass
+    [renderPass4 drawPrimitives:MTLPrimitiveTypeTriangle
+                    vertexStart:0 vertexCount:6];
+    [renderPass4 endEncoding];
 }
 
 - (void)mtkView:(nonnull MTKView *)view drawableSizeWillChange:(CGSize)size {
