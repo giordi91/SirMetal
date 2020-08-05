@@ -80,7 +80,7 @@ namespace SirMetal {
             return false;
         }
         TextureData &texData = found->second;
-        if ((texData.request.width == newWidth) & (texData.request.height)) {
+        if ((texData.request.width == newWidth) & (texData.request.height == newHeight)) {
             SIR_CORE_WARN("[Texture Manager] Requested resize of texture with name{} with same size {}x{}", texData.request.name,
                     texData.request.width, texData.request.height);
             return true;

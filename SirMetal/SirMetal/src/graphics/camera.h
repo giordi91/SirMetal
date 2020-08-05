@@ -36,6 +36,7 @@ namespace SirMetal {
         }
 
         virtual void update(Input *input, float screenWidth, float screenHeight) = 0;
+        virtual void update(float screenWidth, float screenHeight) = 0;
 
         virtual void setPosition(float x, float y, float z) = 0;
 
@@ -46,7 +47,7 @@ namespace SirMetal {
     class EditorFPSCameraController : public CameraController {
     public:
         void update(Input *input, float screenWidth, float screenHeight) override;
-
+        void update(float screenWidth, float screenHeight) override;
         void setPosition(float x, float y, float z) override;
     };
 

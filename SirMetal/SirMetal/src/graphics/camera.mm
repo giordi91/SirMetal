@@ -84,4 +84,14 @@ namespace SirMetal {
         m_camera->viewMatrix.columns[3] = simd_float4{x, y, z, 1.0f};
 
     }
+
+    void EditorFPSCameraController::update(float screenWidth, float screenHeight)
+    {
+        const float aspect = screenWidth / screenHeight;
+        const float fov = m_camera->fov;
+        const float near = m_camera->nearPlane;
+        const float far = m_camera->farPlane;
+        m_camera->projection = matrix_float4x4_perspective(aspect, fov, near, far);
+        m_camera->VP = simd_mul(m_camera->projection, m_camera->viewInverse);
+    }
 }

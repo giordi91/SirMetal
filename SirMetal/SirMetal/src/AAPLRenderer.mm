@@ -55,6 +55,7 @@ static SirMetal::EditorFPSCameraController cameraController;
 @property(strong) id <MTLBuffer> uniformBuffer;
 @property(strong) id <MTLBuffer> floodUniform;
 @property(strong) dispatch_semaphore_t displaySemaphore;
+@property(strong) dispatch_semaphore_t resizeSemaphore;
 @property(assign) NSInteger bufferIndex;
 @end
 
@@ -97,6 +98,7 @@ void updateVoidIndices(int w, int h , id<MTLBuffer> buffer)
     if (self) {
         _device = mtkView.device;
         _displaySemaphore = dispatch_semaphore_create(MBEInFlightBufferCount);
+        _resizeSemaphore= dispatch_semaphore_create(0);
 
 
         // Create the command queue
@@ -347,9 +349,18 @@ void updateVoidIndices(int w, int h , id<MTLBuffer> buffer)
 /// Called whenever the view needs to render a frame.
 - (void)drawInMTKView:(nonnull MTKView *)view {
 
+    static int frame = 0;
+    frame++;
     dispatch_semaphore_wait(self.displaySemaphore, DISPATCH_TIME_FOREVER);
     ImVec2 viewportSize = editorUI.getViewportSize();
     if (shouldResizeOffScreen) {
+        
+        id <MTLCommandBuffer> commandBuffer = [_commandQueue commandBuffer];
+        [commandBuffer addCompletedHandler:^(id <MTLCommandBuffer> commandBuffer) {
+            dispatch_semaphore_signal(self.resizeSemaphore);
+        }];
+        [commandBuffer commit];
+        dispatch_semaphore_wait(self.resizeSemaphore, DISPATCH_TIME_FOREVER);
         // [self createOffscreenTexture:(int) viewportSize.x :(int) viewportSize.y];
         SirMetal::TextureManager *texManager = SirMetal::CONTEXT->managers.textureManager;
         bool viewportResult = texManager->resizeTexture(_device, self.viewportHandle, viewportSize.x, viewportSize.y);
@@ -369,8 +380,9 @@ void updateVoidIndices(int w, int h , id<MTLBuffer> buffer)
             SirMetal::CONTEXT->viewportTexture = self.offScreenTexture;
             //SirMetal::CONTEXT->viewportTexture = self.jumpTexture2;
             updateVoidIndices(viewportSize.x,viewportSize.y,self.floodUniform);
+            cameraController.update(viewportSize.x,viewportSize.y);
         }
-        
+
         shouldResizeOffScreen = false;
     }
 
@@ -396,8 +408,8 @@ void updateVoidIndices(int w, int h , id<MTLBuffer> buffer)
     MTLRenderPassDescriptor *passDescriptor = [view currentRenderPassDescriptor];
     //passDescriptor.depthAttachment
 
-    float wToUse = isViewport ? viewportSize.x : w;
-    float hToUse = isViewport ? viewportSize.y : h;
+    float wToUse = isViewport ? self.offScreenTexture.width : view.currentDrawable.texture.width;
+    float hToUse = isViewport ? self.offScreenTexture.height: view.currentDrawable.texture.height;
 
     passDescriptor.renderTargetWidth = wToUse;
     passDescriptor.renderTargetHeight = hToUse;
@@ -419,8 +431,6 @@ void updateVoidIndices(int w, int h , id<MTLBuffer> buffer)
     stencilAttachment.storeAction = MTLStoreActionDontCare;
     stencilAttachment.loadAction = desc.clear ? MTLLoadActionClear : MTLLoadActionLoad;
     */
-
-
 
 
     id <MTLRenderCommandEncoder> renderPass = [commandBuffer renderCommandEncoderWithDescriptor:passDescriptor];
@@ -555,14 +565,12 @@ void updateVoidIndices(int w, int h , id<MTLBuffer> buffer)
 
     //compute offset for jump flooding
     int passIndex =0;
-    int x = w > h ? w : h;
-    int N =  32;
+    int N =  64;
     int offset = 9999;
-    id<MTLTexture> outTex;
+    id<MTLTexture> outTex = self.jumpTexture;
     while (offset != 1) {
         offset = pow(2, (log2(N) - passIndex - 1));
-        //SIR_CORE_INFO("{}",offset);
-        
+
         //do render here
         MTLRenderPassDescriptor *passDescriptorP = [[MTLRenderPassDescriptor alloc] init];
         colorAttachment = passDescriptorP.colorAttachments[0];
@@ -579,8 +587,7 @@ void updateVoidIndices(int w, int h , id<MTLBuffer> buffer)
         [renderPass3 setFrontFacingWinding:MTLWindingClockwise];
         [renderPass3 setCullMode:MTLCullModeNone];
         [renderPass3 setFragmentTexture: passIndex %2 == 0 ? self.jumpTexture :self.jumpTexture2 atIndex:0];
-        //const NSUInteger uniformBufferOffset = AlignUp(sizeof(MBEUniforms), MBEBufferAlignment) * self.bufferIndex;
-        //const NSUInteger uniformBufferOffset = AlignUp(sizeof(MBEUniforms), MBEBufferAlignment) * self.bufferIndex;
+        //TODO fix hardcoded offset
         [renderPass3 setFragmentBuffer:self.floodUniform  offset:9*256 + passIndex*256 atIndex:0];
 
 
@@ -611,8 +618,9 @@ void updateVoidIndices(int w, int h , id<MTLBuffer> buffer)
     [renderPass4 setCullMode:MTLCullModeNone];
     [renderPass4 setFragmentTexture:self.jumpMaskTexture atIndex:0];
     [renderPass4 setFragmentTexture:outTex atIndex:1];
+    //we need the screen size from the uniform
+    [renderPass4 setFragmentBuffer:self.floodUniform  offset:0 atIndex:0];
     
-    //first screen pass
     [renderPass4 drawPrimitives:MTLPrimitiveTypeTriangle
                     vertexStart:0 vertexCount:6];
     [renderPass4 endEncoding];
