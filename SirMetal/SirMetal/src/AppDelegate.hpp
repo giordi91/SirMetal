@@ -5,13 +5,16 @@
 
 #import <Cocoa/Cocoa.h>
 #import <MetalKit/MetalKit.h>
+#import "AAPLRenderer.h"
 
 @interface SirMTKView: MTKView
+-(void)customInit;
 @end
 
 @interface AppDelegate : NSObject <NSApplicationDelegate>
 
-@property (assign) NSWindow *window;
+@property (strong) NSWindow *window;
+@property (strong) AAPLRenderer *renderer;
 @property (readonly) id<MTLDevice> device;
 
 @end

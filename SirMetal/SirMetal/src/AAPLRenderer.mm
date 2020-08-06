@@ -103,7 +103,6 @@ void updateVoidIndices(int w, int h , id<MTLBuffer> buffer)
 
         // Create the command queue
         _commandQueue = [_device newCommandQueue];
-    }
 
     IMGUI_CHECKVERSION();
     ImGui::CreateContext();
@@ -119,6 +118,7 @@ void updateVoidIndices(int w, int h , id<MTLBuffer> buffer)
 
     self.screenWidth = mtkView.drawableSize.width;
     self.screenHeight = mtkView.drawableSize.height;
+    }
 
     return self;
 }
@@ -300,7 +300,7 @@ void updateVoidIndices(int w, int h , id<MTLBuffer> buffer)
     };
     self.viewportHandle = textureManager->allocate(_device, request);
     self.offScreenTexture = textureManager->getNativeFromHandle(self.viewportHandle);
-    SirMetal::CONTEXT->viewportTexture = self.offScreenTexture;
+    SirMetal::CONTEXT->viewportTexture = (__bridge void*)self.offScreenTexture;
 
 
     SirMetal::AllocTextureRequest requestDepth{
@@ -378,7 +378,7 @@ void updateVoidIndices(int w, int h , id<MTLBuffer> buffer)
             self.jumpTexture = texManager->getNativeFromHandle(self.jumpHandle);
             self.jumpTexture2 = texManager->getNativeFromHandle(self.jumpHandle2);
             self.jumpMaskTexture = texManager->getNativeFromHandle(self.jumpMaskHandle);
-            SirMetal::CONTEXT->viewportTexture = self.offScreenTexture;
+            SirMetal::CONTEXT->viewportTexture = (__bridge void*)self.offScreenTexture;
             updateVoidIndices(viewportSize.x,viewportSize.y,self.floodUniform);
             cameraController.updateProjection(viewportSize.x,viewportSize.y);
             

@@ -124,6 +124,7 @@
 
 }
 
+
 - (void)keyUp:(NSEvent *)event {
     SirMetal::CONTEXT->input.keyUp(event.keyCode);
 }
@@ -135,11 +136,8 @@
 
 @implementation AppDelegate
 
-@synthesize window;
+@synthesize  window;
 
-- (void)dealloc {
-    [super dealloc];
-}
 
 
 - (void)applicationDidFinishLaunching:(NSNotification *)aNotification {
@@ -150,10 +148,10 @@
     NSRect screenRect = [screen visibleFrame];
     NSLog(@"Screen size %.1f-%.1f %.1fx%.1f", screenRect.origin.x, screenRect.origin.y, screenRect.size.width, screenRect.size.height);
 
-    window = [[[NSWindow alloc] initWithContentRect:screenRect
+    window = [[NSWindow alloc] initWithContentRect:screenRect
                                           styleMask:NSWindowStyleMaskTitled | NSWindowStyleMaskClosable | NSWindowStyleMaskResizable
                                             backing:NSBackingStoreBuffered
-                                              defer:NO] autorelease];
+                                              defer:NO];
     //screenRect = [window constrainFrameRect:];
     [window setBackgroundColor:[NSColor darkGrayColor]];
     [window makeKeyAndOrderFront:NSApp];
@@ -169,7 +167,7 @@
     viewSize.size.height -= 20;
 
     NSLog(@"Screen size %.1f-%.1f %.1fx%.1f", viewSize.origin.x, viewSize.origin.y, viewSize.size.width, viewSize.size.height);
-    MTKView *view = [[SirMTKView alloc] initWithFrame:viewSize];
+    SirMTKView *view = [[SirMTKView alloc] initWithFrame:viewSize];
     [view setWantsLayer:YES];
     view.enableSetNeedsDisplay = YES;
     view.device = MTLCreateSystemDefaultDevice();
@@ -179,7 +177,7 @@
     [self.window.contentView addSubview:view];
     [view customInit];
 
-    AAPLRenderer *_renderer = [[AAPLRenderer alloc] initWithMetalKitView:view];
+    _renderer = [[AAPLRenderer alloc] initWithMetalKitView:view];
     if (!_renderer) {
         NSLog(@"Renderer initialization failed");
         return;
