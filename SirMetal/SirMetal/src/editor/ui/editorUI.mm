@@ -102,7 +102,7 @@ namespace SirMetal {
                     .bottom, ImGuiCond_Appearing);
             ImGui::Begin("log", (bool *) 0);
             const std::string *buff = Log::getBuffer();
-            ImGui::Text(buff->c_str());
+            ImGui::Text("%s",buff->c_str());
             ImGui::End();
 
             ImGui::SetNextWindowDockID(dockIds

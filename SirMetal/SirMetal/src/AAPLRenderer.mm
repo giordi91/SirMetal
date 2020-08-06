@@ -1,5 +1,4 @@
 #import <Metal/Metal.h>
-#import <iostream>
 #import "MetalKit/MetalKit.h"
 
 #import "AAPLRenderer.h"
@@ -33,8 +32,6 @@ static const uint32_t MBEBufferAlignment = 256;
 
 //temporary until i figure out what to do with this
 static SirMetal::Editor::EditorUI editorUI = SirMetal::Editor::EditorUI();
-static SirMetal::Camera camera;
-static SirMetal::EditorFPSCameraController cameraController;
 
 @interface AAPLRenderer ()
 @property(strong) id <MTLRenderPipelineState> renderPipelineState;
@@ -133,6 +130,8 @@ void updateVoidIndices(int w, int h , id<MTLBuffer> buffer)
 
     //view matrix
     //initializing the camera to the identity
+    SirMetal::Camera& camera = SirMetal::CONTEXT->camera;
+    SirMetal::EditorFPSCameraController& cameraController = SirMetal::CONTEXT->cameraController;
     camera.viewMatrix = matrix_float4x4_translation(vector_float3{0, 0, 0});
     camera.fov = M_PI / 4;
     camera.nearPlane = 1;
@@ -153,11 +152,6 @@ void updateVoidIndices(int w, int h , id<MTLBuffer> buffer)
 
 - (void)makePipeline {
 
-    /*
-    char buffer[256];
-    const std::string& projectPath = SirMetal::Editor::PROJECT->getProjectPath();
-    sprintf(buffer, "%s/%s", projectPath.c_str(), "/shaders/Shaders.metal");
-     */
     SirMetal::LibraryHandle lh = SirMetal::CONTEXT->managers.shaderManager->getHandleFromName("Shaders");
     id <MTLLibrary> rawLib = SirMetal::CONTEXT->managers.shaderManager->getLibraryFromHandle(lh);
 
@@ -266,6 +260,9 @@ void updateVoidIndices(int w, int h , id<MTLBuffer> buffer)
 
 - (void)updateUniformsForView:(float)screenWidth :(float)screenHeight {
 
+    SirMetal::Camera& camera = SirMetal::CONTEXT->camera;
+    SirMetal::EditorFPSCameraController& cameraController = SirMetal::CONTEXT->cameraController;
+    
     const matrix_float4x4 modelMatrix = matrix_float4x4_translation(vector_float3{0, 0, 0});
 
     ImGuiIO &io = ImGui::GetIO();
@@ -364,7 +361,7 @@ void updateVoidIndices(int w, int h , id<MTLBuffer> buffer)
         }];
         [commandBuffer commit];
         dispatch_semaphore_wait(self.resizeSemaphore, DISPATCH_TIME_FOREVER);
-        // [self createOffscreenTexture:(int) viewportSize.x :(int) viewportSize.y];
+        
         SirMetal::TextureManager *texManager = SirMetal::CONTEXT->managers.textureManager;
         bool viewportResult = texManager->resizeTexture(_device, self.viewportHandle, viewportSize.x, viewportSize.y);
         bool depthResult = texManager->resizeTexture(_device, self.depthHandle, viewportSize.x, viewportSize.y);
@@ -382,7 +379,7 @@ void updateVoidIndices(int w, int h , id<MTLBuffer> buffer)
             self.jumpMaskTexture = texManager->getNativeFromHandle(self.jumpMaskHandle);
             SirMetal::CONTEXT->viewportTexture = (__bridge void*)self.offScreenTexture;
             updateVoidIndices(viewportSize.x,viewportSize.y,self.floodUniform);
-            cameraController.updateProjection(viewportSize.x,viewportSize.y);
+            SirMetal::CONTEXT->cameraController.updateProjection(viewportSize.x,viewportSize.y);
             
         }
         SirMetal::setFlagBitfield(SirMetal::CONTEXT->flags.viewEvents, SirMetal::ViewEventsFlagsBits::ViewEventsViewportSizeChanged,false);
