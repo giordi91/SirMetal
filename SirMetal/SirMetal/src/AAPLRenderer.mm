@@ -280,10 +280,11 @@ void updateVoidIndices(int w, int h , id<MTLBuffer> buffer)
     uniforms.modelViewProjectionMatrix = matrix_multiply(camera.VP, modelMatrix);
     if (shouldControlViewport | (!isViewport)) {
         SirMetal::Input &input = SirMetal::CONTEXT->input;
-        cameraController.update(&input, screenWidth, screenHeight);
+        cameraController.update(&input);
         uniforms.modelViewProjectionMatrix = matrix_multiply(camera.VP, modelMatrix);
 
     }
+    cameraController.updateProjection(screenWidth,screenHeight);
     const NSUInteger uniformBufferOffset = AlignUp(sizeof(MBEUniforms), MBEBufferAlignment) * self.bufferIndex;
     memcpy((char *) ([self.uniformBuffer contents]) + uniformBufferOffset, &uniforms, sizeof(uniforms));
 }
@@ -378,9 +379,9 @@ void updateVoidIndices(int w, int h , id<MTLBuffer> buffer)
             self.jumpTexture2 = texManager->getNativeFromHandle(self.jumpHandle2);
             self.jumpMaskTexture = texManager->getNativeFromHandle(self.jumpMaskHandle);
             SirMetal::CONTEXT->viewportTexture = self.offScreenTexture;
-            //SirMetal::CONTEXT->viewportTexture = self.jumpTexture2;
             updateVoidIndices(viewportSize.x,viewportSize.y,self.floodUniform);
-            cameraController.update(viewportSize.x,viewportSize.y);
+            cameraController.updateProjection(viewportSize.x,viewportSize.y);
+            
         }
 
         shouldResizeOffScreen = false;

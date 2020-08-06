@@ -1,4 +1,4 @@
-#pragma
+#pragma once
 
 #import <simd/matrix_types.h>
 
@@ -35,8 +35,8 @@ namespace SirMetal {
             m_camera = camera;
         }
 
-        virtual void update(Input *input, float screenWidth, float screenHeight) = 0;
-        virtual void update(float screenWidth, float screenHeight) = 0;
+        virtual void update(Input *input) = 0;
+        virtual void updateProjection(float screenWidth, float screenHeight) = 0;
 
         virtual void setPosition(float x, float y, float z) = 0;
 
@@ -46,8 +46,8 @@ namespace SirMetal {
 
     class EditorFPSCameraController : public CameraController {
     public:
-        void update(Input *input, float screenWidth, float screenHeight) override;
-        void update(float screenWidth, float screenHeight) override;
+        void update(Input *input) override;
+        void updateProjection(float screenWidth, float screenHeight) override;
         void setPosition(float x, float y, float z) override;
     };
 

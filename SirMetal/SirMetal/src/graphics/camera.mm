@@ -4,10 +4,11 @@
 #import "engineContext.h"
 #import "MBEMathUtilities.h"
 #import "project.h"
+#import "camera.h"
 
 namespace SirMetal {
 
-    void EditorFPSCameraController::update(Input *input, float screenWidth, float screenHeight) {
+    void EditorFPSCameraController::update(Input *input) {
 
 
         const CameraManipulationConfig &camConfig = Editor::PROJECT->getSettings().m_cameraConfig;
@@ -63,19 +64,9 @@ namespace SirMetal {
         pos += vector_float4{0, 1, 0, 0} * applicationFactor * (udFactor);
 
         m_camera->viewMatrix.columns[3] = pos;
-
-
         m_camera->viewInverse = simd_inverse(m_camera->viewMatrix);
 
-        m_camera->screenWidth = screenWidth;
-        m_camera->screenHeight = screenHeight;
 
-        const float aspect = screenWidth / screenHeight;
-        const float fov = m_camera->fov;
-        const float near = m_camera->nearPlane;
-        const float far = m_camera->farPlane;
-        m_camera->projection = matrix_float4x4_perspective(aspect, fov, near, far);
-        m_camera->VP = simd_mul(m_camera->projection, m_camera->viewInverse);
     }
 
     void EditorFPSCameraController::setPosition(float x, float y, float z) {
@@ -85,8 +76,11 @@ namespace SirMetal {
 
     }
 
-    void EditorFPSCameraController::update(float screenWidth, float screenHeight)
+    void EditorFPSCameraController::updateProjection(float screenWidth, float screenHeight)
     {
+        m_camera->screenWidth = screenWidth;
+        m_camera->screenHeight = screenHeight;
+        
         const float aspect = screenWidth / screenHeight;
         const float fov = m_camera->fov;
         const float near = m_camera->nearPlane;
