@@ -197,6 +197,7 @@
 		C0DF949224C255F40005DB07 /* libfreetype.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libfreetype.a; path = ../../../../../usr/local/Cellar/freetype/2.10.2/lib/libfreetype.a; sourceTree = "<group>"; };
 		C0DF949724C2D04A0005DB07 /* imgui_impl_osx.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = imgui_impl_osx.mm; sourceTree = "<group>"; };
 		C0DF949824C2D04A0005DB07 /* imgui_impl_osx.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = imgui_impl_osx.h; sourceTree = "<group>"; };
+		C0FB6FFE24DBD79E0085FFBB /* flags.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = flags.h; sourceTree = "<group>"; };
 		C9EA90A68B1968EF2593F5E9 /* meshManager.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = meshManager.mm; sourceTree = "<group>"; };
 		C9EA90AA5E471F6C4856CC3A /* jsonParse.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = jsonParse.h; sourceTree = "<group>"; };
 		C9EA90C6B125CDBC30E96091 /* settings.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = settings.h; sourceTree = "<group>"; };
@@ -583,6 +584,7 @@
 				C9EA9409F1B1D72B373A4E27 /* bufferedLog.h */,
 				C9EA9B316069BD4EC37CD552 /* file.h */,
 				C9EA99CA8EC37E6223231171 /* file.mm */,
+				C0FB6FFE24DBD79E0085FFBB /* flags.h */,
 			);
 			path = core;
 			sourceTree = "<group>";

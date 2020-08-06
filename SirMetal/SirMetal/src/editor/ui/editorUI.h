@@ -15,8 +15,7 @@ namespace SirMetal {
             };
 
         public:
-            //returns whether or not the viewport size changed
-            bool show(int width, int height);
+            void show(int width, int height);
 
             inline ImVec2 getViewportSize() const {
                 return viewportPanelSize;

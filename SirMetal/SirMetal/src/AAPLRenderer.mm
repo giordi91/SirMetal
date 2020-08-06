@@ -15,6 +15,7 @@
 #import "editorUI.h"
 #import "log.h"
 #import "project.h"
+#import "core/flags.h"
 
 static const NSInteger MBEInFlightBufferCount = 3;
 const MTLIndexType MBEIndexType = MTLIndexTypeUInt32;
@@ -32,7 +33,6 @@ static const uint32_t MBEBufferAlignment = 256;
 
 //temporary until i figure out what to do with this
 static SirMetal::Editor::EditorUI editorUI = SirMetal::Editor::EditorUI();
-static bool shouldResizeOffScreen = false;
 static SirMetal::Camera camera;
 static SirMetal::EditorFPSCameraController cameraController;
 
@@ -274,7 +274,8 @@ void updateVoidIndices(int w, int h , id<MTLBuffer> buffer)
     //in viewport mode, meaning fullscreen. if one of those two conditions
     //is true we update the camera.
     bool isViewport = (io.ConfigFlags & ImGuiConfigFlags_DockingEnable) > 0;
-    bool isViewportInFocus = (SirMetal::CONTEXT->flags.interaction & SirMetal::InteractionFlagsBits::InteractionViewportFocused) > 0;
+    bool isViewportInFocus = isFlagSet(SirMetal::CONTEXT->flags.interaction,SirMetal::InteractionFlagsBits::InteractionViewportFocused);
+    
     bool shouldControlViewport = isViewport & isViewportInFocus;
     MBEUniforms uniforms;
     uniforms.modelViewProjectionMatrix = matrix_multiply(camera.VP, modelMatrix);
@@ -340,7 +341,7 @@ void updateVoidIndices(int w, int h , id<MTLBuffer> buffer)
 
 
     //[self showImguiContent];
-    shouldResizeOffScreen = editorUI.show(SirMetal::CONTEXT->screenWidth, SirMetal::CONTEXT->screenHeight);
+    editorUI.show(SirMetal::CONTEXT->screenWidth, SirMetal::CONTEXT->screenHeight);
     // Rendering
     ImGui::Render();
     ImDrawData *drawData = ImGui::GetDrawData();
@@ -354,7 +355,8 @@ void updateVoidIndices(int w, int h , id<MTLBuffer> buffer)
     frame++;
     dispatch_semaphore_wait(self.displaySemaphore, DISPATCH_TIME_FOREVER);
     ImVec2 viewportSize = editorUI.getViewportSize();
-    if (shouldResizeOffScreen) {
+    bool viewportChanged = SirMetal::isFlagSet(SirMetal::CONTEXT->flags.viewEvents, SirMetal::ViewEventsFlagsBits::ViewEventsViewportSizeChanged);
+    if (viewportChanged) {
         
         id <MTLCommandBuffer> commandBuffer = [_commandQueue commandBuffer];
         [commandBuffer addCompletedHandler:^(id <MTLCommandBuffer> commandBuffer) {
@@ -383,8 +385,7 @@ void updateVoidIndices(int w, int h , id<MTLBuffer> buffer)
             cameraController.updateProjection(viewportSize.x,viewportSize.y);
             
         }
-
-        shouldResizeOffScreen = false;
+        SirMetal::setFlagBitfield(SirMetal::CONTEXT->flags.viewEvents, SirMetal::ViewEventsFlagsBits::ViewEventsViewportSizeChanged,false);
     }
 
 

@@ -26,9 +26,16 @@ namespace SirMetal {
 
     typedef uint32_t InteractionFlags ;
 
+    enum ViewEventsFlagsBits {
+        ViewEventsNone = 0,
+        ViewEventsViewportSizeChanged = 1,
+    };
+
+    typedef uint32_t ViewEventsFlags;
+
     struct EditorFlags {
         InteractionFlags interaction = 0;
-
+        ViewEventsFlags viewEvents = 0;
     };
 
 

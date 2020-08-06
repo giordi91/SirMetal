@@ -10,10 +10,11 @@
 #import "imgui_internal.h"
 #import "log.h"
 #import "project.h"
+#import "../core/flags.h"
 
 namespace SirMetal {
     namespace Editor {
-        bool EditorUI::show(int width, int height) {
+        void EditorUI::show(int width, int height) {
             setupDockSpaceLayout(width, height);
 
             auto id = ImGui::GetID("Root_Dockspace");
@@ -80,13 +81,12 @@ namespace SirMetal {
 
             //if our viewport is hovered we set the flag, that will allow
             //our camera controller to behave properly
-            //from https://stackoverflow.com/questions/47981/how-do-you-set-clear-and-toggle-a-single-bit
-            //this allows us to set in a single go without the branch for using |= or &=
-            int isViewportHovered = static_cast<int>(ImGui::IsWindowFocused(ImGuiFocusedFlags_RootWindow));
-            CONTEXT->flags.interaction ^= (-isViewportHovered ^ CONTEXT->flags.interaction) & InteractionFlagsBits::InteractionViewportFocused;
+            bool isWindowFocused = ImGui::IsWindowFocused(ImGuiFocusedFlags_RootWindow);
+            setFlagBitfield(CONTEXT->flags.interaction,InteractionFlagsBits::InteractionViewportFocused,isWindowFocused);
 
             ImVec2 newViewportSize = ImGui::GetContentRegionAvail();
-            bool shouldRefreshTextureSize = newViewportSize.x != viewportPanelSize.x || newViewportSize.y != viewportPanelSize.y;
+            bool viewportSizeChanged = newViewportSize.x != viewportPanelSize.x || newViewportSize.y != viewportPanelSize.y;
+            setFlagBitfield(CONTEXT->flags.viewEvents, ViewEventsFlagsBits::ViewEventsViewportSizeChanged,viewportSizeChanged);
             viewportPanelSize = newViewportSize;
             ImGui::Image(SirMetal::CONTEXT->viewportTexture, viewportPanelSize);
             ImGui::End();
@@ -125,7 +125,6 @@ namespace SirMetal {
                 m_cameraSettings.render(&Editor::PROJECT->getSettings().m_cameraConfig, &showCamera);
             }
             //ImGui::ShowDemoWindow((bool*)0);
-            return shouldRefreshTextureSize;
 
         }
 
