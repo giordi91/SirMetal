@@ -14,8 +14,8 @@
             filePath = "SirMetal/src/AAPLRenderer.mm"
             startingColumnNumber = "9223372036854775807"
             endingColumnNumber = "9223372036854775807"
-            startingLineNumber = "570"
-            endingLineNumber = "570"
+            startingLineNumber = "588"
+            endingLineNumber = "588"
             landmarkName = "-renderSelection:::"
             landmarkType = "7">
          </BreakpointContent>

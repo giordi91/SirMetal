@@ -15,22 +15,30 @@ namespace SirMetal {
         }
 
         //loading the actual shader library
-        NSString *shaderPath = [NSString stringWithCString: path
+        NSString *shaderPath = [NSString stringWithCString:path
                                                   encoding:[NSString defaultCStringEncoding]];
         __autoreleasing NSError *errorLib = nil;
 
         NSString *content = [NSString stringWithContentsOfFile:shaderPath encoding:NSUTF8StringEncoding error:nil];
         id <MTLDevice> currDevice = m_device;
         id <MTLLibrary> libraryRaw = [currDevice newLibraryWithSource:content options:nil error:&errorLib];
-        if(libraryRaw == nil) {
-            NSString* errorStr = [errorLib localizedDescription];
-            SIR_CORE_ERROR("Error in compiling shader {}:\n {}",fileName, [errorStr UTF8String]);
+        if (libraryRaw == nil) {
+            NSString *errorStr = [errorLib localizedDescription];
+            SIR_CORE_ERROR("Error in compiling shader {}:\n {}", fileName, [errorStr UTF8String]);
             return {};
         }
+
+        ShaderMetadata metadata{};
+        bool result = generateLibraryMetadata(libraryRaw, metadata, path);
+        if(!result) { return {};}
+
+
+
+
         uint32_t index = m_libraryCounter++;
 
         //updating the look ups
-        m_libraries[index] = libraryRaw;
+        m_libraries[index] = metadata;
         m_nameToLibraryHandle[fileName] = index;
 
         return getHandle<LibraryHandle>(index);
@@ -38,7 +46,7 @@ namespace SirMetal {
 
     id ShaderManager::getLibraryFromHandle(LibraryHandle handle) {
         uint32_t index = getIndexFromHandle(handle);
-        return m_libraries[index];
+        return m_libraries[index].library;
     }
 
     LibraryHandle ShaderManager::getHandleFromName(const std::string &name) const {
@@ -47,6 +55,90 @@ namespace SirMetal {
         return {};
     }
 
+    bool ShaderManager::generateLibraryMetadata(id library,
+            ShaderManager::ShaderMetadata &metadata,
+            const char *libraryPath
+    ) {
+
+
+        id <MTLLibrary> lib = library;
+        NSArray<NSString *> *names = [lib functionNames];
+        int namesCount = (int) [names count];
+
+        for (int i = 0; i < namesCount; ++i) {
+            id <MTLFunction> fn = [lib newFunctionWithName:names[i]];
+            MTLFunctionType type = fn.functionType;
+            switch (type) {
+                case (MTLFunctionType::MTLFunctionTypeVertex): {
+                    if (metadata.vertexFn != nullptr) {
+                        SIR_CORE_WARN("Shader library at path {}\ncontains multiple vertex functions, first found {},"
+                                      " then found {}, ignoring second one...",libraryPath,
+                                [[metadata.vertexFn name] UTF8String],
+                                [names[i] UTF8String]);
+
+                    } else {
+                        metadata.vertexFn = fn;
+                    }
+                    break;
+                }
+                case (MTLFunctionType::MTLFunctionTypeFragment): {
+                    if (metadata.fragFn != nullptr) {
+                        SIR_CORE_WARN("Shader library at path{}\ncontains multiple fragment functions, first found {},"
+                                      " then found {}, ignoring second one...",
+                                libraryPath,
+                                [[metadata.fragFn name] UTF8String],
+                                [names[i] UTF8String]);
+
+                    } else {
+                        metadata.fragFn = fn;
+                    }
+                    break;
+                }
+                case (MTLFunctionType::MTLFunctionTypeKernel): {
+                    if (metadata.computeFn != nullptr) {
+                        SIR_CORE_WARN("Shader library at path {}\ncontains multiple compute functions, first found {},"
+                                      " then found {}, ignoring second one...",
+                                libraryPath,
+                                [[metadata.computeFn name] UTF8String],
+                                [names[i] UTF8String]);
+
+                    } else {
+                        metadata.computeFn = fn;
+                    }
+                    break;
+                }
+            }
+        }
+
+        if (metadata.computeFn != nullptr) {
+            //lib is compute
+            metadata.type = SHADER_TYPE::COMPUTE;
+        } else {
+            if ((metadata.fragFn != nullptr) & (metadata.vertexFn != nullptr)) {
+                metadata.type = SHADER_TYPE::RASTER;
+            } else {
+                SIR_CORE_ERROR("The library at path {}\ndoes not provided a complete combination of vertex and fragment shader",libraryPath);
+                return false;
+            }
+        }
+
+        metadata.libraryPath = libraryPath;
+        metadata.library = library;
+
+        return true;
+
+    }
+
+    id ShaderManager::getVertexFunction(LibraryHandle handle) {
+        uint32_t index = getIndexFromHandle(handle);
+        assert(m_libraries.find(index)!= m_libraries.end());
+        return m_libraries[index].vertexFn;
+    }
+    id ShaderManager::getFragmentFunction(LibraryHandle handle) {
+        uint32_t index = getIndexFromHandle(handle);
+        assert(m_libraries.find(index)!= m_libraries.end());
+        return m_libraries[index].fragFn;
+    }
 
 }
 

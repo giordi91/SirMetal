@@ -152,21 +152,39 @@ void updateVoidIndices(int w, int h , id<MTLBuffer> buffer)
 
 - (void)makePipeline {
 
-    SirMetal::LibraryHandle lh = SirMetal::CONTEXT->managers.shaderManager->getHandleFromName("Shaders");
-    id <MTLLibrary> rawLib = SirMetal::CONTEXT->managers.shaderManager->getLibraryFromHandle(lh);
+    SirMetal::ShaderManager* sManager = SirMetal::CONTEXT->managers.shaderManager;
+    SirMetal::LibraryHandle lh = sManager->getHandleFromName("Shaders");
 
     MTLRenderPipelineDescriptor *pipelineDescriptor = [MTLRenderPipelineDescriptor new];
-    pipelineDescriptor.vertexFunction = [rawLib newFunctionWithName:@"vertex_project"];
-    pipelineDescriptor.fragmentFunction = [rawLib newFunctionWithName:@"fragment_flatcolor"];
+    pipelineDescriptor.vertexFunction = sManager->getVertexFunction(lh);
+    pipelineDescriptor.fragmentFunction = sManager->getFragmentFunction(lh);
     pipelineDescriptor.colorAttachments[0].pixelFormat = MTLPixelFormatBGRA8Unorm;
     pipelineDescriptor.depthAttachmentPixelFormat = MTLPixelFormatDepth32Float_Stencil8;
+    
+    
+    NSError* error = NULL;
+    MTLRenderPipelineReflection* reflectionObj;
+    MTLPipelineOption option = MTLPipelineOptionBufferTypeInfo | MTLPipelineOptionArgumentInfo;
+    id <MTLRenderPipelineState> pso = [_device newRenderPipelineStateWithDescriptor:pipelineDescriptor options:option reflection:&reflectionObj error:&error];
+
+    for (MTLArgument *arg in reflectionObj.vertexArguments)
+    {
+        NSLog(@"Found arg: %@\n", arg.name);
+
+        if (arg.bufferDataType == MTLDataTypeStruct)
+        {
+            for( MTLStructMember* uniform in arg.bufferStructType.members )
+            {
+                NSLog(@"uniform: %@ type:%lu, location: %lu", uniform.name, (unsigned long)uniform.dataType, (unsigned long)uniform.offset);
+            }
+        }
+    }
 
     MTLDepthStencilDescriptor *depthStencilDescriptor = [MTLDepthStencilDescriptor new];
     depthStencilDescriptor.depthCompareFunction = MTLCompareFunctionLess;
     depthStencilDescriptor.depthWriteEnabled = YES;
     self.depthStencilState = [_device newDepthStencilStateWithDescriptor:depthStencilDescriptor];
 
-    NSError *error = nil;
     self.renderPipelineState = [_device newRenderPipelineStateWithDescriptor:pipelineDescriptor
                                                                        error:&error];
 
@@ -175,7 +193,7 @@ void updateVoidIndices(int w, int h , id<MTLBuffer> buffer)
     }
     //JUMP FLOOD MASK
     lh = SirMetal::CONTEXT->managers.shaderManager->getHandleFromName("jumpMask");
-    rawLib = SirMetal::CONTEXT->managers.shaderManager->getLibraryFromHandle(lh);
+    id<MTLLibrary> rawLib = SirMetal::CONTEXT->managers.shaderManager->getLibraryFromHandle(lh);
 
     pipelineDescriptor = [MTLRenderPipelineDescriptor new];
     pipelineDescriptor.vertexFunction = [rawLib newFunctionWithName:@"vertex_project"];
