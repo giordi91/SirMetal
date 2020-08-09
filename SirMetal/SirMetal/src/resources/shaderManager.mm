@@ -51,7 +51,7 @@ namespace SirMetal {
 
     LibraryHandle ShaderManager::getHandleFromName(const std::string &name) const {
         auto found = m_nameToLibraryHandle.find(name);
-        if (found != m_nameToLibraryHandle.end()) {return {found->second};}
+        if (found != m_nameToLibraryHandle.end()) {return getHandle<LibraryHandle>(found->second);}
         return {};
     }
 
@@ -154,6 +154,8 @@ namespace SirMetal {
         return m_libraries[index].vertexFn;
     }
     id ShaderManager::getFragmentFunction(LibraryHandle handle) {
+        assert(handle.isHandleValid());
+        assert(getTypeFromHandle(handle) == LibraryHandle::type);
         uint32_t index = getIndexFromHandle(handle);
         assert(m_libraries.find(index)!= m_libraries.end());
         return m_libraries[index].fragFn;

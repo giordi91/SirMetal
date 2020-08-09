@@ -33,18 +33,25 @@ static const uint32_t MBEBufferAlignment = 256;
 
 
 //temporary until i figure out what to do with this
+struct PSOCache {
+    id <MTLRenderPipelineState> color = nil;
+    id <MTLDepthStencilState> depth = nil;
+};
 static SirMetal::Editor::EditorUI editorUI = SirMetal::Editor::EditorUI();
-static std::unordered_map<std::size_t, id> m_psoCache;
+static std::unordered_map<std::size_t, PSOCache> m_psoCache;
 static SirMetal::Material m_opaqueMaterial;
+static SirMetal::Material m_jumpFoodMaterial;
+static SirMetal::Material m_jumpFloodMaskMaterial;
+static SirMetal::Material m_jumpFloodInitMaterial;
+static SirMetal::Material m_outlineMaterial;
 static SirMetal::DrawTracker m_drawTracker;
+static const uint MAX_COLOR_ATTACHMENT = 8;
 
 @interface AAPLRenderer ()
-@property(strong) id <MTLRenderPipelineState> renderPipelineState;
 @property(strong) id <MTLRenderPipelineState> jumpMaskPipelineState;
 @property(strong) id <MTLRenderPipelineState> jumpInitPipelineState;
 @property(strong) id <MTLRenderPipelineState> jumpOutlinePipelineState;
 @property(strong) id <MTLRenderPipelineState> jumpPipelineState;
-@property(strong) id <MTLDepthStencilState> depthStencilState;
 @property(strong) id <MTLTexture> depthTexture;
 @property(strong) id <MTLTexture> jumpTexture;
 @property(strong) id <MTLTexture> jumpTexture2;
@@ -120,8 +127,14 @@ void updateVoidIndices(int w, int h, id <MTLBuffer> buffer) {
         self.screenHeight = mtkView.drawableSize.height;
     }
     //set up temporary stuff
+    m_opaqueMaterial.shaderName = "Shaders";
     m_opaqueMaterial.state.enabled = false;
-    for (int i = 0; i < 8; ++i) {
+
+    m_jumpFloodInitMaterial.shaderName = "jumpInit";
+    m_jumpFloodInitMaterial.state.enabled = false;
+    m_jumpFloodMaskMaterial.shaderName = "jumpMask";
+    m_jumpFloodMaskMaterial.state.enabled = false;
+    for (int i = 0; i < MAX_COLOR_ATTACHMENT; ++i) {
         m_drawTracker.renderTargets[i] = nil;
     }
 
@@ -161,31 +174,14 @@ void updateVoidIndices(int w, int h, id <MTLBuffer> buffer) {
 - (void)makePipeline {
 
     SirMetal::ShaderManager *sManager = SirMetal::CONTEXT->managers.shaderManager;
-    SirMetal::LibraryHandle lh = sManager->getHandleFromName("Shaders");
-
-    MTLRenderPipelineDescriptor *pipelineDescriptor = [MTLRenderPipelineDescriptor new];
-    pipelineDescriptor.vertexFunction = sManager->getVertexFunction(lh);
-    pipelineDescriptor.fragmentFunction = sManager->getFragmentFunction(lh);
-    pipelineDescriptor.colorAttachments[0].pixelFormat = MTLPixelFormatBGRA8Unorm;
-    pipelineDescriptor.depthAttachmentPixelFormat = MTLPixelFormatDepth32Float_Stencil8;
 
     NSError *error = NULL;
-
-    MTLDepthStencilDescriptor *depthStencilDescriptor = [MTLDepthStencilDescriptor new];
-    depthStencilDescriptor.depthCompareFunction = MTLCompareFunctionLess;
-    depthStencilDescriptor.depthWriteEnabled = YES;
-    self.depthStencilState = [_device newDepthStencilStateWithDescriptor:depthStencilDescriptor];
-
-    self.renderPipelineState = [_device newRenderPipelineStateWithDescriptor:pipelineDescriptor
-                                                                       error:&error];
-
-    if (!self.renderPipelineState) {
-        NSLog(@"Error occurred when creating render pipeline state: %@", error);
-    }
     //JUMP FLOOD MASK
+    SirMetal::LibraryHandle lh;
     lh = SirMetal::CONTEXT->managers.shaderManager->getHandleFromName("jumpMask");
     id <MTLLibrary> rawLib = SirMetal::CONTEXT->managers.shaderManager->getLibraryFromHandle(lh);
 
+    MTLRenderPipelineDescriptor *pipelineDescriptor = [MTLRenderPipelineDescriptor new];
     pipelineDescriptor = [MTLRenderPipelineDescriptor new];
     pipelineDescriptor.vertexFunction = [rawLib newFunctionWithName:@"vertex_project"];
     pipelineDescriptor.fragmentFunction = [rawLib newFunctionWithName:@"fragment_flatcolor"];
@@ -364,13 +360,13 @@ constexpr void hash_combine(std::size_t &seed, const T &v) {
 std::size_t computePSOHash(const SirMetal::DrawTracker &tracker, const SirMetal::Material &material) {
     std::size_t toReturn = 0;
 
-    for (int i = 0; i < 8; ++i) {
-        if (tracker.renderTargets[i]!= nil) {
+    for (int i = 0; i < MAX_COLOR_ATTACHMENT; ++i) {
+        if (tracker.renderTargets[i] != nil) {
             id <MTLTexture> tex = tracker.renderTargets[i];
             hash_combine(toReturn, static_cast<int>(tex.pixelFormat));
         }
     }
-    if (tracker.depthTarget!= nil) {
+    if (tracker.depthTarget != nil) {
         id <MTLTexture> tex = tracker.depthTarget;
         hash_combine(toReturn, static_cast<int>(tex.pixelFormat));
     }
@@ -385,15 +381,15 @@ std::size_t computePSOHash(const SirMetal::DrawTracker &tracker, const SirMetal:
     }
 
     hash_combine(toReturn, material.shaderName);
-    return  toReturn;
+    return toReturn;
 }
 
-id <MTLRenderPipelineState> getPSO(id <MTLDevice> device, const SirMetal::DrawTracker &tracker, const SirMetal::Material &material) {
+
+PSOCache getPSO(id <MTLDevice> device, const SirMetal::DrawTracker &tracker, const SirMetal::Material &material) {
 
     std::size_t hash = computePSOHash(tracker, material);
     auto found = m_psoCache.find(hash);
-    if(found != m_psoCache.end())
-    {
+    if (found != m_psoCache.end()) {
         return found->second;
     }
     SirMetal::ShaderManager *sManager = SirMetal::CONTEXT->managers.shaderManager;
@@ -403,27 +399,29 @@ id <MTLRenderPipelineState> getPSO(id <MTLDevice> device, const SirMetal::DrawTr
     pipelineDescriptor.vertexFunction = sManager->getVertexFunction(lh);
     pipelineDescriptor.fragmentFunction = sManager->getFragmentFunction(lh);
 
-    //TODO hardcoded 0
-    id <MTLTexture> texture = tracker.renderTargets[0];
-    pipelineDescriptor.colorAttachments[0].pixelFormat = texture.pixelFormat;
-    if (tracker.depthTarget!=nil) {
+    for (int i = 0; i < MAX_COLOR_ATTACHMENT; ++i) {
+        id <MTLTexture> texture = tracker.renderTargets[i];
+        pipelineDescriptor.colorAttachments[i].pixelFormat = texture.pixelFormat;
+    }
+    PSOCache cache{nil, nil};
+
+    if (tracker.depthTarget != nil) {
         //need to do depth stuff here
-        assert(0);
-        pipelineDescriptor.depthAttachmentPixelFormat = MTLPixelFormatDepth32Float_Stencil8;
+        id <MTLTexture> texture = tracker.depthTarget;
+        pipelineDescriptor.depthAttachmentPixelFormat = texture.pixelFormat;
         MTLDepthStencilDescriptor *depthStencilDescriptor = [MTLDepthStencilDescriptor new];
         depthStencilDescriptor.depthCompareFunction = MTLCompareFunctionLess;
         depthStencilDescriptor.depthWriteEnabled = YES;
-        //self.depthStencilState = [_device newDepthStencilStateWithDescriptor:depthStencilDescriptor];
+        cache.depth = [device newDepthStencilStateWithDescriptor:depthStencilDescriptor];
     }
-    pipelineDescriptor.depthAttachmentPixelFormat = MTLPixelFormatInvalid;
 
     NSError *error = NULL;
 
 
-    id <MTLRenderPipelineState> state = [device newRenderPipelineStateWithDescriptor:pipelineDescriptor
-                                                                               error:&error];
-    m_psoCache[hash] = state;
-    return state;
+    cache.color = [device newRenderPipelineStateWithDescriptor:pipelineDescriptor
+                                                         error:&error];
+    m_psoCache[hash] = cache;
+    return cache;
 }
 
 
@@ -511,13 +509,13 @@ id <MTLRenderPipelineState> getPSO(id <MTLDevice> device, const SirMetal::DrawTr
     stencilAttachment.storeAction = MTLStoreActionDontCare;
     stencilAttachment.loadAction = desc.clear ? MTLLoadActionClear : MTLLoadActionLoad;
     */
-    m_drawTracker.renderTargets[0]= isViewport ? self.offScreenTexture : view.currentDrawable.texture;
-    id <MTLRenderPipelineState> state = getPSO(_device, m_drawTracker, m_opaqueMaterial);
+    m_drawTracker.renderTargets[0] = isViewport ? self.offScreenTexture : view.currentDrawable.texture;
+    m_drawTracker.depthTarget = isViewport ? self.depthTexture : self.depthTextureGUI;
+    PSOCache cache = getPSO(_device, m_drawTracker, m_opaqueMaterial);
 
     id <MTLRenderCommandEncoder> renderPass = [commandBuffer renderCommandEncoderWithDescriptor:passDescriptor];
-    //[renderPass setRenderPipelineState:self.renderPipelineState];
-    [renderPass setRenderPipelineState:state];
-    [renderPass setDepthStencilState:self.depthStencilState];
+    [renderPass setRenderPipelineState:cache.color];
+    [renderPass setDepthStencilState:cache.depth];
     [renderPass setFrontFacingWinding:MTLWindingCounterClockwise];
     [renderPass setCullMode:MTLCullModeBack];
 
@@ -538,7 +536,7 @@ id <MTLRenderPipelineState> getPSO(id <MTLDevice> device, const SirMetal::DrawTr
 
     [renderPass endEncoding];
 
-    [self renderSelection:wToUse :hToUse :commandBuffer];
+    [self renderSelection:wToUse :hToUse :commandBuffer :&m_drawTracker];
 
     if (isViewport) {
 
@@ -581,7 +579,8 @@ id <MTLRenderPipelineState> getPSO(id <MTLDevice> device, const SirMetal::DrawTr
 
 }
 
-- (void)renderSelection:(float)w :(float)h :(id <MTLCommandBuffer>)commandBuffer {
+- (void)renderSelection:(float)w :(float)h :(id <MTLCommandBuffer>)commandBuffer
+        :(SirMetal::DrawTracker *)tracker {
 
     MTLRenderPassDescriptor *passDescriptor = [[MTLRenderPassDescriptor alloc] init];
     MTLRenderPassColorAttachmentDescriptor *uiColorAttachment = passDescriptor.colorAttachments[0];
@@ -594,7 +593,14 @@ id <MTLRenderPipelineState> getPSO(id <MTLDevice> device, const SirMetal::DrawTr
 
     id <MTLRenderCommandEncoder> renderPass = [commandBuffer renderCommandEncoderWithDescriptor:passDescriptor];
 
-    [renderPass setRenderPipelineState:self.jumpMaskPipelineState];
+
+    //TODO use a reset function on tracker
+    tracker->depthTarget =nil;
+    tracker->renderTargets[0]=self.jumpMaskTexture;
+    PSOCache cache = getPSO(_device,*tracker,m_jumpFloodMaskMaterial);
+
+    //[renderPass setRenderPipelineState:self.jumpMaskPipelineState];
+    [renderPass setRenderPipelineState:cache.color];
     //[renderPass setDepthStencilState:nil];
     [renderPass setFrontFacingWinding:MTLWindingCounterClockwise];
     [renderPass setCullMode:MTLCullModeBack];
@@ -627,7 +633,10 @@ id <MTLRenderPipelineState> getPSO(id <MTLDevice> device, const SirMetal::DrawTr
 
     id <MTLRenderCommandEncoder> renderPass2 = [commandBuffer renderCommandEncoderWithDescriptor:passDescriptor];
 
-    [renderPass2 setRenderPipelineState:self.jumpInitPipelineState];
+    tracker->depthTarget =nil;
+    tracker->renderTargets[0]=self.jumpTexture;
+    cache = getPSO(_device,*tracker,m_jumpFloodInitMaterial);
+    [renderPass2 setRenderPipelineState:cache.color];
     [renderPass2 setFrontFacingWinding:MTLWindingClockwise];
     [renderPass2 setCullMode:MTLCullModeNone];
     [renderPass2 setFragmentTexture:self.jumpMaskTexture atIndex:0];

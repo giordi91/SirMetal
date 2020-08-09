@@ -44,7 +44,7 @@ namespace SirMetal {
         std::string m_resourcePath;
         std::unordered_map<uint32_t, ShaderMetadata> m_libraries;
         std::unordered_map<std::string, uint32_t> m_nameToLibraryHandle;
-        uint32_t m_libraryCounter = 0;
+        uint32_t m_libraryCounter = 1;
     };
 }
 
