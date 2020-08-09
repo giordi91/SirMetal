@@ -48,8 +48,6 @@ static SirMetal::DrawTracker m_drawTracker;
 static const uint MAX_COLOR_ATTACHMENT = 8;
 
 @interface AAPLRenderer ()
-@property(strong) id <MTLRenderPipelineState> jumpOutlinePipelineState;
-@property(strong) id <MTLRenderPipelineState> jumpPipelineState;
 @property(strong) id <MTLTexture> depthTexture;
 @property(strong) id <MTLTexture> jumpTexture;
 @property(strong) id <MTLTexture> jumpTexture2;
@@ -155,7 +153,6 @@ void updateVoidIndices(int w, int h, id <MTLBuffer> buffer) {
 - (void)initGraphicsObjectsTemp {
 
     //create the pipeline
-    [self makePipeline];
     [self makeBuffers];
     //TODO probably grab the start viewport size from the context
     [self createOffscreenTexture:256 :256];
@@ -180,44 +177,6 @@ void updateVoidIndices(int w, int h, id <MTLBuffer> buffer) {
     self.depthTextureGUI = [_device newTextureWithDescriptor:descriptor];
     self.depthTextureGUI.label = @"DepthStencilGUI";
 
-}
-
-- (void)makePipeline {
-
-    SirMetal::ShaderManager *sManager = SirMetal::CONTEXT->managers.shaderManager;
-
-    NSError *error = NULL;
-    //JUMP FLOOD MASK
-    SirMetal::LibraryHandle lh;
-    id <MTLLibrary> rawLib;
-
-    //jump flo0d
-    lh = SirMetal::CONTEXT->managers.shaderManager->getHandleFromName("jumpFlood");
-    rawLib = SirMetal::CONTEXT->managers.shaderManager->getLibraryFromHandle(lh);
-
-    MTLRenderPipelineDescriptor *pipelineDescriptor = [MTLRenderPipelineDescriptor new];
-
-    //jump outline
-    lh = SirMetal::CONTEXT->managers.shaderManager->getHandleFromName("jumpOutline");
-    rawLib = SirMetal::CONTEXT->managers.shaderManager->getLibraryFromHandle(lh);
-
-    pipelineDescriptor = [MTLRenderPipelineDescriptor new];
-    pipelineDescriptor.vertexFunction = [rawLib newFunctionWithName:@"vertex_project"];
-    pipelineDescriptor.fragmentFunction = [rawLib newFunctionWithName:@"fragment_flatcolor"];
-    pipelineDescriptor.colorAttachments[0].pixelFormat = MTLPixelFormatBGRA8Unorm;
-    pipelineDescriptor.colorAttachments[0].blendingEnabled = YES;
-    pipelineDescriptor.colorAttachments[0].rgbBlendOperation = MTLBlendOperationAdd;
-    pipelineDescriptor.colorAttachments[0].alphaBlendOperation = MTLBlendOperationAdd;
-    pipelineDescriptor.colorAttachments[0].sourceRGBBlendFactor = MTLBlendFactorSourceAlpha;
-    pipelineDescriptor.colorAttachments[0].sourceAlphaBlendFactor = MTLBlendFactorSourceAlpha;
-    pipelineDescriptor.colorAttachments[0].destinationRGBBlendFactor = MTLBlendFactorOneMinusSourceAlpha;
-    pipelineDescriptor.colorAttachments[0].destinationAlphaBlendFactor = MTLBlendFactorOneMinusSourceAlpha;
-
-    self.jumpOutlinePipelineState = [_device newRenderPipelineStateWithDescriptor:pipelineDescriptor error:&error];
-
-    if (!self.jumpOutlinePipelineState) {
-        NSLog(@"Error occurred when creating jump outline render pipeline state: %@", error);
-    }
 }
 
 - (void)makeBuffers {
