@@ -15,6 +15,8 @@
 #import "log.h"
 #import "project.h"
 #import "core/flags.h"
+#import "materialManager.h"
+#import "renderingContext.h"
 
 static const NSInteger MBEInFlightBufferCount = 3;
 const MTLIndexType MBEIndexType = MTLIndexTypeUInt32;
@@ -32,6 +34,9 @@ static const uint32_t MBEBufferAlignment = 256;
 
 //temporary until i figure out what to do with this
 static SirMetal::Editor::EditorUI editorUI = SirMetal::Editor::EditorUI();
+static std::unordered_map<std::size_t, id> m_psoCache;
+static SirMetal::Material m_opaqueMaterial;
+static SirMetal::DrawTracker m_drawTracker;
 
 @interface AAPLRenderer ()
 @property(strong) id <MTLRenderPipelineState> renderPipelineState;
@@ -56,21 +61,19 @@ static SirMetal::Editor::EditorUI editorUI = SirMetal::Editor::EditorUI();
 @property(assign) NSInteger bufferIndex;
 @end
 
-void updateVoidIndices(int w, int h , id<MTLBuffer> buffer)
-{
-    std::vector<int>indices;
-    indices.resize(256/4*16);
-    int N = pow(2,16);
-    for(int i =0; i < 16;++i)
-    {
+void updateVoidIndices(int w, int h, id <MTLBuffer> buffer) {
+    std::vector<int> indices;
+    indices.resize(256 / 4 * 16);
+    int N = pow(2, 16);
+    for (int i = 0; i < 16; ++i) {
         int offset = pow(2, (log2(N) - i - 1));
-        int id = i*64;
+        int id = i * 64;
         indices[id] = offset;
-        indices[id+1] = w;
-        indices[id+2] = h;
+        indices[id + 1] = w;
+        indices[id + 2] = h;
     }
-    memcpy((char *) ([buffer contents]) , indices.data(), sizeof(int)*indices.size());
-    
+    memcpy((char *) ([buffer contents]), indices.data(), sizeof(int) * indices.size());
+
 }
 
 // Main class performing the rendering
@@ -95,26 +98,31 @@ void updateVoidIndices(int w, int h , id<MTLBuffer> buffer)
     if (self) {
         _device = mtkView.device;
         _displaySemaphore = dispatch_semaphore_create(MBEInFlightBufferCount);
-        _resizeSemaphore= dispatch_semaphore_create(0);
+        _resizeSemaphore = dispatch_semaphore_create(0);
 
 
         // Create the command queue
         _commandQueue = [_device newCommandQueue];
 
-    IMGUI_CHECKVERSION();
-    ImGui::CreateContext();
-    ImGui::StyleColorsDark();
+        IMGUI_CHECKVERSION();
+        ImGui::CreateContext();
+        ImGui::StyleColorsDark();
 
-    ImGui_ImplMetal_Init(_device);
+        ImGui_ImplMetal_Init(_device);
 
 
-    NSLog(@"Initializing Sir Metal: v0.0.1");
-    [self logGPUInformation:_device];
+        NSLog(@"Initializing Sir Metal: v0.0.1");
+        [self logGPUInformation:_device];
 
-    mtkView.paused = NO;
+        mtkView.paused = NO;
 
-    self.screenWidth = mtkView.drawableSize.width;
-    self.screenHeight = mtkView.drawableSize.height;
+        self.screenWidth = mtkView.drawableSize.width;
+        self.screenHeight = mtkView.drawableSize.height;
+    }
+    //set up temporary stuff
+    m_opaqueMaterial.state.enabled = false;
+    for (int i = 0; i < 8; ++i) {
+        m_drawTracker.renderTargets[i] = nil;
     }
 
     return self;
@@ -130,8 +138,8 @@ void updateVoidIndices(int w, int h , id<MTLBuffer> buffer)
 
     //view matrix
     //initializing the camera to the identity
-    SirMetal::Camera& camera = SirMetal::CONTEXT->camera;
-    SirMetal::EditorFPSCameraController& cameraController = SirMetal::CONTEXT->cameraController;
+    SirMetal::Camera &camera = SirMetal::CONTEXT->camera;
+    SirMetal::EditorFPSCameraController &cameraController = SirMetal::CONTEXT->cameraController;
     camera.viewMatrix = matrix_float4x4_translation(vector_float3{0, 0, 0});
     camera.fov = M_PI / 4;
     camera.nearPlane = 1;
@@ -152,7 +160,7 @@ void updateVoidIndices(int w, int h , id<MTLBuffer> buffer)
 
 - (void)makePipeline {
 
-    SirMetal::ShaderManager* sManager = SirMetal::CONTEXT->managers.shaderManager;
+    SirMetal::ShaderManager *sManager = SirMetal::CONTEXT->managers.shaderManager;
     SirMetal::LibraryHandle lh = sManager->getHandleFromName("Shaders");
 
     MTLRenderPipelineDescriptor *pipelineDescriptor = [MTLRenderPipelineDescriptor new];
@@ -160,25 +168,8 @@ void updateVoidIndices(int w, int h , id<MTLBuffer> buffer)
     pipelineDescriptor.fragmentFunction = sManager->getFragmentFunction(lh);
     pipelineDescriptor.colorAttachments[0].pixelFormat = MTLPixelFormatBGRA8Unorm;
     pipelineDescriptor.depthAttachmentPixelFormat = MTLPixelFormatDepth32Float_Stencil8;
-    
-    
-    NSError* error = NULL;
-    MTLRenderPipelineReflection* reflectionObj;
-    MTLPipelineOption option = MTLPipelineOptionBufferTypeInfo | MTLPipelineOptionArgumentInfo;
-    id <MTLRenderPipelineState> pso = [_device newRenderPipelineStateWithDescriptor:pipelineDescriptor options:option reflection:&reflectionObj error:&error];
 
-    for (MTLArgument *arg in reflectionObj.vertexArguments)
-    {
-        NSLog(@"Found arg: %@\n", arg.name);
-
-        if (arg.bufferDataType == MTLDataTypeStruct)
-        {
-            for( MTLStructMember* uniform in arg.bufferStructType.members )
-            {
-                NSLog(@"uniform: %@ type:%lu, location: %lu", uniform.name, (unsigned long)uniform.dataType, (unsigned long)uniform.offset);
-            }
-        }
-    }
+    NSError *error = NULL;
 
     MTLDepthStencilDescriptor *depthStencilDescriptor = [MTLDepthStencilDescriptor new];
     depthStencilDescriptor.depthCompareFunction = MTLCompareFunctionLess;
@@ -193,7 +184,7 @@ void updateVoidIndices(int w, int h , id<MTLBuffer> buffer)
     }
     //JUMP FLOOD MASK
     lh = SirMetal::CONTEXT->managers.shaderManager->getHandleFromName("jumpMask");
-    id<MTLLibrary> rawLib = SirMetal::CONTEXT->managers.shaderManager->getLibraryFromHandle(lh);
+    id <MTLLibrary> rawLib = SirMetal::CONTEXT->managers.shaderManager->getLibraryFromHandle(lh);
 
     pipelineDescriptor = [MTLRenderPipelineDescriptor new];
     pipelineDescriptor.vertexFunction = [rawLib newFunctionWithName:@"vertex_project"];
@@ -234,11 +225,11 @@ void updateVoidIndices(int w, int h , id<MTLBuffer> buffer)
     if (!self.jumpPipelineState) {
         NSLog(@"Error occurred when creating jump render pipeline state: %@", error);
     }
-    
+
     //jump outline
     lh = SirMetal::CONTEXT->managers.shaderManager->getHandleFromName("jumpOutline");
     rawLib = SirMetal::CONTEXT->managers.shaderManager->getLibraryFromHandle(lh);
-    
+
     pipelineDescriptor = [MTLRenderPipelineDescriptor new];
     pipelineDescriptor.vertexFunction = [rawLib newFunctionWithName:@"vertex_project"];
     pipelineDescriptor.fragmentFunction = [rawLib newFunctionWithName:@"fragment_flatcolor"];
@@ -252,7 +243,7 @@ void updateVoidIndices(int w, int h , id<MTLBuffer> buffer)
     pipelineDescriptor.colorAttachments[0].destinationAlphaBlendFactor = MTLBlendFactorOneMinusSourceAlpha;
 
     self.jumpOutlinePipelineState = [_device newRenderPipelineStateWithDescriptor:pipelineDescriptor error:&error];
-    
+
     if (!self.jumpOutlinePipelineState) {
         NSLog(@"Error occurred when creating jump outline render pipeline state: %@", error);
     }
@@ -265,22 +256,22 @@ void updateVoidIndices(int w, int h , id<MTLBuffer> buffer)
 
     //allocating 16 values, then just moving the offset when binding, now
     //i am not sure what is the minimum stride so I am going for a 32*4 bits
-    int sizeFlood = 256*16;
+    int sizeFlood = 256 * 16;
     _floodUniform = [_device newBufferWithLength:AlignUp(sizeFlood, MBEBufferAlignment) * MBEInFlightBufferCount
-                                          options:MTLResourceOptionCPUCacheModeDefault];
+                                         options:MTLResourceOptionCPUCacheModeDefault];
     [_uniformBuffer setLabel:@"floodUniforms"];
 
     int w = 256;
     int h = 256;
-    updateVoidIndices(w,h, self.floodUniform);
+    updateVoidIndices(w, h, self.floodUniform);
 }
 
 
 - (void)updateUniformsForView:(float)screenWidth :(float)screenHeight {
 
-    SirMetal::Camera& camera = SirMetal::CONTEXT->camera;
-    SirMetal::EditorFPSCameraController& cameraController = SirMetal::CONTEXT->cameraController;
-    
+    SirMetal::Camera &camera = SirMetal::CONTEXT->camera;
+    SirMetal::EditorFPSCameraController &cameraController = SirMetal::CONTEXT->cameraController;
+
     const matrix_float4x4 modelMatrix = matrix_float4x4_translation(vector_float3{0, 0, 0});
 
     ImGuiIO &io = ImGui::GetIO();
@@ -289,8 +280,8 @@ void updateVoidIndices(int w, int h , id<MTLBuffer> buffer)
     //in viewport mode, meaning fullscreen. if one of those two conditions
     //is true we update the camera.
     bool isViewport = (io.ConfigFlags & ImGuiConfigFlags_DockingEnable) > 0;
-    bool isViewportInFocus = isFlagSet(SirMetal::CONTEXT->flags.interaction,SirMetal::InteractionFlagsBits::InteractionViewportFocused);
-    
+    bool isViewportInFocus = isFlagSet(SirMetal::CONTEXT->flags.interaction, SirMetal::InteractionFlagsBits::InteractionViewportFocused);
+
     bool shouldControlViewport = isViewport & isViewportInFocus;
     MBEUniforms uniforms;
     uniforms.modelViewProjectionMatrix = matrix_multiply(camera.VP, modelMatrix);
@@ -300,7 +291,7 @@ void updateVoidIndices(int w, int h , id<MTLBuffer> buffer)
         uniforms.modelViewProjectionMatrix = matrix_multiply(camera.VP, modelMatrix);
 
     }
-    cameraController.updateProjection(screenWidth,screenHeight);
+    cameraController.updateProjection(screenWidth, screenHeight);
     const NSUInteger uniformBufferOffset = AlignUp(sizeof(MBEUniforms), MBEBufferAlignment) * self.bufferIndex;
     memcpy((char *) ([self.uniformBuffer contents]) + uniformBufferOffset, &uniforms, sizeof(uniforms));
 }
@@ -316,7 +307,7 @@ void updateVoidIndices(int w, int h , id<MTLBuffer> buffer)
     };
     self.viewportHandle = textureManager->allocate(_device, request);
     self.offScreenTexture = textureManager->getNativeFromHandle(self.viewportHandle);
-    SirMetal::CONTEXT->viewportTexture = (__bridge void*)self.offScreenTexture;
+    SirMetal::CONTEXT->viewportTexture = (__bridge void *) self.offScreenTexture;
 
 
     SirMetal::AllocTextureRequest requestDepth{
@@ -363,6 +354,79 @@ void updateVoidIndices(int w, int h , id<MTLBuffer> buffer)
     ImGui_ImplMetal_RenderDrawData(drawData, commandBuffer, renderPass);
 }
 
+template<class T>
+constexpr void hash_combine(std::size_t &seed, const T &v) {
+    std::hash<T> hasher;
+    seed ^= hasher(v) + 0x9e3779b9 + (seed << 6) + (seed >> 2);
+}
+
+
+std::size_t computePSOHash(const SirMetal::DrawTracker &tracker, const SirMetal::Material &material) {
+    std::size_t toReturn = 0;
+
+    for (int i = 0; i < 8; ++i) {
+        if (tracker.renderTargets[i]!= nil) {
+            id <MTLTexture> tex = tracker.renderTargets[i];
+            hash_combine(toReturn, static_cast<int>(tex.pixelFormat));
+        }
+    }
+    if (tracker.depthTarget!= nil) {
+        id <MTLTexture> tex = tracker.depthTarget;
+        hash_combine(toReturn, static_cast<int>(tex.pixelFormat));
+    }
+
+    if (material.state.enabled) {
+        hash_combine(toReturn, material.state.rgbBlendOperation);
+        hash_combine(toReturn, material.state.alphaBlendOperation);
+        hash_combine(toReturn, material.state.sourceRGBBlendFactor);
+        hash_combine(toReturn, material.state.sourceAlphaBlendFactor);
+        hash_combine(toReturn, material.state.destinationRGBBlendFactor);
+        hash_combine(toReturn, material.state.destinationAlphaBlendFactor);
+    }
+
+    hash_combine(toReturn, material.shaderName);
+    return  toReturn;
+}
+
+id <MTLRenderPipelineState> getPSO(id <MTLDevice> device, const SirMetal::DrawTracker &tracker, const SirMetal::Material &material) {
+
+    std::size_t hash = computePSOHash(tracker, material);
+    auto found = m_psoCache.find(hash);
+    if(found != m_psoCache.end())
+    {
+        return found->second;
+    }
+    SirMetal::ShaderManager *sManager = SirMetal::CONTEXT->managers.shaderManager;
+    SirMetal::LibraryHandle lh = sManager->getHandleFromName(material.shaderName);
+
+    MTLRenderPipelineDescriptor *pipelineDescriptor = [MTLRenderPipelineDescriptor new];
+    pipelineDescriptor.vertexFunction = sManager->getVertexFunction(lh);
+    pipelineDescriptor.fragmentFunction = sManager->getFragmentFunction(lh);
+
+    //TODO hardcoded 0
+    id <MTLTexture> texture = tracker.renderTargets[0];
+    pipelineDescriptor.colorAttachments[0].pixelFormat = texture.pixelFormat;
+    if (tracker.depthTarget!=nil) {
+        //need to do depth stuff here
+        assert(0);
+        pipelineDescriptor.depthAttachmentPixelFormat = MTLPixelFormatDepth32Float_Stencil8;
+        MTLDepthStencilDescriptor *depthStencilDescriptor = [MTLDepthStencilDescriptor new];
+        depthStencilDescriptor.depthCompareFunction = MTLCompareFunctionLess;
+        depthStencilDescriptor.depthWriteEnabled = YES;
+        //self.depthStencilState = [_device newDepthStencilStateWithDescriptor:depthStencilDescriptor];
+    }
+    pipelineDescriptor.depthAttachmentPixelFormat = MTLPixelFormatInvalid;
+
+    NSError *error = NULL;
+
+
+    id <MTLRenderPipelineState> state = [device newRenderPipelineStateWithDescriptor:pipelineDescriptor
+                                                                               error:&error];
+    m_psoCache[hash] = state;
+    return state;
+}
+
+
 /// Called whenever the view needs to render a frame.
 - (void)drawInMTKView:(nonnull MTKView *)view {
 
@@ -372,14 +436,14 @@ void updateVoidIndices(int w, int h , id<MTLBuffer> buffer)
     ImVec2 viewportSize = editorUI.getViewportSize();
     bool viewportChanged = SirMetal::isFlagSet(SirMetal::CONTEXT->flags.viewEvents, SirMetal::ViewEventsFlagsBits::ViewEventsViewportSizeChanged);
     if (viewportChanged) {
-        
+
         id <MTLCommandBuffer> commandBuffer = [_commandQueue commandBuffer];
         [commandBuffer addCompletedHandler:^(id <MTLCommandBuffer> commandBuffer) {
             dispatch_semaphore_signal(self.resizeSemaphore);
         }];
         [commandBuffer commit];
         dispatch_semaphore_wait(self.resizeSemaphore, DISPATCH_TIME_FOREVER);
-        
+
         SirMetal::TextureManager *texManager = SirMetal::CONTEXT->managers.textureManager;
         bool viewportResult = texManager->resizeTexture(_device, self.viewportHandle, viewportSize.x, viewportSize.y);
         bool depthResult = texManager->resizeTexture(_device, self.depthHandle, viewportSize.x, viewportSize.y);
@@ -395,12 +459,12 @@ void updateVoidIndices(int w, int h , id<MTLBuffer> buffer)
             self.jumpTexture = texManager->getNativeFromHandle(self.jumpHandle);
             self.jumpTexture2 = texManager->getNativeFromHandle(self.jumpHandle2);
             self.jumpMaskTexture = texManager->getNativeFromHandle(self.jumpMaskHandle);
-            SirMetal::CONTEXT->viewportTexture = (__bridge void*)self.offScreenTexture;
-            updateVoidIndices(viewportSize.x,viewportSize.y,self.floodUniform);
-            SirMetal::CONTEXT->cameraController.updateProjection(viewportSize.x,viewportSize.y);
-            
+            SirMetal::CONTEXT->viewportTexture = (__bridge void *) self.offScreenTexture;
+            updateVoidIndices(viewportSize.x, viewportSize.y, self.floodUniform);
+            SirMetal::CONTEXT->cameraController.updateProjection(viewportSize.x, viewportSize.y);
+
         }
-        SirMetal::setFlagBitfield(SirMetal::CONTEXT->flags.viewEvents, SirMetal::ViewEventsFlagsBits::ViewEventsViewportSizeChanged,false);
+        SirMetal::setFlagBitfield(SirMetal::CONTEXT->flags.viewEvents, SirMetal::ViewEventsFlagsBits::ViewEventsViewportSizeChanged, false);
     }
 
 
@@ -418,7 +482,6 @@ void updateVoidIndices(int w, int h , id<MTLBuffer> buffer)
     float h = view.drawableSize.height;
 
     bool isViewport = (io.ConfigFlags & ImGuiConfigFlags_DockingEnable) > 0;
-    //NSLog(@"%.1fx%.1f",w, h);
     [self updateUniformsForView:(isViewport ? viewportSize.x : w) :(isViewport ? viewportSize.y : h)];
 
     id <MTLCommandBuffer> commandBuffer = [_commandQueue commandBuffer];
@@ -426,7 +489,7 @@ void updateVoidIndices(int w, int h , id<MTLBuffer> buffer)
     //passDescriptor.depthAttachment
 
     float wToUse = isViewport ? self.offScreenTexture.width : view.currentDrawable.texture.width;
-    float hToUse = isViewport ? self.offScreenTexture.height: view.currentDrawable.texture.height;
+    float hToUse = isViewport ? self.offScreenTexture.height : view.currentDrawable.texture.height;
 
     passDescriptor.renderTargetWidth = wToUse;
     passDescriptor.renderTargetHeight = hToUse;
@@ -448,10 +511,12 @@ void updateVoidIndices(int w, int h , id<MTLBuffer> buffer)
     stencilAttachment.storeAction = MTLStoreActionDontCare;
     stencilAttachment.loadAction = desc.clear ? MTLLoadActionClear : MTLLoadActionLoad;
     */
-
+    m_drawTracker.renderTargets[0]= isViewport ? self.offScreenTexture : view.currentDrawable.texture;
+    id <MTLRenderPipelineState> state = getPSO(_device, m_drawTracker, m_opaqueMaterial);
 
     id <MTLRenderCommandEncoder> renderPass = [commandBuffer renderCommandEncoderWithDescriptor:passDescriptor];
-    [renderPass setRenderPipelineState:self.renderPipelineState];
+    //[renderPass setRenderPipelineState:self.renderPipelineState];
+    [renderPass setRenderPipelineState:state];
     [renderPass setDepthStencilState:self.depthStencilState];
     [renderPass setFrontFacingWinding:MTLWindingCounterClockwise];
     [renderPass setCullMode:MTLCullModeBack];
@@ -473,9 +538,7 @@ void updateVoidIndices(int w, int h , id<MTLBuffer> buffer)
 
     [renderPass endEncoding];
 
-
     [self renderSelection:wToUse :hToUse :commandBuffer];
-
 
     if (isViewport) {
 
@@ -571,8 +634,7 @@ void updateVoidIndices(int w, int h , id<MTLBuffer> buffer)
 
     //first screen pass
     [renderPass2 drawPrimitives:MTLPrimitiveTypeTriangle
-                   vertexStart:0 vertexCount:6];
-
+                    vertexStart:0 vertexCount:6];
 
 
     [renderPass2 endEncoding];
@@ -581,10 +643,10 @@ void updateVoidIndices(int w, int h , id<MTLBuffer> buffer)
     //prepare render pass
 
     //compute offset for jump flooding
-    int passIndex =0;
-    int N =  64;
+    int passIndex = 0;
+    int N = 64;
     int offset = 9999;
-    id<MTLTexture> outTex = self.jumpTexture;
+    id <MTLTexture> outTex = self.jumpTexture;
     while (offset != 1) {
         offset = pow(2, (log2(N) - passIndex - 1));
 
@@ -603,9 +665,9 @@ void updateVoidIndices(int w, int h , id<MTLBuffer> buffer)
         [renderPass3 setRenderPipelineState:self.jumpPipelineState];
         [renderPass3 setFrontFacingWinding:MTLWindingClockwise];
         [renderPass3 setCullMode:MTLCullModeNone];
-        [renderPass3 setFragmentTexture: passIndex %2 == 0 ? self.jumpTexture :self.jumpTexture2 atIndex:0];
+        [renderPass3 setFragmentTexture:passIndex % 2 == 0 ? self.jumpTexture : self.jumpTexture2 atIndex:0];
         //TODO fix hardcoded offset
-        [renderPass3 setFragmentBuffer:self.floodUniform  offset:9*256 + passIndex*256 atIndex:0];
+        [renderPass3 setFragmentBuffer:self.floodUniform offset:9 * 256 + passIndex * 256 atIndex:0];
 
 
         //first screen pass
@@ -614,9 +676,9 @@ void updateVoidIndices(int w, int h , id<MTLBuffer> buffer)
 
         [renderPass3 endEncoding];
         outTex = passIndex % 2 == 0 ? self.jumpTexture2 : self.jumpTexture;
-        passIndex +=1;
+        passIndex += 1;
     }
-    
+
     //render outline
     //now do the position render
     passDescriptor = [[MTLRenderPassDescriptor alloc] init];
@@ -627,17 +689,17 @@ void updateVoidIndices(int w, int h , id<MTLBuffer> buffer)
     colorAttachment.loadAction = MTLLoadActionLoad;
     passDescriptor.renderTargetWidth = w;
     passDescriptor.renderTargetHeight = h;
-    
+
     id <MTLRenderCommandEncoder> renderPass4 = [commandBuffer renderCommandEncoderWithDescriptor:passDescriptor];
-    
+
     [renderPass4 setRenderPipelineState:self.jumpOutlinePipelineState];
     [renderPass4 setFrontFacingWinding:MTLWindingClockwise];
     [renderPass4 setCullMode:MTLCullModeNone];
     [renderPass4 setFragmentTexture:self.jumpMaskTexture atIndex:0];
     [renderPass4 setFragmentTexture:outTex atIndex:1];
     //we need the screen size from the uniform
-    [renderPass4 setFragmentBuffer:self.floodUniform  offset:0 atIndex:0];
-    
+    [renderPass4 setFragmentBuffer:self.floodUniform offset:0 atIndex:0];
+
     [renderPass4 drawPrimitives:MTLPrimitiveTypeTriangle
                     vertexStart:0 vertexCount:6];
     [renderPass4 endEncoding];

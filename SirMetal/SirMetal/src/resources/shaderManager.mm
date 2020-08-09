@@ -129,6 +129,25 @@ namespace SirMetal {
 
     }
 
+    /*
+    MTLRenderPipelineReflection* reflectionObj;
+    MTLPipelineOption option = MTLPipelineOptionBufferTypeInfo | MTLPipelineOptionArgumentInfo;
+    id <MTLRenderPipelineState> pso = [_device newRenderPipelineStateWithDescriptor:pipelineDescriptor options:option reflection:&reflectionObj error:&error];
+
+    for (MTLArgument *arg in reflectionObj.vertexArguments)
+    {
+        NSLog(@"Found arg: %@\n", arg.name);
+
+        if (arg.bufferDataType == MTLDataTypeStruct)
+        {
+            for( MTLStructMember* uniform in arg.bufferStructType.members )
+            {
+                NSLog(@"uniform: %@ type:%lu, location: %lu", uniform.name, (unsigned long)uniform.dataType, (unsigned long)uniform.offset);
+            }
+        }
+    }
+    */
+
     id ShaderManager::getVertexFunction(LibraryHandle handle) {
         uint32_t index = getIndexFromHandle(handle);
         assert(m_libraries.find(index)!= m_libraries.end());
