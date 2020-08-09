@@ -40,16 +40,14 @@ struct PSOCache {
 static SirMetal::Editor::EditorUI editorUI = SirMetal::Editor::EditorUI();
 static std::unordered_map<std::size_t, PSOCache> m_psoCache;
 static SirMetal::Material m_opaqueMaterial;
-static SirMetal::Material m_jumpFoodMaterial;
+static SirMetal::Material m_jumpFloodMaterial;
 static SirMetal::Material m_jumpFloodMaskMaterial;
 static SirMetal::Material m_jumpFloodInitMaterial;
-static SirMetal::Material m_outlineMaterial;
+static SirMetal::Material m_jumpOutlineMaterial;
 static SirMetal::DrawTracker m_drawTracker;
 static const uint MAX_COLOR_ATTACHMENT = 8;
 
 @interface AAPLRenderer ()
-@property(strong) id <MTLRenderPipelineState> jumpMaskPipelineState;
-@property(strong) id <MTLRenderPipelineState> jumpInitPipelineState;
 @property(strong) id <MTLRenderPipelineState> jumpOutlinePipelineState;
 @property(strong) id <MTLRenderPipelineState> jumpPipelineState;
 @property(strong) id <MTLTexture> depthTexture;
@@ -134,6 +132,19 @@ void updateVoidIndices(int w, int h, id <MTLBuffer> buffer) {
     m_jumpFloodInitMaterial.state.enabled = false;
     m_jumpFloodMaskMaterial.shaderName = "jumpMask";
     m_jumpFloodMaskMaterial.state.enabled = false;
+    m_jumpFloodMaterial.shaderName = "jumpFlood";
+    m_jumpFloodMaterial.state.enabled = false;
+    m_jumpOutlineMaterial.shaderName = "jumpOutline";
+    m_jumpOutlineMaterial.state.enabled = true;
+    SirMetal::AlphaBlendingState &alpha = m_jumpOutlineMaterial.state;
+    alpha.rgbBlendOperation = MTLBlendOperationAdd;
+    alpha.alphaBlendOperation = MTLBlendOperationAdd;
+    alpha.sourceRGBBlendFactor = MTLBlendFactorSourceAlpha;
+    alpha.sourceAlphaBlendFactor = MTLBlendFactorSourceAlpha;
+    alpha.destinationRGBBlendFactor = MTLBlendFactorOneMinusSourceAlpha;
+    alpha.destinationAlphaBlendFactor = MTLBlendFactorOneMinusSourceAlpha;
+
+
     for (int i = 0; i < MAX_COLOR_ATTACHMENT; ++i) {
         m_drawTracker.renderTargets[i] = nil;
     }
@@ -178,49 +189,13 @@ void updateVoidIndices(int w, int h, id <MTLBuffer> buffer) {
     NSError *error = NULL;
     //JUMP FLOOD MASK
     SirMetal::LibraryHandle lh;
-    lh = SirMetal::CONTEXT->managers.shaderManager->getHandleFromName("jumpMask");
-    id <MTLLibrary> rawLib = SirMetal::CONTEXT->managers.shaderManager->getLibraryFromHandle(lh);
+    id <MTLLibrary> rawLib;
 
-    MTLRenderPipelineDescriptor *pipelineDescriptor = [MTLRenderPipelineDescriptor new];
-    pipelineDescriptor = [MTLRenderPipelineDescriptor new];
-    pipelineDescriptor.vertexFunction = [rawLib newFunctionWithName:@"vertex_project"];
-    pipelineDescriptor.fragmentFunction = [rawLib newFunctionWithName:@"fragment_flatcolor"];
-    pipelineDescriptor.colorAttachments[0].pixelFormat = MTLPixelFormatR8Unorm;
-
-    self.jumpMaskPipelineState = [_device newRenderPipelineStateWithDescriptor:pipelineDescriptor error:&error];
-
-    if (!self.jumpMaskPipelineState) {
-        NSLog(@"Error occurred when creating jump mask render pipeline state: %@", error);
-    }
-
-    //jump flo0d init
-    lh = SirMetal::CONTEXT->managers.shaderManager->getHandleFromName("jumpInit");
-    rawLib = SirMetal::CONTEXT->managers.shaderManager->getLibraryFromHandle(lh);
-
-    pipelineDescriptor = [MTLRenderPipelineDescriptor new];
-    pipelineDescriptor.vertexFunction = [rawLib newFunctionWithName:@"vertex_project"];
-    pipelineDescriptor.fragmentFunction = [rawLib newFunctionWithName:@"fragment_flatcolor"];
-    pipelineDescriptor.colorAttachments[0].pixelFormat = MTLPixelFormatRG32Float;
-
-    self.jumpInitPipelineState = [_device newRenderPipelineStateWithDescriptor:pipelineDescriptor error:&error];
-
-    if (!self.jumpInitPipelineState) {
-        NSLog(@"Error occurred when creating jump init render pipeline state: %@", error);
-    }
     //jump flo0d
     lh = SirMetal::CONTEXT->managers.shaderManager->getHandleFromName("jumpFlood");
     rawLib = SirMetal::CONTEXT->managers.shaderManager->getLibraryFromHandle(lh);
 
-    pipelineDescriptor = [MTLRenderPipelineDescriptor new];
-    pipelineDescriptor.vertexFunction = [rawLib newFunctionWithName:@"vertex_project"];
-    pipelineDescriptor.fragmentFunction = [rawLib newFunctionWithName:@"fragment_flatcolor"];
-    pipelineDescriptor.colorAttachments[0].pixelFormat = MTLPixelFormatRG32Float;
-
-    self.jumpPipelineState = [_device newRenderPipelineStateWithDescriptor:pipelineDescriptor error:&error];
-
-    if (!self.jumpPipelineState) {
-        NSLog(@"Error occurred when creating jump render pipeline state: %@", error);
-    }
+    MTLRenderPipelineDescriptor *pipelineDescriptor = [MTLRenderPipelineDescriptor new];
 
     //jump outline
     lh = SirMetal::CONTEXT->managers.shaderManager->getHandleFromName("jumpOutline");
@@ -403,6 +378,20 @@ PSOCache getPSO(id <MTLDevice> device, const SirMetal::DrawTracker &tracker, con
         id <MTLTexture> texture = tracker.renderTargets[i];
         pipelineDescriptor.colorAttachments[i].pixelFormat = texture.pixelFormat;
     }
+
+    //NOTE for now we will use the albpla blending only for the first color attachment
+    //need to figure out a way to let the user specify per render target maybe?
+    if (material.state.enabled) {
+        pipelineDescriptor.colorAttachments[0].blendingEnabled = YES;
+        pipelineDescriptor.colorAttachments[0].rgbBlendOperation = material.state.rgbBlendOperation;
+        pipelineDescriptor.colorAttachments[0].alphaBlendOperation = material.state.alphaBlendOperation;
+        pipelineDescriptor.colorAttachments[0].sourceRGBBlendFactor = material.state.sourceRGBBlendFactor;
+        pipelineDescriptor.colorAttachments[0].sourceAlphaBlendFactor = material.state.sourceAlphaBlendFactor;
+        pipelineDescriptor.colorAttachments[0].destinationRGBBlendFactor = material.state.destinationAlphaBlendFactor;
+        pipelineDescriptor.colorAttachments[0].destinationAlphaBlendFactor = material.state.destinationAlphaBlendFactor;
+    }
+
+
     PSOCache cache{nil, nil};
 
     if (tracker.depthTarget != nil) {
@@ -595,9 +584,9 @@ PSOCache getPSO(id <MTLDevice> device, const SirMetal::DrawTracker &tracker, con
 
 
     //TODO use a reset function on tracker
-    tracker->depthTarget =nil;
-    tracker->renderTargets[0]=self.jumpMaskTexture;
-    PSOCache cache = getPSO(_device,*tracker,m_jumpFloodMaskMaterial);
+    tracker->depthTarget = nil;
+    tracker->renderTargets[0] = self.jumpMaskTexture;
+    PSOCache cache = getPSO(_device, *tracker, m_jumpFloodMaskMaterial);
 
     //[renderPass setRenderPipelineState:self.jumpMaskPipelineState];
     [renderPass setRenderPipelineState:cache.color];
@@ -633,9 +622,9 @@ PSOCache getPSO(id <MTLDevice> device, const SirMetal::DrawTracker &tracker, con
 
     id <MTLRenderCommandEncoder> renderPass2 = [commandBuffer renderCommandEncoderWithDescriptor:passDescriptor];
 
-    tracker->depthTarget =nil;
-    tracker->renderTargets[0]=self.jumpTexture;
-    cache = getPSO(_device,*tracker,m_jumpFloodInitMaterial);
+    tracker->depthTarget = nil;
+    tracker->renderTargets[0] = self.jumpTexture;
+    cache = getPSO(_device, *tracker, m_jumpFloodInitMaterial);
     [renderPass2 setRenderPipelineState:cache.color];
     [renderPass2 setFrontFacingWinding:MTLWindingClockwise];
     [renderPass2 setCullMode:MTLCullModeNone];
@@ -656,6 +645,10 @@ PSOCache getPSO(id <MTLDevice> device, const SirMetal::DrawTracker &tracker, con
     int N = 64;
     int offset = 9999;
     id <MTLTexture> outTex = self.jumpTexture;
+    tracker->depthTarget = nil;
+    tracker->renderTargets[0] = self.jumpTexture;
+    cache = getPSO(_device, *tracker, m_jumpFloodMaterial);
+
     while (offset != 1) {
         offset = pow(2, (log2(N) - passIndex - 1));
 
@@ -671,7 +664,7 @@ PSOCache getPSO(id <MTLDevice> device, const SirMetal::DrawTracker &tracker, con
 
         id <MTLRenderCommandEncoder> renderPass3 = [commandBuffer renderCommandEncoderWithDescriptor:passDescriptorP];
 
-        [renderPass3 setRenderPipelineState:self.jumpPipelineState];
+        [renderPass3 setRenderPipelineState:cache.color];
         [renderPass3 setFrontFacingWinding:MTLWindingClockwise];
         [renderPass3 setCullMode:MTLCullModeNone];
         [renderPass3 setFragmentTexture:passIndex % 2 == 0 ? self.jumpTexture : self.jumpTexture2 atIndex:0];
@@ -700,8 +693,11 @@ PSOCache getPSO(id <MTLDevice> device, const SirMetal::DrawTracker &tracker, con
     passDescriptor.renderTargetHeight = h;
 
     id <MTLRenderCommandEncoder> renderPass4 = [commandBuffer renderCommandEncoderWithDescriptor:passDescriptor];
+    tracker->depthTarget = nil;
+    tracker->renderTargets[0] = self.offScreenTexture;
+    cache = getPSO(_device, *tracker, m_jumpOutlineMaterial);
 
-    [renderPass4 setRenderPipelineState:self.jumpOutlinePipelineState];
+    [renderPass4 setRenderPipelineState:cache.color];
     [renderPass4 setFrontFacingWinding:MTLWindingClockwise];
     [renderPass4 setCullMode:MTLCullModeNone];
     [renderPass4 setFragmentTexture:self.jumpMaskTexture atIndex:0];
