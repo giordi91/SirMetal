@@ -124,7 +124,7 @@ namespace SirMetal {
             if (showCamera) {
                 m_cameraSettings.render(&Editor::PROJECT->getSettings().m_cameraConfig, &showCamera);
             }
-            //ImGui::ShowDemoWindow((bool*)0);
+            ImGui::ShowDemoWindow((bool*)0);
 
         }
 

@@ -113,7 +113,6 @@ void updateVoidIndices(int w, int h, id <MTLBuffer> buffer) {
 
         ImGui_ImplMetal_Init(_device);
 
-
         NSLog(@"Initializing Sir Metal: v0.0.1");
         [self logGPUInformation:_device];
 
@@ -364,8 +363,6 @@ PSOCache getPSO(id <MTLDevice> device, const SirMetal::DrawTracker &tracker, con
     }
 
     NSError *error = NULL;
-
-
     cache.color = [device newRenderPipelineStateWithDescriptor:pipelineDescriptor
                                                          error:&error];
     m_psoCache[hash] = cache;
@@ -451,12 +448,6 @@ PSOCache getPSO(id <MTLDevice> device, const SirMetal::DrawTracker &tracker, con
     depthAttachment.storeAction = MTLStoreActionDontCare;
     depthAttachment.loadAction = MTLLoadActionClear;
 
-    /*
-    MTLRenderPassStencilAttachmentDescriptor *stencilAttachment = _metalRenderPassDesc.stencilAttachment;
-    stencilAttachment.texture = depthAttachment.texture;
-    stencilAttachment.storeAction = MTLStoreActionDontCare;
-    stencilAttachment.loadAction = desc.clear ? MTLLoadActionClear : MTLLoadActionLoad;
-    */
     m_drawTracker.renderTargets[0] = isViewport ? self.offScreenTexture : view.currentDrawable.texture;
     m_drawTracker.depthTarget = isViewport ? self.depthTexture : self.depthTextureGUI;
     PSOCache cache = getPSO(_device, m_drawTracker, m_opaqueMaterial);
@@ -595,7 +586,6 @@ PSOCache getPSO(id <MTLDevice> device, const SirMetal::DrawTracker &tracker, con
 
 
     [renderPass2 endEncoding];
-
 
     //prepare render pass
 
