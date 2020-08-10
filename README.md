@@ -3,6 +3,9 @@
 # SirMetal
 A metal based game editor 
 
+## What is this project
+
+## What this project is not
 
 
 
@@ -10,14 +13,11 @@ A metal based game editor
 
 Here a I will keep a chronological list of the progress, click on the image to play a video (if an associated one exists):
 
-##### Table of Contents  
+##### History  
 [0.1.0: basic drawing](#v010)  
 [0.2.0: basic editor layout](#v020)  
 [0.3.0: engine structure and slection shader](#v030)
 
-## What is this project
-
-## What is not
 
 ## 0.1.0 <a name="v010"/>
 This version is the hello world.
