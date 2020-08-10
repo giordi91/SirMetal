@@ -24,14 +24,14 @@ Here I will keep a chronological list of the progress, click on the image to pla
 
 ##### History  
 [0.1.0: basic drawing](#v010)  
-[0.2.0: basic editor layout](#v020)  
-[0.3.0: engine structure and slection shader](#v030)
+[0.1.2: basic editor layout](#v012)  
+[0.1.4: engine structure and selction shader](#v014)
 
 
 ## 0.1.0 <a name="v010"/>
 This version is the hello world.
-* Baic cocoa window
-* Basic goemetry rendering in metal 
+* Basic cocoa window
+* Basic geometry rendering in Metal 
 * Imgui
 * Dx12 init
 * Resize and clear color
@@ -47,9 +47,9 @@ Basic editor UI, the first step toward building an editor workflow
 
 [![basicui](./docs/images/SirMetal02.png "basic")](https://www.youtube.com/watch?v=p89QT_giSf0)
 
-## 0.1.5 <a name="v012"/>
+## 0.1.4 <a name="v014"/>
 Developing editor workflow and engine backend systems
-* Added concpet of project
+* Added the concept of project
 * Assets loaded from project folder, for now meshes and shaders
 * Loading obj meshes
 * Added texture, shader and mesh manager to handle resources through opaque handles
