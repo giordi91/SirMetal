@@ -1,7 +1,7 @@
 #pragma once
 
-#include "../vendors/spdlog/spdlog.h"
-#include "../vendors/spdlog/fmt/ostr.h"
+#include "spdlog.h"
+#include "ostr.h"
 #import "bufferedLog.h"
 
 namespace SirMetal {
