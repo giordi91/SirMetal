@@ -28,7 +28,7 @@ This version is the hello world.
 * Resize and clear color
 
 ![alt text](./docs/images/SirMetal01.png "basic")
-[![basic](./docs/images/SirMetal01.png)](https://www.youtube.com/watch?v=3p58WVu8q5QERE)
+[![basic](https://www.youtube.com/watch?v=3p58WVu8q5QERE)](
 ## 0.1.2 <a name="v012"/>
 Basic editor UI, the first step toward building an editor workflow
 * Basic editor UI with docking
