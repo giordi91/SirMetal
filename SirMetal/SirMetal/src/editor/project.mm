@@ -1,17 +1,17 @@
 
 #include "project.h"
-#import "log.h"
+#import "SirMetalLib/core/logging/log.h"
 #include <string>
 
 #import <AppKit/AppKit.h>
 
 #include <filesystem>
 
-#include "file.h"
-#include "../core/jsonParse.h"
+#include "SirMetalLib/core/file.h"
+#include "SirMetalLib/core/jsonParse.h"
 #include "../resources/shaderManager.h"
 #include "../resources/meshes/meshManager.h"
-#import "engineContext.h"
+#import "SirMetalLib/engineContext.h"
 
 
 namespace SirMetal {

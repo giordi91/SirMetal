@@ -1,8 +1,8 @@
 
 #include "entryPoint.h"
-#import "log.h"
+#import "SirMetalLib/core/logging/log.h"
 #import "project.h"
-#import "engineContext.h"
+#import "SirMetalLib/engineContext.h"
 
 namespace SirMetal {
     bool startup(id device) {

@@ -1,7 +1,7 @@
 
 #include "cameraSettingsWidget.h"
 #include "../../vendors/imgui/imgui.h"
-#import "camera.h"
+#import "SirMetalLib/graphics/camera.h"
 
 namespace SirMetal {
     namespace Editor {

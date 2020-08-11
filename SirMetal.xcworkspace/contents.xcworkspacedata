@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Workspace
+   version = "1.0">
+   <FileRef
+      location = "group:SirMetalLib/SirMetalLib.xcodeproj">
+   </FileRef>
+   <FileRef
+      location = "group:SirMetalTests/SirMetalTests.xcodeproj">
+   </FileRef>
+   <FileRef
+      location = "container:SirMetal/SirMetal.xcodeproj">
+   </FileRef>
+</Workspace>

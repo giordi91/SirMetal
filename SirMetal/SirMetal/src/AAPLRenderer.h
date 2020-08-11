@@ -7,7 +7,7 @@ Header for a platform independent renderer class, which performs Metal setup and
 
 #import <AppKit/AppKit.h>
 #import "MetalKit/MetalKit.h"
-#import "handle.h"
+#import "SirMetalLib/resources/handle.h"
 
 
 @interface AAPLRenderer : NSObject<MTKViewDelegate>

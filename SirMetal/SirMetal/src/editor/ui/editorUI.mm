@@ -5,12 +5,12 @@
 
 #import <iostream>
 
-#import "engineContext.h"
+#import "SirMetalLib/engineContext.h"
 #import "editorUI.h"
 #import "imgui_internal.h"
-#import "log.h"
+#import "SirMetalLib/core/logging/log.h"
 #import "project.h"
-#import "../core/flags.h"
+#import "SirMetalLib/core/flags.h"
 
 namespace SirMetal {
     namespace Editor {

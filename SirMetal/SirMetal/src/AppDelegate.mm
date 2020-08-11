@@ -4,9 +4,9 @@
 #import "vendors/imgui/imgui_impl_osx.h"
 #import "AppDelegate.hpp"
 #import "AAPLRenderer.h"
-#import "core/input.h"
-#import "engineContext.h"
-#import "log.h"
+#import "SirMetalLib/core/input.h"
+#import "SirMetalLib/engineContext.h"
+#import "SirMetalLib/core/logging/log.h"
 #import "project.h"
 #import "entryPoint.h"
 

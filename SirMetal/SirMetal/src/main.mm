@@ -1,7 +1,6 @@
 #include <iostream>
 #import <Cocoa/Cocoa.h>
 #import "AppDelegate.hpp"
-#include "engineContext.h"
 
 int main(int argc, const char * argv[]) {
     

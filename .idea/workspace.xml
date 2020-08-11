@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="ChangeListManager">
+    <list default="true" id="342eedc1-f670-4a67-878a-8a09b509d693" name="Default Changelist" comment="" />
+    <option name="SHOW_DIALOG" value="false" />
+    <option name="HIGHLIGHT_CONFLICTS" value="true" />
+    <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
+    <option name="LAST_RESOLUTION" value="IGNORE" />
+  </component>
+  <component name="ExecutionTargetManager" SELECTED_TARGET="macos_macos_x86_64" />
+  <component name="ProjectId" id="1fvQWouVJ00OltfcNMcKhiw0iCU" />
+  <component name="ProjectViewState">
+    <option name="hideEmptyMiddlePackages" value="true" />
+    <option name="showLibraryContents" value="true" />
+  </component>
+  <component name="PropertiesComponent">
+    <property name="OBJC.PRESERVED_TARGET_SELECTION" value="SirMetalLib" />
+    <property name="RunOnceActivity.OpenProjectViewOnStart" value="true" />
+    <property name="RunOnceActivity.ShowReadmeOnStart" value="true" />
+    <property name="WebServerToolWindowFactoryState" value="false" />
+    <property name="last_opened_file_path" value="$PROJECT_DIR$/SirMetal.xcworkspace" />
+  </component>
+  <component name="RunManager">
+    <configuration name="SirMetal" type="AppleRunConfiguration" factoryName="Application" PROGRAM_PARAMS="$PROJECT_DIR$/../SirMetalProject" REDIRECT_INPUT="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="SirMetal" TARGET_NAME="SirMetal" CONFIG_NAME="Debug" SCHEME_NAME="SirMetal" IS_LOCATION_SIMULATION_ALLOWED="true" APPLICATION_LANGUAGE="IDELaunchSchemeLanguageUseSystemLanguage" APPLICATION_REGION="" RUN_TARGET_PROJECT_NAME="SirMetal" RUN_TARGET_NAME="SirMetal" MAKE_ACTIVE="TRUE" SHOULD_DEBUG_EXTENSIONS="false">
+      <embedded_app_extension_list />
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+  </component>
+  <component name="WindowStateProjectService">
+    <state width="1398" height="245" key="GridCell.Tab.0.bottom" timestamp="1597096392592">
+      <screen x="0" y="0" width="1440" height="900" />
+    </state>
+    <state width="1398" height="245" key="GridCell.Tab.0.bottom/0.0.1440.900@0.0.1440.900" timestamp="1597096392592" />
+    <state width="1398" height="245" key="GridCell.Tab.0.center" timestamp="1597096392589">
+      <screen x="0" y="0" width="1440" height="900" />
+    </state>
+    <state width="1398" height="245" key="GridCell.Tab.0.center/0.0.1440.900@0.0.1440.900" timestamp="1597096392589" />
+    <state width="1398" height="245" key="GridCell.Tab.0.left" timestamp="1597096392587">
+      <screen x="0" y="0" width="1440" height="900" />
+    </state>
+    <state width="1398" height="245" key="GridCell.Tab.0.left/0.0.1440.900@0.0.1440.900" timestamp="1597096392587" />
+    <state width="1398" height="245" key="GridCell.Tab.0.right" timestamp="1597096392591">
+      <screen x="0" y="0" width="1440" height="900" />
+    </state>
+    <state width="1398" height="245" key="GridCell.Tab.0.right/0.0.1440.900@0.0.1440.900" timestamp="1597096392591" />
+    <state x="385" y="196" width="670" height="676" key="search.everywhere.popup" timestamp="1597096132063">
+      <screen x="0" y="0" width="1440" height="900" />
+    </state>
+    <state x="385" y="196" width="670" height="676" key="search.everywhere.popup/0.0.1440.900@0.0.1440.900" timestamp="1597096132063" />
+  </component>
+</project>

@@ -2,21 +2,22 @@
 #import "MetalKit/MetalKit.h"
 
 #import "AAPLRenderer.h"
-#include "engineContext.h"
-#include "shaderManager.h"
-#include "resources/textureManager.h"
-#import "MBEMathUtilities.h"
+#include "SirMetalLib/engineContext.h"
+#include "SirMetalLib/resources/shaderManager.h"
+#include "SirMetalLib/resources/textureManager.h"
+#import "SirMetalLib/MBEMathUtilities.h"
 #import "vendors/imgui/imgui.h"
 #import "vendors/imgui/imgui_impl_metal.h"
-#import "resources/meshes/meshManager.h"
+#import "SirMetalLib/resources/meshes/meshManager.h"
 #import "imgui_impl_osx.h"
 #import "imgui_internal.h"
 #import "editorUI.h"
-#import "log.h"
+#import "SirMetalLib/core/logging/log.h"
 #import "project.h"
-#import "core/flags.h"
-#import "materialManager.h"
-#import "renderingContext.h"
+#import "SirMetalLib/core/flags.h"
+#import "SirMetalLib/graphics/materialManager.h"
+#import "SirMetalLib/graphics/renderingContext.h"
+#import "SirMetalLib/SirMetalLib.h"
 
 static const NSInteger MBEInFlightBufferCount = 3;
 const MTLIndexType MBEIndexType = MTLIndexTypeUInt32;
@@ -120,6 +121,10 @@ void updateVoidIndices(int w, int h, id <MTLBuffer> buffer) {
 
         self.screenWidth = mtkView.drawableSize.width;
         self.screenHeight = mtkView.drawableSize.height;
+        
+        testHello();
+        TestClass c;
+        c.helloFromClass();
     }
     //set up temporary stuff
     m_opaqueMaterial.shaderName = "Shaders";
@@ -175,6 +180,9 @@ void updateVoidIndices(int w, int h, id <MTLBuffer> buffer) {
     descriptor.pixelFormat = MTLPixelFormatDepth32Float_Stencil8;
     self.depthTextureGUI = [_device newTextureWithDescriptor:descriptor];
     self.depthTextureGUI.label = @"DepthStencilGUI";
+    
+    
+    
 
 }
 
@@ -216,7 +224,9 @@ void updateVoidIndices(int w, int h, id <MTLBuffer> buffer) {
     uniforms.modelViewProjectionMatrix = matrix_multiply(camera.VP, modelMatrix);
     if (shouldControlViewport | (!isViewport)) {
         SirMetal::Input &input = SirMetal::CONTEXT->input;
-        cameraController.update(&input);
+        
+        const SirMetal::CameraManipulationConfig &camConfig = SirMetal::Editor::PROJECT->getSettings().m_cameraConfig;
+        cameraController.update(camConfig,&input);
         uniforms.modelViewProjectionMatrix = matrix_multiply(camera.VP, modelMatrix);
 
     }
