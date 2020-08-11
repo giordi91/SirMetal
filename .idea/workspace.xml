@@ -8,6 +8,9 @@
     <option name="LAST_RESOLUTION" value="IGNORE" />
   </component>
   <component name="ExecutionTargetManager" SELECTED_TARGET="macos_macos_x86_64" />
+  <component name="OCResolveContextSettings">
+    <option name="configuration" value="C0BF91C324E1F34C00824030-macOS 10.15 (macosx10.15 10.15.4)-x86_64" />
+  </component>
   <component name="ProjectId" id="1fvQWouVJ00OltfcNMcKhiw0iCU" />
   <component name="ProjectViewState">
     <option name="hideEmptyMiddlePackages" value="true" />
@@ -29,22 +32,22 @@
     </configuration>
   </component>
   <component name="WindowStateProjectService">
-    <state width="1398" height="245" key="GridCell.Tab.0.bottom" timestamp="1597096392592">
+    <state width="1398" height="245" key="GridCell.Tab.0.bottom" timestamp="1597133355603">
       <screen x="0" y="0" width="1440" height="900" />
     </state>
-    <state width="1398" height="245" key="GridCell.Tab.0.bottom/0.0.1440.900@0.0.1440.900" timestamp="1597096392592" />
-    <state width="1398" height="245" key="GridCell.Tab.0.center" timestamp="1597096392589">
+    <state width="1398" height="245" key="GridCell.Tab.0.bottom/0.0.1440.900@0.0.1440.900" timestamp="1597133355603" />
+    <state width="1398" height="245" key="GridCell.Tab.0.center" timestamp="1597133355602">
       <screen x="0" y="0" width="1440" height="900" />
     </state>
-    <state width="1398" height="245" key="GridCell.Tab.0.center/0.0.1440.900@0.0.1440.900" timestamp="1597096392589" />
-    <state width="1398" height="245" key="GridCell.Tab.0.left" timestamp="1597096392587">
+    <state width="1398" height="245" key="GridCell.Tab.0.center/0.0.1440.900@0.0.1440.900" timestamp="1597133355602" />
+    <state width="1398" height="245" key="GridCell.Tab.0.left" timestamp="1597133355601">
       <screen x="0" y="0" width="1440" height="900" />
     </state>
-    <state width="1398" height="245" key="GridCell.Tab.0.left/0.0.1440.900@0.0.1440.900" timestamp="1597096392587" />
-    <state width="1398" height="245" key="GridCell.Tab.0.right" timestamp="1597096392591">
+    <state width="1398" height="245" key="GridCell.Tab.0.left/0.0.1440.900@0.0.1440.900" timestamp="1597133355601" />
+    <state width="1398" height="245" key="GridCell.Tab.0.right" timestamp="1597133355603">
       <screen x="0" y="0" width="1440" height="900" />
     </state>
-    <state width="1398" height="245" key="GridCell.Tab.0.right/0.0.1440.900@0.0.1440.900" timestamp="1597096392591" />
+    <state width="1398" height="245" key="GridCell.Tab.0.right/0.0.1440.900@0.0.1440.900" timestamp="1597133355603" />
     <state x="385" y="196" width="670" height="676" key="search.everywhere.popup" timestamp="1597096132063">
       <screen x="0" y="0" width="1440" height="900" />
     </state>

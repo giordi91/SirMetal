@@ -142,6 +142,8 @@
 		C0BF92EB24E2625E00824030 /* engineContext.mm in Sources */ = {isa = PBXBuildFile; fileRef = C0BF92E724E2625E00824030 /* engineContext.mm */; };
 		C0BF92EE24E2652E00824030 /* MBEMathUtilities.h in Headers */ = {isa = PBXBuildFile; fileRef = C0BF92EC24E2652E00824030 /* MBEMathUtilities.h */; };
 		C0BF92EF24E2652E00824030 /* MBEMathUtilities.mm in Sources */ = {isa = PBXBuildFile; fileRef = C0BF92ED24E2652E00824030 /* MBEMathUtilities.mm */; };
+		C9EA91BEA3AA6B7D36458880 /* denseTree.h in Headers */ = {isa = PBXBuildFile; fileRef = C9EA9EE19873FC3BB9FAFD72 /* denseTree.h */; };
+		C9EA9F6627E488144AD2AA34 /* denseTree.mm in Sources */ = {isa = PBXBuildFile; fileRef = C9EA94AEC599CE853ABB8759 /* denseTree.mm */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -282,6 +284,8 @@
 		C0BF92E724E2625E00824030 /* engineContext.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = engineContext.mm; sourceTree = "<group>"; };
 		C0BF92EC24E2652E00824030 /* MBEMathUtilities.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = MBEMathUtilities.h; sourceTree = "<group>"; };
 		C0BF92ED24E2652E00824030 /* MBEMathUtilities.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = MBEMathUtilities.mm; sourceTree = "<group>"; };
+		C9EA94AEC599CE853ABB8759 /* denseTree.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = denseTree.mm; sourceTree = "<group>"; };
+		C9EA9EE19873FC3BB9FAFD72 /* denseTree.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = denseTree.h; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -337,6 +341,7 @@
 				C0BF91D624E1F98100824030 /* file.h */,
 				C0BF91D724E1F98100824030 /* jsonParse.h */,
 				C0BF91D824E1F98100824030 /* logging */,
+				C9EA9D4FE16FD5CCDA4159CD /* memory */,
 			);
 			path = core;
 			sourceTree = "<group>";
@@ -574,6 +579,15 @@
 			path = graphics;
 			sourceTree = "<group>";
 		};
+		C9EA9D4FE16FD5CCDA4159CD /* memory */ = {
+			isa = PBXGroup;
+			children = (
+				C9EA94AEC599CE853ABB8759 /* denseTree.mm */,
+				C9EA9EE19873FC3BB9FAFD72 /* denseTree.h */,
+			);
+			path = memory;
+			sourceTree = "<group>";
+		};
 /* End PBXGroup section */
 
 /* Begin PBXHeadersBuildPhase section */
@@ -688,6 +702,7 @@
 				C0BF927424E2517100824030 /* locale.h in Headers */,
 				C0BF929B24E2517100824030 /* common-inl.h in Headers */,
 				C0BF929F24E2517100824030 /* periodic_worker-inl.h in Headers */,
+				C9EA91BEA3AA6B7D36458880 /* denseTree.h in Headers */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -776,6 +791,7 @@
 				C0BF92CE24E25F2500824030 /* shaderManager.mm in Sources */,
 				C0BF92D224E25F2500824030 /* wavefrontobj.mm in Sources */,
 				C0BF926824E2517100824030 /* simplifier.cpp in Sources */,
+				C9EA9F6627E488144AD2AA34 /* denseTree.mm in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

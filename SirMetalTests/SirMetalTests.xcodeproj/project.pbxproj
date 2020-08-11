@@ -7,8 +7,8 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		C0BF91AA24E1F1A900824030 /* main.cpp in Sources */ = {isa = PBXBuildFile; fileRef = C0BF91A924E1F1A900824030 /* main.cpp */; };
 		C0BF92F224E2655800824030 /* libSirMetalLib.a in Frameworks */ = {isa = PBXBuildFile; fileRef = C0BF92F124E2655800824030 /* libSirMetalLib.a */; };
+		C0BF92F624E28B5400824030 /* denseTreeTests.mm in Sources */ = {isa = PBXBuildFile; fileRef = C0BF92F524E28B5400824030 /* denseTreeTests.mm */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXCopyFilesBuildPhase section */
@@ -25,8 +25,9 @@
 
 /* Begin PBXFileReference section */
 		C0BF91A624E1F1A900824030 /* SirMetalTests */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = SirMetalTests; sourceTree = BUILT_PRODUCTS_DIR; };
-		C0BF91A924E1F1A900824030 /* main.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = main.cpp; sourceTree = "<group>"; };
 		C0BF92F124E2655800824030 /* libSirMetalLib.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; path = libSirMetalLib.a; sourceTree = BUILT_PRODUCTS_DIR; };
+		C0BF92F424E28B4C00824030 /* catch.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = catch.hpp; sourceTree = "<group>"; };
+		C0BF92F524E28B5400824030 /* denseTreeTests.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = denseTreeTests.mm; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -61,7 +62,8 @@
 		C0BF91A824E1F1A900824030 /* SirMetalTests */ = {
 			isa = PBXGroup;
 			children = (
-				C0BF91A924E1F1A900824030 /* main.cpp */,
+				C0BF92F524E28B5400824030 /* denseTreeTests.mm */,
+				C0BF92F324E28B4C00824030 /* vendors */,
 			);
 			path = SirMetalTests;
 			sourceTree = "<group>";
@@ -72,6 +74,14 @@
 				C0BF92F124E2655800824030 /* libSirMetalLib.a */,
 			);
 			name = Frameworks;
+			sourceTree = "<group>";
+		};
+		C0BF92F324E28B4C00824030 /* vendors */ = {
+			isa = PBXGroup;
+			children = (
+				C0BF92F424E28B4C00824030 /* catch.hpp */,
+			);
+			path = vendors;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -131,7 +141,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				C0BF91AA24E1F1A900824030 /* main.cpp in Sources */,
+				C0BF92F624E28B5400824030 /* denseTreeTests.mm in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -254,6 +264,7 @@
 				DEVELOPMENT_TEAM = XXL4SLD26M;
 				ENABLE_HARDENED_RUNTIME = YES;
 				PRODUCT_NAME = "$(TARGET_NAME)";
+				SYSTEM_HEADER_SEARCH_PATHS = "$(SRCROOT)/SirMetalTests/vendors";
 			};
 			name = Debug;
 		};
@@ -264,6 +275,7 @@
 				DEVELOPMENT_TEAM = XXL4SLD26M;
 				ENABLE_HARDENED_RUNTIME = YES;
 				PRODUCT_NAME = "$(TARGET_NAME)";
+				SYSTEM_HEADER_SEARCH_PATHS = "$(SRCROOT)/SirMetalTests/vendors";
 			};
 			name = Release;
 		};
