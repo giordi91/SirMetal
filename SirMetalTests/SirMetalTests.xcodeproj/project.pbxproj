@@ -264,7 +264,10 @@
 				DEVELOPMENT_TEAM = XXL4SLD26M;
 				ENABLE_HARDENED_RUNTIME = YES;
 				PRODUCT_NAME = "$(TARGET_NAME)";
-				SYSTEM_HEADER_SEARCH_PATHS = "$(SRCROOT)/SirMetalTests/vendors";
+				SYSTEM_HEADER_SEARCH_PATHS = (
+					"$(SRCROOT)/SirMetalTests/vendors",
+					"$(SRCROOT)/../SirMetalLib/",
+				);
 			};
 			name = Debug;
 		};
@@ -275,7 +278,10 @@
 				DEVELOPMENT_TEAM = XXL4SLD26M;
 				ENABLE_HARDENED_RUNTIME = YES;
 				PRODUCT_NAME = "$(TARGET_NAME)";
-				SYSTEM_HEADER_SEARCH_PATHS = "$(SRCROOT)/SirMetalTests/vendors";
+				SYSTEM_HEADER_SEARCH_PATHS = (
+					"$(SRCROOT)/SirMetalTests/vendors",
+					"$(SRCROOT)/../SirMetalLib/",
+				);
 			};
 			name = Release;
 		};
