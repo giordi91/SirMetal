@@ -58,7 +58,10 @@ TEST_CASE( "dense tree DFS sorting", "[memory]" ) {
         REQUIRE(nodes[i].id == initialIds[i]);
     }
 
+    REQUIRE(!tree.isSorted());
     tree.depthFirstSort();
+    REQUIRE(tree.isSorted() );
+
     nodes= tree.getNodes();
     std::vector<uint32_t> expectedIds= {1,9,10,5,8,6,7,2,3,4};
     count = nodes.size();

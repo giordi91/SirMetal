@@ -4,6 +4,7 @@
 #import <objc/objc.h>
 #import "graphics/camera.h"
 #import "SirMetalLib/core/input.h"
+#import "SirMetalLib/world/hierarchy.h"
 
 const char *readFile(const char *filePath);
 
@@ -12,6 +13,11 @@ namespace SirMetal {
     class ShaderManager;
     class TextureManager;
     class MeshManager;
+
+    struct World
+    {
+        Hierarchy hierarchy;
+    };
 
     struct Resources {
         TextureManager *textureManager = nullptr;
@@ -46,6 +52,7 @@ namespace SirMetal {
         Resources managers;
         EditorFlags flags;
         Input input;
+        World world;
         //for now the camera lives here until we start to have a more
         //proper rendering context;
         Camera camera;

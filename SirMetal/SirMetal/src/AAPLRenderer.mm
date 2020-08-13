@@ -151,6 +151,8 @@ void updateVoidIndices(int w, int h, id <MTLBuffer> buffer) {
         m_drawTracker.renderTargets[i] = nil;
     }
 
+
+
     return self;
 }
 
@@ -180,9 +182,11 @@ void updateVoidIndices(int w, int h, id <MTLBuffer> buffer) {
     descriptor.pixelFormat = MTLPixelFormatDepth32Float_Stencil8;
     self.depthTextureGUI = [_device newTextureWithDescriptor:descriptor];
     self.depthTextureGUI.label = @"DepthStencilGUI";
-    
-    
-    
+
+
+    SirMetal::MeshHandle mesh = SirMetal::CONTEXT->managers.meshManager->getHandleFromName("lucy");
+    SirMetal::CONTEXT->world.hierarchy.addToRoot(mesh);
+
 
 }
 

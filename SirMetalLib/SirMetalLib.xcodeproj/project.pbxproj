@@ -143,6 +143,8 @@
 		C0BF92EE24E2652E00824030 /* MBEMathUtilities.h in Headers */ = {isa = PBXBuildFile; fileRef = C0BF92EC24E2652E00824030 /* MBEMathUtilities.h */; };
 		C0BF92EF24E2652E00824030 /* MBEMathUtilities.mm in Sources */ = {isa = PBXBuildFile; fileRef = C0BF92ED24E2652E00824030 /* MBEMathUtilities.mm */; };
 		C9EA91BEA3AA6B7D36458880 /* denseTree.h in Headers */ = {isa = PBXBuildFile; fileRef = C9EA9EE19873FC3BB9FAFD72 /* denseTree.h */; };
+		C9EA981EDA4F351A5F8D1D0B /* hierarchy.mm in Sources */ = {isa = PBXBuildFile; fileRef = C9EA921B3372A88C3258CD13 /* hierarchy.mm */; };
+		C9EA9835208AA3AEA2258EB9 /* hierarchy.h in Headers */ = {isa = PBXBuildFile; fileRef = C9EA9FD86429E5F1AEF225F4 /* hierarchy.h */; };
 		C9EA9F6627E488144AD2AA34 /* denseTree.mm in Sources */ = {isa = PBXBuildFile; fileRef = C9EA94AEC599CE853ABB8759 /* denseTree.mm */; };
 /* End PBXBuildFile section */
 
@@ -284,8 +286,10 @@
 		C0BF92E724E2625E00824030 /* engineContext.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = engineContext.mm; sourceTree = "<group>"; };
 		C0BF92EC24E2652E00824030 /* MBEMathUtilities.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = MBEMathUtilities.h; sourceTree = "<group>"; };
 		C0BF92ED24E2652E00824030 /* MBEMathUtilities.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = MBEMathUtilities.mm; sourceTree = "<group>"; };
+		C9EA921B3372A88C3258CD13 /* hierarchy.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = hierarchy.mm; sourceTree = "<group>"; };
 		C9EA94AEC599CE853ABB8759 /* denseTree.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = denseTree.mm; sourceTree = "<group>"; };
 		C9EA9EE19873FC3BB9FAFD72 /* denseTree.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = denseTree.h; sourceTree = "<group>"; };
+		C9EA9FD86429E5F1AEF225F4 /* hierarchy.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = hierarchy.h; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -328,6 +332,7 @@
 				C0BF91D224E1F98100824030 /* core */,
 				C0BF91BC24E1F34C00824030 /* SirMetalLib.h */,
 				C0BF91BE24E1F34C00824030 /* SirMetalLib.mm */,
+				C9EA9FDE06AA4A15F3A0114E /* world */,
 			);
 			path = SirMetalLib;
 			sourceTree = "<group>";
@@ -588,6 +593,15 @@
 			path = memory;
 			sourceTree = "<group>";
 		};
+		C9EA9FDE06AA4A15F3A0114E /* world */ = {
+			isa = PBXGroup;
+			children = (
+				C9EA921B3372A88C3258CD13 /* hierarchy.mm */,
+				C9EA9FD86429E5F1AEF225F4 /* hierarchy.h */,
+			);
+			path = world;
+			sourceTree = "<group>";
+		};
 /* End PBXGroup section */
 
 /* Begin PBXHeadersBuildPhase section */
@@ -703,6 +717,7 @@
 				C0BF929B24E2517100824030 /* common-inl.h in Headers */,
 				C0BF929F24E2517100824030 /* periodic_worker-inl.h in Headers */,
 				C9EA91BEA3AA6B7D36458880 /* denseTree.h in Headers */,
+				C9EA9835208AA3AEA2258EB9 /* hierarchy.h in Headers */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -792,6 +807,7 @@
 				C0BF92D224E25F2500824030 /* wavefrontobj.mm in Sources */,
 				C0BF926824E2517100824030 /* simplifier.cpp in Sources */,
 				C9EA9F6627E488144AD2AA34 /* denseTree.mm in Sources */,
+				C9EA981EDA4F351A5F8D1D0B /* hierarchy.mm in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

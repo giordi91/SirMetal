@@ -21,7 +21,7 @@
     <property name="last_opened_file_path" value="$PROJECT_DIR$/SirMetal.xcworkspace" />
     <property name="settings.editor.selected.configurable" value="preferences.keymap" />
   </component>
-  <component name="RunManager" selected="Application.SirMetalTests">
+  <component name="RunManager" selected="Application.SirMetal">
     <configuration name="SirMetal" type="AppleRunConfiguration" factoryName="Application" PROGRAM_PARAMS="$PROJECT_DIR$/../SirMetalProject" REDIRECT_INPUT="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="SirMetal" TARGET_NAME="SirMetal" CONFIG_NAME="Debug" SCHEME_NAME="SirMetal" IS_LOCATION_SIMULATION_ALLOWED="true" APPLICATION_LANGUAGE="IDELaunchSchemeLanguageUseSystemLanguage" APPLICATION_REGION="" RUN_TARGET_PROJECT_NAME="SirMetal" RUN_TARGET_NAME="SirMetal" MAKE_ACTIVE="TRUE" SHOULD_DEBUG_EXTENSIONS="false">
       <embedded_app_extension_list />
       <method v="2">
@@ -48,38 +48,38 @@
       <screen x="0" y="0" width="1440" height="900" />
     </state>
     <state width="484" height="466" key="DebuggerActiveHint/0.0.1440.900@0.0.1440.900" timestamp="1597212793765" />
-    <state width="1398" height="245" key="GridCell.Tab.0.bottom" timestamp="1597214947805">
+    <state width="1398" height="245" key="GridCell.Tab.0.bottom" timestamp="1597353613842">
       <screen x="0" y="0" width="1440" height="900" />
     </state>
-    <state width="1398" height="245" key="GridCell.Tab.0.bottom/0.0.1440.900@0.0.1440.900" timestamp="1597214947805" />
-    <state width="1398" height="245" key="GridCell.Tab.0.center" timestamp="1597214947804">
+    <state width="1398" height="245" key="GridCell.Tab.0.bottom/0.0.1440.900@0.0.1440.900" timestamp="1597353613842" />
+    <state width="1398" height="245" key="GridCell.Tab.0.center" timestamp="1597353613841">
       <screen x="0" y="0" width="1440" height="900" />
     </state>
-    <state width="1398" height="245" key="GridCell.Tab.0.center/0.0.1440.900@0.0.1440.900" timestamp="1597214947804" />
-    <state width="1398" height="245" key="GridCell.Tab.0.left" timestamp="1597214947803">
+    <state width="1398" height="245" key="GridCell.Tab.0.center/0.0.1440.900@0.0.1440.900" timestamp="1597353613841" />
+    <state width="1398" height="245" key="GridCell.Tab.0.left" timestamp="1597353613840">
       <screen x="0" y="0" width="1440" height="900" />
     </state>
-    <state width="1398" height="245" key="GridCell.Tab.0.left/0.0.1440.900@0.0.1440.900" timestamp="1597214947803" />
-    <state width="1398" height="245" key="GridCell.Tab.0.right" timestamp="1597214947804">
+    <state width="1398" height="245" key="GridCell.Tab.0.left/0.0.1440.900@0.0.1440.900" timestamp="1597353613840" />
+    <state width="1398" height="245" key="GridCell.Tab.0.right" timestamp="1597353613841">
       <screen x="0" y="0" width="1440" height="900" />
     </state>
-    <state width="1398" height="245" key="GridCell.Tab.0.right/0.0.1440.900@0.0.1440.900" timestamp="1597214947804" />
-    <state width="1398" height="304" key="GridCell.Tab.1.bottom" timestamp="1597213218204">
+    <state width="1398" height="245" key="GridCell.Tab.0.right/0.0.1440.900@0.0.1440.900" timestamp="1597353613841" />
+    <state width="1398" height="304" key="GridCell.Tab.1.bottom" timestamp="1597353536768">
       <screen x="0" y="0" width="1440" height="900" />
     </state>
-    <state width="1398" height="304" key="GridCell.Tab.1.bottom/0.0.1440.900@0.0.1440.900" timestamp="1597213218204" />
-    <state width="1398" height="304" key="GridCell.Tab.1.center" timestamp="1597213218203">
+    <state width="1398" height="304" key="GridCell.Tab.1.bottom/0.0.1440.900@0.0.1440.900" timestamp="1597353536768" />
+    <state width="1398" height="304" key="GridCell.Tab.1.center" timestamp="1597353536767">
       <screen x="0" y="0" width="1440" height="900" />
     </state>
-    <state width="1398" height="304" key="GridCell.Tab.1.center/0.0.1440.900@0.0.1440.900" timestamp="1597213218203" />
-    <state width="1398" height="304" key="GridCell.Tab.1.left" timestamp="1597213218202">
+    <state width="1398" height="304" key="GridCell.Tab.1.center/0.0.1440.900@0.0.1440.900" timestamp="1597353536767" />
+    <state width="1398" height="304" key="GridCell.Tab.1.left" timestamp="1597353536766">
       <screen x="0" y="0" width="1440" height="900" />
     </state>
-    <state width="1398" height="304" key="GridCell.Tab.1.left/0.0.1440.900@0.0.1440.900" timestamp="1597213218202" />
-    <state width="1398" height="304" key="GridCell.Tab.1.right" timestamp="1597213218204">
+    <state width="1398" height="304" key="GridCell.Tab.1.left/0.0.1440.900@0.0.1440.900" timestamp="1597353536766" />
+    <state width="1398" height="304" key="GridCell.Tab.1.right" timestamp="1597353536767">
       <screen x="0" y="0" width="1440" height="900" />
     </state>
-    <state width="1398" height="304" key="GridCell.Tab.1.right/0.0.1440.900@0.0.1440.900" timestamp="1597213218204" />
+    <state width="1398" height="304" key="GridCell.Tab.1.right/0.0.1440.900@0.0.1440.900" timestamp="1597353536767" />
     <state x="221" y="89" key="SettingsEditor" timestamp="1597176881084">
       <screen x="0" y="0" width="1440" height="900" />
     </state>
@@ -88,10 +88,10 @@
       <screen x="0" y="0" width="1440" height="900" />
     </state>
     <state x="504" y="248" key="refactoring.ChangeSignatureDialog/0.0.1440.900@0.0.1440.900" timestamp="1597177981201" />
-    <state x="385" y="196" width="670" height="676" key="search.everywhere.popup" timestamp="1597177451135">
+    <state x="385" y="196" width="670" height="676" key="search.everywhere.popup" timestamp="1597353369205">
       <screen x="0" y="0" width="1440" height="900" />
     </state>
-    <state x="385" y="196" width="670" height="676" key="search.everywhere.popup/0.0.1440.900@0.0.1440.900" timestamp="1597177451135" />
+    <state x="385" y="196" width="670" height="676" key="search.everywhere.popup/0.0.1440.900@0.0.1440.900" timestamp="1597353369205" />
   </component>
   <component name="XDebuggerManager">
     <watches-manager>

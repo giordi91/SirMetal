@@ -1,14 +1,14 @@
 #pragma once
 
-#include <vector>
 #include <cstdint>
-#import <queue>
+#include <vector>
 #import <unordered_set>
 #import <stack>
 
 namespace SirMetal {
     struct DenseTreeNode {
         static constexpr uint32_t PARENT_NULL = std::numeric_limits<uint32_t>::max();
+        void* nodeData = nullptr;
         uint32_t id;
         uint32_t index;
         uint32_t parentIndex = PARENT_NULL;
@@ -19,18 +19,18 @@ namespace SirMetal {
 
     class DenseTree {
     public:
-        void initialize(uint32_t initialSize) {
+        void initialize(uint32_t initialSize = 32) {
             m_nodes.reserve(initialSize);
         }
 
-        DenseTreeNode &createNode(DenseTreeNode &parent, uint32_t id) {
-            DenseTreeNode &node = createNode(id);
+        DenseTreeNode &createNode(DenseTreeNode &parent, uint32_t id,void*data) {
+            DenseTreeNode &node = createNode(id,data);
             parentNode(parent, node);
             return node;
         };
 
-        DenseTreeNode &createRoot(uint32_t id) {
-            DenseTreeNode &root = createNode(id);
+        DenseTreeNode &createRoot(uint32_t id, void* data) {
+            DenseTreeNode &root = createNode(id,data);
             m_root = &root;
             return root;
         };
@@ -109,8 +109,8 @@ namespace SirMetal {
         }
 
     private:
-        DenseTreeNode &createNode(uint32_t id) {
-            m_nodes.emplace_back(DenseTreeNode{id, static_cast<uint32_t>(m_nodes.size())});
+        DenseTreeNode &createNode(uint32_t id,void *data) {
+            m_nodes.emplace_back(DenseTreeNode{data,id, static_cast<uint32_t>(m_nodes.size())});
             DenseTreeNode &node = m_nodes[m_nodes.size() - 1];
             m_isSorted = false;
             return node;
@@ -120,17 +120,15 @@ namespace SirMetal {
         void unparentNode(DenseTreeNode &parent, DenseTreeNode &child) {
             int index = -1;
             size_t count = parent.children.size();
-            for(size_t i=0; i < count; ++i)
-            {
-                if(parent.children[i] == child.index)
-                {
-                    index = i;
+            for (size_t i = 0; i < count; ++i) {
+                if (parent.children[i] == child.index) {
+                    index = static_cast<int>(i);
                 }
             }
             assert(index != -1);
-            if(index != -1) {
+            if (index != -1) {
                 //patching element from last
-                parent.children[index] = parent.children[count-1];
+                parent.children[index] = parent.children[count - 1];
                 parent.children.pop_back();
                 child.parentIndex = DenseTreeNode::PARENT_NULL;
                 m_isSorted = false;
