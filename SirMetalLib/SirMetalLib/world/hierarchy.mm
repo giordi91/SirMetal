@@ -7,5 +7,4 @@ namespace SirMetal {
         uint64_t raw = object.handle;
         m_tree.createNode(*root, object.handle, reinterpret_cast<void *>(raw));
     }
-
 }

@@ -11,6 +11,7 @@ namespace SirMetal {
             m_tree.createRoot(ROOT_ID, nullptr);
         }
         void addToRoot(MeshHandle object);
+        const std::vector<DenseTreeNode>& getNodes(){return m_tree.getNodes();}
 
     private:
         static constexpr uint32_t ROOT_ID =0;

@@ -191,7 +191,7 @@
     NSLog(@"subviews are: %@", [self.window.contentView subviews]);
 
     //Initialize the engine
-    bool result = SirMetal::startup(view.device);
+    bool result = SirMetal::startup(view.device,_renderer.commandQueue);
     if (!result) {
         [window close];
     }

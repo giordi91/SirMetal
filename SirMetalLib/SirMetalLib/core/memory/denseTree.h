@@ -8,7 +8,7 @@
 namespace SirMetal {
     struct DenseTreeNode {
         static constexpr uint32_t PARENT_NULL = std::numeric_limits<uint32_t>::max();
-        void* nodeData = nullptr;
+        void *nodeData = nullptr;
         uint32_t id;
         uint32_t index;
         uint32_t parentIndex = PARENT_NULL;
@@ -23,18 +23,17 @@ namespace SirMetal {
             m_nodes.reserve(initialSize);
         }
 
-        DenseTreeNode &createNode(DenseTreeNode &parent, uint32_t id,void*data) {
-            DenseTreeNode &node = createNode(id,data);
+        DenseTreeNode &createNode(DenseTreeNode &parent, uint32_t id, void *data = nullptr) {
+            DenseTreeNode &node = createNode(id, data);
             parentNode(parent, node);
             return node;
         };
 
-        DenseTreeNode &createRoot(uint32_t id, void* data) {
-            DenseTreeNode &root = createNode(id,data);
+        DenseTreeNode &createRoot(uint32_t id, void *data = nullptr) {
+            DenseTreeNode &root = createNode(id, data);
             m_root = &root;
             return root;
         };
-
 
         void parentNode(DenseTreeNode &parent, DenseTreeNode &children) {
             assert(parent.index < m_nodes.size());
@@ -109,8 +108,8 @@ namespace SirMetal {
         }
 
     private:
-        DenseTreeNode &createNode(uint32_t id,void *data) {
-            m_nodes.emplace_back(DenseTreeNode{data,id, static_cast<uint32_t>(m_nodes.size())});
+        DenseTreeNode &createNode(uint32_t id, void *data) {
+            m_nodes.emplace_back(DenseTreeNode{data, id, static_cast<uint32_t>(m_nodes.size())});
             DenseTreeNode &node = m_nodes[m_nodes.size() - 1];
             m_isSorted = false;
             return node;

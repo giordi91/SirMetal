@@ -13,7 +13,7 @@ namespace SirMetal {
 
     EngineContext *CONTEXT = nullptr;
 
-    bool initializeContext(id device)
+    bool initializeContext(id device, id queue)
     {
         //id<MTLDevice> mtlDevice = device;
 
@@ -22,7 +22,7 @@ namespace SirMetal {
         TextureManager* textureManager = new TextureManager;
         textureManager->initialize();
         MeshManager* meshManager= new MeshManager;
-        meshManager->initialize(device);
+        meshManager->initialize(device,queue);
 
         CONTEXT = new EngineContext{ 0,0, nullptr
         ,{

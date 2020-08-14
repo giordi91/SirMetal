@@ -20,8 +20,9 @@ namespace SirMetal {
     public:
         MeshHandle loadMesh(const std::string &path);
 
-        void initialize(id device) {
+        void initialize(id device, id queue) {
             m_device = device;
+            m_queue = queue;
         };
         const MeshHandle getHandleFromName(const std::string& name) const
         {
@@ -44,6 +45,7 @@ namespace SirMetal {
 
     private:
         id m_device;
+        id m_queue;
         std::unordered_map<uint32_t, MeshData> m_handleToMesh;
         std::unordered_map<std::string, uint32_t> m_nameToHandle;
 

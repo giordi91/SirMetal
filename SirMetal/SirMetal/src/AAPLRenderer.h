@@ -18,6 +18,7 @@ Header for a platform independent renderer class, which performs Metal setup and
 @property(nonatomic) CGFloat screenHeight;
 
 @property(nonatomic) CGFloat screenWidth;
+@property(nonatomic, nonnull) id<MTLCommandQueue > commandQueue;
 
 
 - (nonnull instancetype)initWithMetalKitView:(nonnull MTKView *)mtkView;

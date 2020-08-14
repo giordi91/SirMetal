@@ -84,8 +84,8 @@ void updateVoidIndices(int w, int h, id <MTLBuffer> buffer) {
 @implementation AAPLRenderer {
     id <MTLDevice> _device;
 
-    // The command queue used to pass commands to the device.
-    id <MTLCommandQueue> _commandQueue;
+    //// The command queue used to pass commands to the device.
+    //id <MTLCommandQueue> _commandQueue;
 }
 
 - (void)logGPUInformation:(id <MTLDevice>)device {
@@ -185,7 +185,11 @@ void updateVoidIndices(int w, int h, id <MTLBuffer> buffer) {
 
 
     SirMetal::MeshHandle mesh = SirMetal::CONTEXT->managers.meshManager->getHandleFromName("lucy");
+    SirMetal::MeshHandle cube = SirMetal::CONTEXT->managers.meshManager->getHandleFromName("cube");
+    SirMetal::MeshHandle cone = SirMetal::CONTEXT->managers.meshManager->getHandleFromName("cone");
     SirMetal::CONTEXT->world.hierarchy.addToRoot(mesh);
+    SirMetal::CONTEXT->world.hierarchy.addToRoot(cube);
+    SirMetal::CONTEXT->world.hierarchy.addToRoot(cone);
 
 
 }
@@ -477,15 +481,24 @@ PSOCache getPSO(id <MTLDevice> device, const SirMetal::DrawTracker &tracker, con
 
     [renderPass setVertexBuffer:self.uniformBuffer offset:uniformBufferOffset atIndex:1];
 
-    SirMetal::MeshHandle mesh = SirMetal::CONTEXT->managers.meshManager->getHandleFromName("lucy");
-    const SirMetal::MeshData *meshData = SirMetal::CONTEXT->managers.meshManager->getMeshData(mesh);
+    auto nodes = SirMetal::CONTEXT->world.hierarchy.getNodes();
+    int nodeSize = nodes.size();
+    //skipping the root
+    for(int i=1; i < nodeSize;++i)
+    {
+        const SirMetal::DenseTreeNode& node = nodes[i];
+        //SirMetal::MeshHandle mesh = SirMetal::CONTEXT->managers.meshManager->getHandleFromName("lucy");
+        const SirMetal::MeshData *meshData = SirMetal::CONTEXT->managers.meshManager->getMeshData(SirMetal::MeshHandle{node.id});
 
-    [renderPass setVertexBuffer:meshData->vertexBuffer offset:0 atIndex:0];
-    [renderPass drawIndexedPrimitives:MTLPrimitiveTypeTriangle
-                           indexCount:meshData->primitivesCount
-                            indexType:MBEIndexType
-                          indexBuffer:meshData->indexBuffer
-                    indexBufferOffset:0];
+        [renderPass setVertexBuffer:meshData->vertexBuffer offset:0 atIndex:0];
+        [renderPass drawIndexedPrimitives:MTLPrimitiveTypeTriangle
+                               indexCount:meshData->primitivesCount
+                                indexType:MBEIndexType
+                              indexBuffer:meshData->indexBuffer
+                        indexBufferOffset:0];
+
+    }
+
 
     [renderPass endEncoding];
 

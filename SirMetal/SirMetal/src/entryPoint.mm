@@ -5,10 +5,10 @@
 #import "SirMetalLib/engineContext.h"
 
 namespace SirMetal {
-    bool startup(id device) {
+    bool startup(id device, id queue) {
         bool result = Editor::initializeProject();
         if(!result ){return false;}
-        result = initializeContext(device);
+        result = initializeContext(device,queue);
         if(!result ){return false;}
         result = Editor::PROJECT->processProjectAssets();
         return result;

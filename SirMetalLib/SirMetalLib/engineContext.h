@@ -61,7 +61,7 @@ namespace SirMetal {
 
     };
 
-    bool initializeContext(id device);
+    bool initializeContext(id device, id queue);
     void endFrame(EngineContext* context);
 
     extern EngineContext *CONTEXT;
