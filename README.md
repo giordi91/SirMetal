@@ -1,33 +1,43 @@
 <img style="float: right;" src="SirMetal/SirMetal/docs/images/logo.png">
 
 # SirMetal
-A metal based game editor 
+A metal-based game editor 
+
+## What is this project
+This is a learning project to try to write a game editor. In the past, I wrote a lot of engines. For the last two years (on and off) I have been working on SirEngine, my Vulkan and DirectX 12 game engine. That engine is focused on playing pre-baked content, not creating it, is only the runtime of an engine. 
+
+In this project,  I want to focus on the other side of the spectrum, creating an editor. 
+
+I wanted to learn Metal, and did not want to deal with all the sophisticated features of SirEngine; it sounded like a perfect opportunity to create a separate project.
+Not having two years worth of code will allow me to easily prototype and trying new things in a much more agile way.
+
+## What this project is not
+This is not, and never will be a final product, as mentioned above, is a learning project, a sandbox where I try stuff, often in a quick hacky way which I might never clean up. Don't take this code as an example of production quality code, with the limited time at my disposal I have to pick my battles. That does not mean I will partake in bad practices on purpose, but at the same time, I won't be striving for cleanness and tidiness as I would in production. There will be sharp edges and dark corners, beware.
+
+As such, I won't go to the same great lengths as I did for SirEngine, for example, rolling all my own containers and data structure and avoid STL. I will be doing whatever makes me work faster. If using std::string and std::unordered_map gets me there quicker, so be it. If will start to be a speed limitation (I doubt, given the size of the project), I will deal with that at the time).
+
+If you find something you don't understand how it works, or think it is bad/wrong/ugly, please feel free to open an issue.
+**In particular, help/guidance would be excellent when it comes to Cocoa or objective-c/c++ that is all new stuff for me.**
 
 
-Initially inspired by The Cherno project game engine series: https://www.youtube.com/user/TheChernoProject before going my own way. The series is pretty cool, check it out!
+Here I will keep a chronological list of the progress, click on the image to play a video (if an associated one exists):
 
-This is my attempt to a dx12 engine, this is my third iteration to a so called engine. 
-My first one was a poor Opengl viewport, then a more serious approach to a dx11 engine, but mostly geared toward getting stuff on screen quickly. 
-Finally this is my third attempt trying to use dx12. 
-
-It is my pleasure to introduce you to Sir Engine, the 3rd of his name.
-
-Here a I will keep a chronological list of the progress:
-
-##### Table of Contents  
+##### History  
 [0.1.0: basic drawing](#v010)  
-[0.2.0: basic editor layout](#v020)  
-[0.3.0: engine structure and slection shader](#v030)  
+[0.1.2: basic editor layout](#v012)  
+[0.1.4: engine structure and selction shader](#v014)
+
 
 ## 0.1.0 <a name="v010"/>
 This version is the hello world.
-* Baic cocoa window
-* Basic goemetry rendering in metal 
+* Basic cocoa window
+* Basic geometry rendering in Metal 
 * Imgui
 * Dx12 init
 * Resize and clear color
 
-![alt text](./docs/images/SirMetal01.png "basic")
+[![basic](./docs/images/SirMetal01.png "basic")](https://www.youtube.com/watch?v=3p58WVu8q5QERE)
+
 
 ## 0.1.2 <a name="v012"/>
 Basic editor UI, the first step toward building an editor workflow
@@ -35,11 +45,11 @@ Basic editor UI, the first step toward building an editor workflow
 * Logging to editor, console and file 
 * Loading shaders from file
 
-![alt text](./docs/images/SirMetal02.png "basicui")
+[![basicui](./docs/images/SirMetal02.png "basic")](https://www.youtube.com/watch?v=p89QT_giSf0)
 
-## 0.1.5 <a name="v012"/>
+## 0.1.4 <a name="v014"/>
 Developing editor workflow and engine backend systems
-* Added concpet of project
+* Added the concept of project
 * Assets loaded from project folder, for now meshes and shaders
 * Loading obj meshes
 * Added texture, shader and mesh manager to handle resources through opaque handles
