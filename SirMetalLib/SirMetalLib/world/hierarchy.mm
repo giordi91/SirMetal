@@ -16,4 +16,5 @@ namespace SirMetal {
     void Hierarchy::parent(DenseTreeNode &parent, DenseTreeNode &child) {
         m_tree.parentNode(parent,child);
     }
+
 }

@@ -16,8 +16,14 @@ namespace SirMetal {
         DenseTreeNode &addToNode(DenseTreeNode& node, MeshHandle handle);
         void parent(DenseTreeNode& parent,DenseTreeNode& child);
 
+        //do we want on select and deselect callbacks?
+        void clearSelection(){m_selectedId = -1;};
+        void select(int id){m_selectedId = id;}
+        int getSelectedId() { return m_selectedId; }
+
     private:
         static constexpr uint32_t ROOT_ID =0;
+        int m_selectedId = -1;
         DenseTree m_tree;
     };
 

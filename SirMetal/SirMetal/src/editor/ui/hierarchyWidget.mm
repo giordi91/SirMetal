@@ -8,10 +8,12 @@
 
 namespace SirMetal {
     namespace Editor {
+        static constexpr char *DRAG_KEY = "drag-drop";
         struct ReparentOP {
             uint32_t sourceID;
             uint32_t targetID;
             bool requested = false;
+            bool itemClickedThisFrame = false;
         };
 
         void processChildren(Hierarchy *hierarchy, const DenseTreeNode &node, ReparentOP &op) {
@@ -19,27 +21,46 @@ namespace SirMetal {
             const std::vector<DenseTreeNode> &nodes = hierarchy->getNodes();
             MeshHandle handle{node.id};
             ImGui::PushID(node.id);
-            if(node.index ==0)
-            {
+            if (node.index == 0) {
                 ImGui::SetNextItemOpen(true, ImGuiCond_Once);
             }
             const std::string &meshName = node.index == 0 ? "Root" : SirMetal::CONTEXT->managers.meshManager->getMeshData(handle)->name;
 
-            bool expanded = ImGui::TreeNode((void *) (intptr_t) node.index, "%s", meshName.c_str());
 
-            // Our buttons are both drag sources and drag targets here!
+            //if the selection in the hierarchy is the same as the current node
+            //we set the node flag to selected
+            ImGuiTreeNodeFlags node_flags = ImGuiTreeNodeFlags_OpenOnArrow;
+            int selectedIndex = hierarchy->getSelectedId();
+            bool isSelected = selectedIndex == node.index;
+            node_flags |= isSelected ? ImGuiTreeNodeFlags_Selected : 0;
+
+            //we use the lower version of the TreeNode to pass the flags
+            bool expanded = ImGui::TreeNodeEx((void *) (intptr_t) node.index, node_flags, "%s", meshName.c_str());
+            //if the node is selected we update the selection for next frame
+            bool isClicked = ImGui::IsItemClicked();
+            if (isClicked) {
+                //if it is the root we simply clear the selection
+                if (node.index == 0) {
+                    hierarchy->clearSelection();
+                } else {
+                    hierarchy->select(node.index);
+                }
+                op.itemClickedThisFrame |= true;
+            }
+
+
+            //dealing with drag and drop
+            //if we start the drag we store which object we are moving around
             if (ImGui::BeginDragDropSource(ImGuiDragDropFlags_None)) {
-                // Set payload to carry the index of our item (could be anything)
-                ImGui::SetDragDropPayload("node drag", &node.index, sizeof(uint32_t));
+                //storing the node index so is easy to look up later
+                ImGui::SetDragDropPayload(DRAG_KEY, &node.index, sizeof(uint32_t));
                 ImGui::EndDragDropSource();
             }
 
             if (ImGui::BeginDragDropTarget()) {
-                if (const ImGuiPayload *payload = ImGui::AcceptDragDropPayload("node drag")) {
+                if (const ImGuiPayload *payload = ImGui::AcceptDragDropPayload(DRAG_KEY)) {
                     IM_ASSERT(payload->DataSize == sizeof(uint32_t));
-                    uint32_t payload_n = *(const int *) payload->Data;
-                    //MeshHandle handle{payload_n};
-                    //const std::string &meshName = SirMetal::CONTEXT->managers.meshManager->getMeshData(handle)->name;
+                    uint32_t payload_n = *(const uint32_t *) payload->Data;
                     op.requested = true;
                     op.sourceID = payload_n;
                     op.targetID = node.index;
@@ -48,6 +69,8 @@ namespace SirMetal {
 
             }
             ImGui::PopID();
+
+            //processing children
             if (expanded) {
                 for (uint32_t child : node.children) {
                     processChildren(hierarchy, nodes[child], op);
@@ -60,23 +83,22 @@ namespace SirMetal {
 
 
         void Editor::HierarchyWidget::render(Hierarchy *hierarchy, bool *showWindow) {
-            ReparentOP op{0, 0, 0};
+            //here we check if the mouse was clicked and our window was in focus
+            bool windowClicked = ImGui::IsMouseClicked(ImGuiMouseButton_Left) & ImGui::IsWindowFocused();
+
+            ReparentOP op{0, 0, 0, 0};
             const std::vector<DenseTreeNode> &nodes = hierarchy->getNodes();
 
 
-            processChildren(hierarchy,nodes[0],op);
-            //if (ImGui::TreeNode("Root")) {
-            //    for (uint32_t child : nodes[0].children) {
-            //        processChildren(hierarchy, nodes[child], op);
-            //    }
-            //    ImGui::TreePop();
-            //}
+            processChildren(hierarchy, nodes[0], op);
             if (op.requested) {
-                SIR_CORE_INFO("Reparent requested {} {}", op.sourceID, op.targetID);
                 std::vector<DenseTreeNode> &nodes = hierarchy->getNodes();
                 DenseTreeNode &willBeChild = nodes[op.sourceID];
                 DenseTreeNode &willBeParent = nodes[op.targetID];
                 hierarchy->parent(willBeParent, willBeChild);
+            }
+            if (!op.itemClickedThisFrame && windowClicked) {
+                hierarchy->clearSelection();
             }
         }
     }

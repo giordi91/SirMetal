@@ -183,7 +183,6 @@ void updateVoidIndices(int w, int h, id <MTLBuffer> buffer) {
     self.depthTextureGUI = [_device newTextureWithDescriptor:descriptor];
     self.depthTextureGUI.label = @"DepthStencilGUI";
 
-
     SirMetal::MeshHandle mesh = SirMetal::CONTEXT->managers.meshManager->getHandleFromName("lucy");
     SirMetal::MeshHandle cube = SirMetal::CONTEXT->managers.meshManager->getHandleFromName("cube");
     SirMetal::MeshHandle cone = SirMetal::CONTEXT->managers.meshManager->getHandleFromName("cone");
@@ -393,7 +392,7 @@ PSOCache getPSO(id <MTLDevice> device, const SirMetal::DrawTracker &tracker, con
 
     static int frame = 0;
     frame++;
-    dispatch_semaphore_wait(self.displaySemaphore, DISPATCH_TIME_FOREVER);
+    //dispatch_semaphore_wait(self.displaySemaphore, DISPATCH_TIME_FOREVER);
     ImVec2 viewportSize = editorUI.getViewportSize();
     bool viewportChanged = SirMetal::isFlagSet(SirMetal::CONTEXT->flags.viewEvents, SirMetal::ViewEventsFlagsBits::ViewEventsViewportSizeChanged);
     if (viewportChanged) {
@@ -502,7 +501,9 @@ PSOCache getPSO(id <MTLDevice> device, const SirMetal::DrawTracker &tracker, con
 
     [renderPass endEncoding];
 
-    [self renderSelection:wToUse :hToUse :commandBuffer :&m_drawTracker];
+    if(SirMetal::CONTEXT->world.hierarchy.getSelectedId() != -1) {
+        [self renderSelection:wToUse :hToUse :commandBuffer :&m_drawTracker];
+    }
 
     if (isViewport) {
 
@@ -535,10 +536,10 @@ PSOCache getPSO(id <MTLDevice> device, const SirMetal::DrawTracker &tracker, con
 
     [commandBuffer presentDrawable:view.currentDrawable];
 
-    [commandBuffer addCompletedHandler:^(id <MTLCommandBuffer> commandBuffer) {
-        self.bufferIndex = (self.bufferIndex + 1) % MBEInFlightBufferCount;
-        dispatch_semaphore_signal(self.displaySemaphore);
-    }];
+    //[commandBuffer addCompletedHandler:^(id <MTLCommandBuffer> commandBuffer) {
+    //    self.bufferIndex = (self.bufferIndex + 1) % MBEInFlightBufferCount;
+    //    dispatch_semaphore_signal(self.displaySemaphore);
+    //}];
 
     [commandBuffer commit];
 
@@ -575,7 +576,10 @@ PSOCache getPSO(id <MTLDevice> device, const SirMetal::DrawTracker &tracker, con
 
     [renderPass setVertexBuffer:self.uniformBuffer offset:uniformBufferOffset atIndex:1];
 
-    SirMetal::MeshHandle mesh = SirMetal::CONTEXT->managers.meshManager->getHandleFromName("lucy");
+    int selectedId = SirMetal::CONTEXT->world.hierarchy.getSelectedId();
+    SirMetal::DenseTreeNode& selectedNode= SirMetal::CONTEXT->world.hierarchy.getNodes()[selectedId];
+    SirMetal::MeshHandle mesh{selectedNode.id};
+    //SirMetal::MeshHandle mesh = SirMetal::CONTEXT->managers.meshManager->getHandleFromName("lucy");
     const SirMetal::MeshData *meshData = SirMetal::CONTEXT->managers.meshManager->getMeshData(mesh);
 
     [renderPass setVertexBuffer:meshData->vertexBuffer offset:0 atIndex:0];
