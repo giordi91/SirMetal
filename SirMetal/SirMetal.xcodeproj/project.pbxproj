@@ -31,6 +31,7 @@
 		C9EA975C8EE857168E3AA25C /* entryPoint.mm in Sources */ = {isa = PBXBuildFile; fileRef = C9EA987FA45D97D90C540393 /* entryPoint.mm */; };
 		C9EA9B7EB771331DBA5DF92A /* project.mm in Sources */ = {isa = PBXBuildFile; fileRef = C9EA9B5D604E5F9F39AD7216 /* project.mm */; };
 		C9EA9C42997897D6A18E940E /* cameraSettingsWidget.mm in Sources */ = {isa = PBXBuildFile; fileRef = C9EA919072B5737B7279FB12 /* cameraSettingsWidget.mm */; };
+		C9EA9D6C893C2F1DBB9950A8 /* hierarchyWidget.mm in Sources */ = {isa = PBXBuildFile; fileRef = C9EA9A1A9A7AE35ACBA8254E /* hierarchyWidget.mm */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -73,9 +74,11 @@
 		C9EA9473B60D7FFC21F823D7 /* fast_obj.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = fast_obj.h; sourceTree = "<group>"; };
 		C9EA957869142439D70FD5D1 /* editorUI.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = editorUI.mm; sourceTree = "<group>"; };
 		C9EA987FA45D97D90C540393 /* entryPoint.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = entryPoint.mm; sourceTree = "<group>"; };
+		C9EA998E58D0606C4F8DF6BD /* hierarchyWidget.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = hierarchyWidget.h; sourceTree = "<group>"; };
 		C9EA99ED739CB16FC8C9DFFE /* editorUI.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = editorUI.h; sourceTree = "<group>"; };
 		C9EA99F10C0218BE7927D8B9 /* project.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = project.h; sourceTree = "<group>"; };
 		C9EA9A0497A232A0FECA2BE9 /* settings.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = settings.mm; sourceTree = "<group>"; };
+		C9EA9A1A9A7AE35ACBA8254E /* hierarchyWidget.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = hierarchyWidget.mm; sourceTree = "<group>"; };
 		C9EA9A642D07F4AB6638EEDF /* materialWidget.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = materialWidget.h; sourceTree = "<group>"; };
 		C9EA9B547868412CB75EE1D2 /* cameraSettingsWidget.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = cameraSettingsWidget.h; sourceTree = "<group>"; };
 		C9EA9B5D604E5F9F39AD7216 /* project.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = project.mm; sourceTree = "<group>"; };
@@ -210,6 +213,8 @@
 				C9EA9A642D07F4AB6638EEDF /* materialWidget.h */,
 				C9EA919072B5737B7279FB12 /* cameraSettingsWidget.mm */,
 				C9EA9B547868412CB75EE1D2 /* cameraSettingsWidget.h */,
+				C9EA9A1A9A7AE35ACBA8254E /* hierarchyWidget.mm */,
+				C9EA998E58D0606C4F8DF6BD /* hierarchyWidget.h */,
 			);
 			path = ui;
 			sourceTree = "<group>";
@@ -298,6 +303,7 @@
 				C9EA90B721A11CA8CA3C47B5 /* editorUI.mm in Sources */,
 				C9EA92106742EDF158653897 /* materialWidget.mm in Sources */,
 				C9EA9C42997897D6A18E940E /* cameraSettingsWidget.mm in Sources */,
+				C9EA9D6C893C2F1DBB9950A8 /* hierarchyWidget.mm in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

@@ -14,6 +14,7 @@ namespace SirMetal {
         id vertexBuffer;
         id indexBuffer;
         uint32_t primitivesCount;
+        std::string name;
     };
 
     class MeshManager {

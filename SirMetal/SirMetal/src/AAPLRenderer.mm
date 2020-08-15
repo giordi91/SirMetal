@@ -482,9 +482,9 @@ PSOCache getPSO(id <MTLDevice> device, const SirMetal::DrawTracker &tracker, con
     [renderPass setVertexBuffer:self.uniformBuffer offset:uniformBufferOffset atIndex:1];
 
     auto nodes = SirMetal::CONTEXT->world.hierarchy.getNodes();
-    int nodeSize = nodes.size();
+    size_t nodeSize = nodes.size();
     //skipping the root
-    for(int i=1; i < nodeSize;++i)
+    for(size_t i=1; i < nodeSize;++i)
     {
         const SirMetal::DenseTreeNode& node = nodes[i];
         //SirMetal::MeshHandle mesh = SirMetal::CONTEXT->managers.meshManager->getHandleFromName("lucy");

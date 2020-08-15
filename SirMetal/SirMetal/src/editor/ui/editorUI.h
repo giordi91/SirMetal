@@ -2,6 +2,7 @@
 
 #import "imgui.h"
 #import "cameraSettingsWidget.h"
+#import "hierarchyWidget.h"
 
 namespace SirMetal {
     namespace Editor {
@@ -28,6 +29,8 @@ namespace SirMetal {
             DockIDs dockIds{};
             ImVec2 viewportPanelSize = {256, 256};
             Editor::CameraSettingsWidget m_cameraSettings;
+            bool m_showHierarchy = true;
+            Editor::HierarchyWidget m_hierarchy;
         };
     }
 }

@@ -107,10 +107,11 @@ namespace SirMetal {
 
             ImGui::SetNextWindowDockID(dockIds
                     .left, ImGuiCond_Appearing);
-            ImGui::Begin("Hierarchy", (bool *) 0);
-            ImGui::Text("see you hierarchy here");
+            if(ImGui::Begin("Hierarchy", &m_showHierarchy)){
+                m_hierarchy.render(&CONTEXT->world.hierarchy, &m_showHierarchy);
 
-            ImGui::End();
+                ImGui::End();
+            };
 
             ImGui::SetNextWindowDockID(dockIds
                     .right, ImGuiCond_Appearing);

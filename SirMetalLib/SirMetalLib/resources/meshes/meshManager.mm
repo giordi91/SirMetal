@@ -73,7 +73,8 @@ namespace SirMetal {
         [indexBuffer setLabel:@"Indices"];
         uint32_t index = m_meshCounter++;
 
-        MeshData data {vertexBuffer,indexBuffer,static_cast<uint32_t>(result.indices.size())};
+        std::string meshName = getFileName(path);
+        MeshData data {vertexBuffer,indexBuffer,static_cast<uint32_t>(result.indices.size()),std::move(meshName)};
         m_handleToMesh[index] = data;
         const std::string fileName = getFileName(path);
         MeshHandle handle = getHandle<MeshHandle>(index);
