@@ -74,10 +74,7 @@ namespace SirMetal {
                 }
                 ImGui::TreePop();
             }
-
-
         }
-
 
         void Editor::HierarchyWidget::render(Hierarchy *hierarchy, bool *showWindow) {
             //here we check if the mouse was clicked and our window was in focus

@@ -168,46 +168,40 @@ namespace SirMetal {
             setFlagBitfield(CONTEXT->flags.interaction, InteractionFlagsBits::InteractionViewportFocused, isWindowFocused);
 
             ImVec2 newViewportSize = ImGui::GetContentRegionAvail();
-            ImVec2 viewportPos = ImGui::GetWindowPos();
-            ImVec2 vMin = ImGui::GetWindowContentRegionMin();
-            ImGuiDockNode* node = ImGui::DockBuilderGetNode(dockIds.root);
-            ImVec2 dockPos = node->Pos;
-            ImVec2 pp = ImGui::GetMainViewport()->Pos;
-            //ImVec2 vMax = ImGui::GetWindowContentRegionMax();
-            bool viewportSizeChanged = newViewportSize.x != viewportPanelSize.x || newViewportSize.y != viewportPanelSize.y;
+            bool viewportSizeChanged = (newViewportSize.x != viewportPanelSize.x) | (newViewportSize.y != viewportPanelSize.y);
             setFlagBitfield(CONTEXT->flags.viewEvents, ViewEventsFlagsBits::ViewEventsViewportSizeChanged, viewportSizeChanged);
             viewportPanelSize = newViewportSize;
+            //storing the start of the cursor in the window before we add
+            //the image, so we can use it to overlay imguizmo
             float x = ImGui::GetCursorScreenPos().x;
             float y = ImGui::GetCursorScreenPos().y;
+
             ImGui::Image(SirMetal::CONTEXT->viewportTexture, viewportPanelSize);
 
             bool somethingSelected = CONTEXT->world.hierarchy.getSelectedId() != -1;
             bool isManipulator = somethingSelected;
-            if(somethingSelected) {
+            if (somethingSelected) {
                 Camera &camera = CONTEXT->camera;
                 float *view = (float *) &camera.viewInverse;
                 float *proj = (float *) &camera.projection;
+                //TODO fix temporary access directly to the model matrix, will need to change
+                //TODO fix access to mesh hardcoded name, should come from seleection
                 auto handle = SirMetal::CONTEXT->managers.meshManager->getHandleFromName("lucy");
                 auto *data = SirMetal::CONTEXT->managers.meshManager->getMeshData(handle);
                 const matrix_float4x4 *modelMatrix = &data->modelMatrix;
-                //auto matrix = matrix_float4x4_translation(vector_float3{0, 0, 0});
-                //auto matrix = matrix_float4x4_translation(vector_float3{0, 0, 0});
                 float *mat = (float *) modelMatrix;
 
                 ImGuiIO &io = ImGui::GetIO();
-                node = ImGui::DockBuilderGetNode(dockIds.root);
-                dockPos = node->Pos;
                 ImGuizmo::SetDrawlist();
                 EditTransform(view, proj, mat, true,
                         {x, y},
                         ImVec2{newViewportSize.x, newViewportSize.y});
 
-                isManipulator &=  ImGuizmo::IsUsing();
+                isManipulator &= ImGuizmo::IsUsing();
             }
             setFlagBitfield(CONTEXT->flags.interaction, InteractionFlagsBits::InteractionViewportGuizmo, isManipulator);
 
             ImGui::End();
-            pp = ImGui::GetMainViewport()->Pos;
 
             ImGui::SetNextWindowDockID(dockIds
                     .bottom, ImGuiCond_Appearing);
@@ -226,8 +220,7 @@ namespace SirMetal {
             ImGui::SetNextWindowDockID(dockIds
                     .left, ImGuiCond_Appearing);
             if (ImGui::Begin("Hierarchy", &m_showHierarchy)) {
-                if(ImGui::Button("Clear Selection"))
-                {
+                if (ImGui::Button("Clear Selection")) {
                     CONTEXT->world.hierarchy.clearSelection();
                 }
                 m_hierarchy.render(&CONTEXT->world.hierarchy, &m_showHierarchy);

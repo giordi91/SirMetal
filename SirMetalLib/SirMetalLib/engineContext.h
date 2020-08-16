@@ -45,10 +45,7 @@ namespace SirMetal {
         ViewEventsFlags viewEvents = 0;
     };
 
-
     struct EngineContext {
-        uint32_t screenWidth;
-        uint32_t screenHeight;
         void *viewportTexture;
         Resources managers;
         EditorFlags flags;
@@ -58,6 +55,9 @@ namespace SirMetal {
         //proper rendering context;
         Camera camera;
         EditorFPSCameraController cameraController;
+        uint32_t screenWidth;
+        uint32_t screenHeight;
+        uint32_t inFlightFrames = 3;
 
 
     };

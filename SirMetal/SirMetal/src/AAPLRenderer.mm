@@ -151,9 +151,6 @@ void updateVoidIndices(int w, int h, id <MTLBuffer> buffer) {
     for (int i = 0; i < MAX_COLOR_ATTACHMENT; ++i) {
         m_drawTracker.renderTargets[i] = nil;
     }
-
-
-
     return self;
 }
 
@@ -169,7 +166,7 @@ void updateVoidIndices(int w, int h, id <MTLBuffer> buffer) {
     SirMetal::Camera &camera = SirMetal::CONTEXT->camera;
     SirMetal::EditorFPSCameraController &cameraController = SirMetal::CONTEXT->cameraController;
     camera.viewMatrix = matrix_float4x4_translation(vector_float3{0, 0, 0});
-    camera.fov = M_PI / 4;
+    camera.fov = static_cast<float>(M_PI / 4);
     camera.nearPlane = 1;
     camera.farPlane = 100;
     cameraController.setCamera(&camera);

@@ -143,8 +143,12 @@
 		C0BF92EE24E2652E00824030 /* MBEMathUtilities.h in Headers */ = {isa = PBXBuildFile; fileRef = C0BF92EC24E2652E00824030 /* MBEMathUtilities.h */; };
 		C0BF92EF24E2652E00824030 /* MBEMathUtilities.mm in Sources */ = {isa = PBXBuildFile; fileRef = C0BF92ED24E2652E00824030 /* MBEMathUtilities.mm */; };
 		C9EA91BEA3AA6B7D36458880 /* denseTree.h in Headers */ = {isa = PBXBuildFile; fileRef = C9EA9EE19873FC3BB9FAFD72 /* denseTree.h */; };
+		C9EA943B879C14F0B4489589 /* GPUMemoryAllocator.mm in Sources */ = {isa = PBXBuildFile; fileRef = C9EA95277E0D2C2763476702 /* GPUMemoryAllocator.mm */; };
+		C9EA94DAA17767E39072358D /* GPUMemoryAllocator.h in Headers */ = {isa = PBXBuildFile; fileRef = C9EA9186765F8F4315FD8C42 /* GPUMemoryAllocator.h */; };
+		C9EA96D6EB4E663CA2A4858C /* constantBufferManager.h in Headers */ = {isa = PBXBuildFile; fileRef = C9EA93275D58B880991372D8 /* constantBufferManager.h */; };
 		C9EA981EDA4F351A5F8D1D0B /* hierarchy.mm in Sources */ = {isa = PBXBuildFile; fileRef = C9EA921B3372A88C3258CD13 /* hierarchy.mm */; };
 		C9EA9835208AA3AEA2258EB9 /* hierarchy.h in Headers */ = {isa = PBXBuildFile; fileRef = C9EA9FD86429E5F1AEF225F4 /* hierarchy.h */; };
+		C9EA9D4E1F17886FD2A55F09 /* constantBufferManager.mm in Sources */ = {isa = PBXBuildFile; fileRef = C9EA9F82584179A723F47455 /* constantBufferManager.mm */; };
 		C9EA9F6627E488144AD2AA34 /* denseTree.mm in Sources */ = {isa = PBXBuildFile; fileRef = C9EA94AEC599CE853ABB8759 /* denseTree.mm */; };
 /* End PBXBuildFile section */
 
@@ -286,9 +290,13 @@
 		C0BF92E724E2625E00824030 /* engineContext.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = engineContext.mm; sourceTree = "<group>"; };
 		C0BF92EC24E2652E00824030 /* MBEMathUtilities.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = MBEMathUtilities.h; sourceTree = "<group>"; };
 		C0BF92ED24E2652E00824030 /* MBEMathUtilities.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = MBEMathUtilities.mm; sourceTree = "<group>"; };
+		C9EA9186765F8F4315FD8C42 /* GPUMemoryAllocator.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = GPUMemoryAllocator.h; sourceTree = "<group>"; };
 		C9EA921B3372A88C3258CD13 /* hierarchy.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = hierarchy.mm; sourceTree = "<group>"; };
+		C9EA93275D58B880991372D8 /* constantBufferManager.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = constantBufferManager.h; sourceTree = "<group>"; };
 		C9EA94AEC599CE853ABB8759 /* denseTree.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = denseTree.mm; sourceTree = "<group>"; };
+		C9EA95277E0D2C2763476702 /* GPUMemoryAllocator.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = GPUMemoryAllocator.mm; sourceTree = "<group>"; };
 		C9EA9EE19873FC3BB9FAFD72 /* denseTree.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = denseTree.h; sourceTree = "<group>"; };
+		C9EA9F82584179A723F47455 /* constantBufferManager.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = constantBufferManager.mm; sourceTree = "<group>"; };
 		C9EA9FD86429E5F1AEF225F4 /* hierarchy.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = hierarchy.h; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
@@ -580,6 +588,8 @@
 				C0BF92DB24E261FF00824030 /* renderingContext.mm */,
 				C0BF92DC24E261FF00824030 /* renderingContext.h */,
 				C0BF92DD24E261FF00824030 /* materialManager.h */,
+				C9EA9F82584179A723F47455 /* constantBufferManager.mm */,
+				C9EA93275D58B880991372D8 /* constantBufferManager.h */,
 			);
 			path = graphics;
 			sourceTree = "<group>";
@@ -589,8 +599,18 @@
 			children = (
 				C9EA94AEC599CE853ABB8759 /* denseTree.mm */,
 				C9EA9EE19873FC3BB9FAFD72 /* denseTree.h */,
+				C9EA9DB34ACF6E28642AA203 /* gpu */,
 			);
 			path = memory;
+			sourceTree = "<group>";
+		};
+		C9EA9DB34ACF6E28642AA203 /* gpu */ = {
+			isa = PBXGroup;
+			children = (
+				C9EA95277E0D2C2763476702 /* GPUMemoryAllocator.mm */,
+				C9EA9186765F8F4315FD8C42 /* GPUMemoryAllocator.h */,
+			);
+			path = gpu;
 			sourceTree = "<group>";
 		};
 		C9EA9FDE06AA4A15F3A0114E /* world */ = {
@@ -718,6 +738,8 @@
 				C0BF929F24E2517100824030 /* periodic_worker-inl.h in Headers */,
 				C9EA91BEA3AA6B7D36458880 /* denseTree.h in Headers */,
 				C9EA9835208AA3AEA2258EB9 /* hierarchy.h in Headers */,
+				C9EA96D6EB4E663CA2A4858C /* constantBufferManager.h in Headers */,
+				C9EA94DAA17767E39072358D /* GPUMemoryAllocator.h in Headers */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -808,6 +830,8 @@
 				C0BF926824E2517100824030 /* simplifier.cpp in Sources */,
 				C9EA9F6627E488144AD2AA34 /* denseTree.mm in Sources */,
 				C9EA981EDA4F351A5F8D1D0B /* hierarchy.mm in Sources */,
+				C9EA9D4E1F17886FD2A55F09 /* constantBufferManager.mm in Sources */,
+				C9EA943B879C14F0B4489589 /* GPUMemoryAllocator.mm in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

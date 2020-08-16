@@ -10,6 +10,8 @@ namespace SirMetal {
         TEXTURE = 1,
         SHADER_LIBRARY = 2,
         MESH = 3,
+        CONSTANT_BUFFER= 4,
+        BUFFER= 4,
     };
 
     template<typename T>
@@ -54,5 +56,21 @@ namespace SirMetal {
             return handle != 0;
         }
         static const HANDLE_TYPE type = HANDLE_TYPE::MESH;
+    };
+    struct ConstantBufferHandle final {
+        uint32_t handle;
+
+        [[nodiscard]] bool isHandleValid() const {
+            return handle != 0;
+        }
+        static const HANDLE_TYPE type = HANDLE_TYPE::CONSTANT_BUFFER;
+    };
+    struct BufferHandle final {
+        uint32_t handle;
+
+        [[nodiscard]] bool isHandleValid() const {
+            return handle != 0;
+        }
+        static const HANDLE_TYPE type = HANDLE_TYPE::BUFFER;
     };
 }
