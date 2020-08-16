@@ -217,7 +217,9 @@ void updateVoidIndices(int w, int h, id <MTLBuffer> buffer) {
     SirMetal::Camera &camera = SirMetal::CONTEXT->camera;
     SirMetal::EditorFPSCameraController &cameraController = SirMetal::CONTEXT->cameraController;
 
-    const matrix_float4x4 modelMatrix = matrix_float4x4_translation(vector_float3{0, 0, 0});
+    auto handle = SirMetal::CONTEXT->managers.meshManager->getHandleFromName("lucy");
+    auto* data = SirMetal::CONTEXT->managers.meshManager->getMeshData(handle);
+    const matrix_float4x4 modelMatrix = data->modelMatrix;
 
     ImGuiIO &io = ImGui::GetIO();
     //we wish to update the camera aka move it only when we are in
@@ -226,8 +228,9 @@ void updateVoidIndices(int w, int h, id <MTLBuffer> buffer) {
     //is true we update the camera.
     bool isViewport = (io.ConfigFlags & ImGuiConfigFlags_DockingEnable) > 0;
     bool isViewportInFocus = isFlagSet(SirMetal::CONTEXT->flags.interaction, SirMetal::InteractionFlagsBits::InteractionViewportFocused);
+    bool isManipulator = isFlagSet(SirMetal::CONTEXT->flags.interaction, SirMetal::InteractionFlagsBits::InteractionViewportGuizmo);
 
-    bool shouldControlViewport = isViewport & isViewportInFocus;
+    bool shouldControlViewport = isViewport & isViewportInFocus &(!isManipulator);
     MBEUniforms uniforms;
     uniforms.modelViewProjectionMatrix = matrix_multiply(camera.VP, modelMatrix);
     if (shouldControlViewport | (!isViewport)) {

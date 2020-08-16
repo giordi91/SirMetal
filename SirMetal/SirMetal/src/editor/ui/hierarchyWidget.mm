@@ -13,7 +13,6 @@ namespace SirMetal {
             uint32_t sourceID;
             uint32_t targetID;
             bool requested = false;
-            bool itemClickedThisFrame = false;
         };
 
         void processChildren(Hierarchy *hierarchy, const DenseTreeNode &node, ReparentOP &op) {
@@ -45,7 +44,6 @@ namespace SirMetal {
                 } else {
                     hierarchy->select(node.index);
                 }
-                op.itemClickedThisFrame |= true;
             }
 
             //dealing with drag and drop
@@ -85,7 +83,7 @@ namespace SirMetal {
             //here we check if the mouse was clicked and our window was in focus
             bool windowClicked = ImGui::IsMouseClicked(ImGuiMouseButton_Left) & ImGui::IsWindowFocused();
 
-            ReparentOP op{0, 0, 0, 0};
+            ReparentOP op{0, 0, 0};
             const std::vector<DenseTreeNode> &nodes = hierarchy->getNodes();
 
 
@@ -95,9 +93,6 @@ namespace SirMetal {
                 DenseTreeNode &willBeChild = nodes[op.sourceID];
                 DenseTreeNode &willBeParent = nodes[op.targetID];
                 hierarchy->parent(willBeParent, willBeChild);
-            }
-            if (!op.itemClickedThisFrame && windowClicked) {
-                hierarchy->clearSelection();
             }
         }
     }

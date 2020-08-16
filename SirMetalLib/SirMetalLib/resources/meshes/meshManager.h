@@ -6,6 +6,7 @@
 #import <string>
 #import <unordered_map>
 
+#import "SirMetalLib/MBEMathUtilities.h"
 namespace SirMetal {
     //TODO: temp public, we will need to build abstraction to render
     //this data potentially without the need to extract it from here
@@ -15,6 +16,8 @@ namespace SirMetal {
         id indexBuffer;
         uint32_t primitivesCount;
         std::string name;
+        //Temp model matrix to allow manipulation
+        matrix_float4x4 modelMatrix;
     };
 
     class MeshManager {

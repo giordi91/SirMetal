@@ -14,6 +14,7 @@
 #import "SirMetalLib/core/flags.h"
 #import "../../vendors/imguizmo/imguizmo.h"
 #import "SirMetalLib/MBEMathUtilities.h"
+#import "SirMetalLib/resources/meshes/meshManager.h"
 
 
 namespace SirMetal {
@@ -30,14 +31,17 @@ namespace SirMetal {
             static bool boundSizing = false;
             static bool boundSizingSnap = false;
 
+            // 18-19-20 are respectively 1-2-3 number on keyboard
+            if (ImGui::IsKeyPressed(49)) {
+                mCurrentGizmoOperation = ImGuizmo::TRANSLATE;
+            }
+            if (ImGui::IsKeyPressed(50)) {
+                mCurrentGizmoOperation = ImGuizmo::ROTATE;
+            }
+            if (ImGui::IsKeyPressed(51)) // r Key
+                mCurrentGizmoOperation = ImGuizmo::SCALE;
             /*
             if (editTransformDecomposition) {
-                if (ImGui::IsKeyPressed(90))
-                    mCurrentGizmoOperation = ImGuizmo::TRANSLATE;
-                if (ImGui::IsKeyPressed(69))
-                    mCurrentGizmoOperation = ImGuizmo::ROTATE;
-                if (ImGui::IsKeyPressed(82)) // r Key
-                    mCurrentGizmoOperation = ImGuizmo::SCALE;
                 if (ImGui::RadioButton("Translate", mCurrentGizmoOperation == ImGuizmo::TRANSLATE))
                     mCurrentGizmoOperation = ImGuizmo::TRANSLATE;
                 ImGui::SameLine();
@@ -177,22 +181,30 @@ namespace SirMetal {
             float y = ImGui::GetCursorScreenPos().y;
             ImGui::Image(SirMetal::CONTEXT->viewportTexture, viewportPanelSize);
 
-            Camera &camera = CONTEXT->camera;
-            float *view = (float *) &camera.viewInverse;
-            float *proj = (float *) &camera.projection;
-            auto matrix = matrix_float4x4_translation(vector_float3{0, 0, 0});
-            float *mat = (float *) &matrix;
+            bool somethingSelected = CONTEXT->world.hierarchy.getSelectedId() != -1;
+            bool isManipulator = somethingSelected;
+            if(somethingSelected) {
+                Camera &camera = CONTEXT->camera;
+                float *view = (float *) &camera.viewInverse;
+                float *proj = (float *) &camera.projection;
+                auto handle = SirMetal::CONTEXT->managers.meshManager->getHandleFromName("lucy");
+                auto *data = SirMetal::CONTEXT->managers.meshManager->getMeshData(handle);
+                const matrix_float4x4 *modelMatrix = &data->modelMatrix;
+                //auto matrix = matrix_float4x4_translation(vector_float3{0, 0, 0});
+                //auto matrix = matrix_float4x4_translation(vector_float3{0, 0, 0});
+                float *mat = (float *) modelMatrix;
 
-            ImGuiIO &io = ImGui::GetIO();
-            node = ImGui::DockBuilderGetNode(dockIds.root);
-            dockPos = node->Pos;
-            ImGuizmo::SetDrawlist();
-            EditTransform(view, proj, mat, true,
-                    {x,y},
-                    ImVec2{newViewportSize.x,newViewportSize.y});
+                ImGuiIO &io = ImGui::GetIO();
+                node = ImGui::DockBuilderGetNode(dockIds.root);
+                dockPos = node->Pos;
+                ImGuizmo::SetDrawlist();
+                EditTransform(view, proj, mat, true,
+                        {x, y},
+                        ImVec2{newViewportSize.x, newViewportSize.y});
 
-            //EditTransform(view, proj, mat, true, ImVec2{0, 0},
-            //        ImVec2{700, 300});
+                isManipulator &=  ImGuizmo::IsUsing();
+            }
+            setFlagBitfield(CONTEXT->flags.interaction, InteractionFlagsBits::InteractionViewportGuizmo, isManipulator);
 
             ImGui::End();
             pp = ImGui::GetMainViewport()->Pos;
@@ -214,6 +226,10 @@ namespace SirMetal {
             ImGui::SetNextWindowDockID(dockIds
                     .left, ImGuiCond_Appearing);
             if (ImGui::Begin("Hierarchy", &m_showHierarchy)) {
+                if(ImGui::Button("Clear Selection"))
+                {
+                    CONTEXT->world.hierarchy.clearSelection();
+                }
                 m_hierarchy.render(&CONTEXT->world.hierarchy, &m_showHierarchy);
 
                 ImGui::End();
@@ -264,7 +280,6 @@ namespace SirMetal {
         }
 
         void EditorUI::show2(uint32_t i, uint32_t i1) {
-            //return;
             Camera &camera = CONTEXT->camera;
             float *view = (float *) &camera.viewInverse;
             float *proj = (float *) &camera.projection;

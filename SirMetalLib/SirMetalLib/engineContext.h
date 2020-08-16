@@ -27,7 +27,8 @@ namespace SirMetal {
 
     enum InteractionFlagsBits {
         InteractionNone = 0,
-        InteractionViewportFocused = 1
+        InteractionViewportFocused = 1,
+        InteractionViewportGuizmo = 2,
     };
 
     typedef uint32_t InteractionFlags ;
