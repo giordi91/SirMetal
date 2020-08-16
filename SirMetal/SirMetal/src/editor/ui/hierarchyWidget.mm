@@ -48,7 +48,6 @@ namespace SirMetal {
                 op.itemClickedThisFrame |= true;
             }
 
-
             //dealing with drag and drop
             //if we start the drag we store which object we are moving around
             if (ImGui::BeginDragDropSource(ImGuiDragDropFlags_None)) {

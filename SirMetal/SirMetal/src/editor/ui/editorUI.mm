@@ -4,6 +4,7 @@
 //
 
 #import <iostream>
+#import <simd/simd.h>
 
 #import "SirMetalLib/engineContext.h"
 #import "editorUI.h"
@@ -11,9 +12,87 @@
 #import "SirMetalLib/core/logging/log.h"
 #import "project.h"
 #import "SirMetalLib/core/flags.h"
+#import "../../vendors/imguizmo/imguizmo.h"
+#import "SirMetalLib/MBEMathUtilities.h"
+
 
 namespace SirMetal {
     namespace Editor {
+
+        void EditTransform(const float *cameraView, float *cameraProjection, float *matrix, bool editTransformDecomposition,
+                ImVec2 screenCorner, ImVec2 screenWidth) {
+            static ImGuizmo::OPERATION mCurrentGizmoOperation(ImGuizmo::TRANSLATE);
+            static ImGuizmo::MODE mCurrentGizmoMode(ImGuizmo::LOCAL);
+            static bool useSnap = false;
+            static float snap[3] = {1.f, 1.f, 1.f};
+            static float bounds[] = {-0.5f, -0.5f, -0.5f, 0.5f, 0.5f, 0.5f};
+            static float boundsSnap[] = {0.1f, 0.1f, 0.1f};
+            static bool boundSizing = false;
+            static bool boundSizingSnap = false;
+
+            /*
+            if (editTransformDecomposition) {
+                if (ImGui::IsKeyPressed(90))
+                    mCurrentGizmoOperation = ImGuizmo::TRANSLATE;
+                if (ImGui::IsKeyPressed(69))
+                    mCurrentGizmoOperation = ImGuizmo::ROTATE;
+                if (ImGui::IsKeyPressed(82)) // r Key
+                    mCurrentGizmoOperation = ImGuizmo::SCALE;
+                if (ImGui::RadioButton("Translate", mCurrentGizmoOperation == ImGuizmo::TRANSLATE))
+                    mCurrentGizmoOperation = ImGuizmo::TRANSLATE;
+                ImGui::SameLine();
+                if (ImGui::RadioButton("Rotate", mCurrentGizmoOperation == ImGuizmo::ROTATE))
+                    mCurrentGizmoOperation = ImGuizmo::ROTATE;
+                ImGui::SameLine();
+                if (ImGui::RadioButton("Scale", mCurrentGizmoOperation == ImGuizmo::SCALE))
+                    mCurrentGizmoOperation = ImGuizmo::SCALE;
+                float matrixTranslation[3], matrixRotation[3], matrixScale[3];
+                ImGuizmo::DecomposeMatrixToComponents(matrix, matrixTranslation, matrixRotation, matrixScale);
+                ImGui::InputFloat3("Tr", matrixTranslation, 3);
+                ImGui::InputFloat3("Rt", matrixRotation, 3);
+                ImGui::InputFloat3("Sc", matrixScale, 3);
+                ImGuizmo::RecomposeMatrixFromComponents(matrixTranslation, matrixRotation, matrixScale, matrix);
+
+                if (mCurrentGizmoOperation != ImGuizmo::SCALE) {
+                    if (ImGui::RadioButton("Local", mCurrentGizmoMode == ImGuizmo::LOCAL))
+                        mCurrentGizmoMode = ImGuizmo::LOCAL;
+                    ImGui::SameLine();
+                    if (ImGui::RadioButton("World", mCurrentGizmoMode == ImGuizmo::WORLD))
+                        mCurrentGizmoMode = ImGuizmo::WORLD;
+                }
+                if (ImGui::IsKeyPressed(83))
+                    useSnap = !useSnap;
+                ImGui::Checkbox("", &useSnap);
+                ImGui::SameLine();
+
+                switch (mCurrentGizmoOperation) {
+                    case ImGuizmo::TRANSLATE:
+                        ImGui::InputFloat3("Snap", &snap[0]);
+                        break;
+                    case ImGuizmo::ROTATE:
+                        ImGui::InputFloat("Angle Snap", &snap[0]);
+                        break;
+                    case ImGuizmo::SCALE:
+                        ImGui::InputFloat("Scale Snap", &snap[0]);
+                        break;
+                }
+                ImGui::Checkbox("Bound Sizing", &boundSizing);
+                if (boundSizing) {
+                    ImGui::PushID(3);
+                    ImGui::Checkbox("", &boundSizingSnap);
+                    ImGui::SameLine();
+                    ImGui::InputFloat3("Snap", boundsSnap);
+                    ImGui::PopID();
+                }
+            }
+            */
+            ImGuiIO &io = ImGui::GetIO();
+            ImGuizmo::SetRect(screenCorner.x, screenCorner.y,
+                    screenWidth.x, screenWidth.y);
+            ImGuizmo::Manipulate(cameraView, cameraProjection, mCurrentGizmoOperation, mCurrentGizmoMode, matrix, NULL, useSnap ? &snap[0] : NULL, boundSizing ? bounds : NULL, boundSizingSnap ? boundsSnap : NULL);
+        }
+
+
         void EditorUI::show(int width, int height) {
             setupDockSpaceLayout(width, height);
 
@@ -82,14 +161,41 @@ namespace SirMetal {
             //if our viewport is hovered we set the flag, that will allow
             //our camera controller to behave properly
             bool isWindowFocused = ImGui::IsWindowFocused(ImGuiFocusedFlags_RootWindow);
-            setFlagBitfield(CONTEXT->flags.interaction,InteractionFlagsBits::InteractionViewportFocused,isWindowFocused);
+            setFlagBitfield(CONTEXT->flags.interaction, InteractionFlagsBits::InteractionViewportFocused, isWindowFocused);
 
             ImVec2 newViewportSize = ImGui::GetContentRegionAvail();
+            ImVec2 viewportPos = ImGui::GetWindowPos();
+            ImVec2 vMin = ImGui::GetWindowContentRegionMin();
+            ImGuiDockNode* node = ImGui::DockBuilderGetNode(dockIds.root);
+            ImVec2 dockPos = node->Pos;
+            ImVec2 pp = ImGui::GetMainViewport()->Pos;
+            //ImVec2 vMax = ImGui::GetWindowContentRegionMax();
             bool viewportSizeChanged = newViewportSize.x != viewportPanelSize.x || newViewportSize.y != viewportPanelSize.y;
-            setFlagBitfield(CONTEXT->flags.viewEvents, ViewEventsFlagsBits::ViewEventsViewportSizeChanged,viewportSizeChanged);
+            setFlagBitfield(CONTEXT->flags.viewEvents, ViewEventsFlagsBits::ViewEventsViewportSizeChanged, viewportSizeChanged);
             viewportPanelSize = newViewportSize;
+            float x = ImGui::GetCursorScreenPos().x;
+            float y = ImGui::GetCursorScreenPos().y;
             ImGui::Image(SirMetal::CONTEXT->viewportTexture, viewportPanelSize);
+
+            Camera &camera = CONTEXT->camera;
+            float *view = (float *) &camera.viewInverse;
+            float *proj = (float *) &camera.projection;
+            auto matrix = matrix_float4x4_translation(vector_float3{0, 0, 0});
+            float *mat = (float *) &matrix;
+
+            ImGuiIO &io = ImGui::GetIO();
+            node = ImGui::DockBuilderGetNode(dockIds.root);
+            dockPos = node->Pos;
+            ImGuizmo::SetDrawlist();
+            EditTransform(view, proj, mat, true,
+                    {x,y},
+                    ImVec2{newViewportSize.x,newViewportSize.y});
+
+            //EditTransform(view, proj, mat, true, ImVec2{0, 0},
+            //        ImVec2{700, 300});
+
             ImGui::End();
+            pp = ImGui::GetMainViewport()->Pos;
 
             ImGui::SetNextWindowDockID(dockIds
                     .bottom, ImGuiCond_Appearing);
@@ -102,12 +208,12 @@ namespace SirMetal {
                     .bottom, ImGuiCond_Appearing);
             ImGui::Begin("log", (bool *) 0);
             const std::string *buff = Log::getBuffer();
-            ImGui::Text("%s",buff->c_str());
+            ImGui::Text("%s", buff->c_str());
             ImGui::End();
 
             ImGui::SetNextWindowDockID(dockIds
                     .left, ImGuiCond_Appearing);
-            if(ImGui::Begin("Hierarchy", &m_showHierarchy)){
+            if (ImGui::Begin("Hierarchy", &m_showHierarchy)) {
                 m_hierarchy.render(&CONTEXT->world.hierarchy, &m_showHierarchy);
 
                 ImGui::End();
@@ -126,6 +232,11 @@ namespace SirMetal {
                 m_cameraSettings.render(&Editor::PROJECT->getSettings().m_cameraConfig, &showCamera);
             }
             //ImGui::ShowDemoWindow((bool*)0);
+
+
+            //ImGuiIO &io = ImGui::GetIO();
+            //ImGuizmo::SetRect(0, 0, io.DisplaySize.x, io.DisplaySize.y);
+            //ImGuizmo::Manipulate(cameraView, cameraProjection, mCurrentGizmoOperation, mCurrentGizmoMode, matrix, NULL, useSnap ? &snap[0] : NULL, boundSizing ? bounds : NULL, boundSizingSnap ? boundsSnap : NULL);
 
         }
 
@@ -150,6 +261,20 @@ namespace SirMetal {
                 ImGui::DockBuilderDockWindow("Inspector", dockIds.right);
                 ImGui::DockBuilderFinish(dockIds.root);
             }
+        }
+
+        void EditorUI::show2(uint32_t i, uint32_t i1) {
+            //return;
+            Camera &camera = CONTEXT->camera;
+            float *view = (float *) &camera.viewInverse;
+            float *proj = (float *) &camera.projection;
+            auto matrix = matrix_float4x4_translation(vector_float3{0, 0, 0});
+            float *mat = (float *) &matrix;
+
+            ImGuiIO &io = ImGui::GetIO();
+            EditTransform(view, proj, mat, true, ImVec2{0, 0},
+                    ImVec2{io.DisplaySize.x, io.DisplaySize.y});
+
         }
     }
 }

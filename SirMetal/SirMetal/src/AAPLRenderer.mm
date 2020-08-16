@@ -18,6 +18,7 @@
 #import "SirMetalLib/graphics/materialManager.h"
 #import "SirMetalLib/graphics/renderingContext.h"
 #import "SirMetalLib/SirMetalLib.h"
+#import "ImGuizmo.h"
 
 static const NSInteger MBEInFlightBufferCount = 3;
 const MTLIndexType MBEIndexType = MTLIndexTypeUInt32;
@@ -292,6 +293,7 @@ void updateVoidIndices(int w, int h, id <MTLBuffer> buffer) {
     ImGui::NewFrame();
 
 
+
     //[self showImguiContent];
     editorUI.show(SirMetal::CONTEXT->screenWidth, SirMetal::CONTEXT->screenHeight);
     // Rendering
@@ -531,8 +533,35 @@ PSOCache getPSO(id <MTLDevice> device, const SirMetal::DrawTracker &tracker, con
 
         [uiPass endEncoding];
 
-        SirMetal::endFrame(SirMetal::CONTEXT);
+    } else
+    {
+        MTLRenderPassDescriptor *uiPassDescriptor = [[MTLRenderPassDescriptor alloc] init];
+        MTLRenderPassColorAttachmentDescriptor *uiColorAttachment = uiPassDescriptor.colorAttachments[0];
+        uiColorAttachment.texture = view.currentDrawable.texture;
+        uiColorAttachment.clearColor = MTLClearColorMake(0.0, 0.0, 0.0, 1.0);
+        uiColorAttachment.storeAction = MTLStoreActionStore;
+        uiColorAttachment.loadAction = MTLLoadActionLoad;
+
+        MTLRenderPassDepthAttachmentDescriptor *uiDepthAttachment = uiPassDescriptor.depthAttachment;
+        //uiDepthAttachment.texture = self.depthTextureGUI;
+        uiDepthAttachment.texture = nil;
+        uiDepthAttachment.clearDepth = 1.0;
+        uiDepthAttachment.storeAction = MTLStoreActionDontCare;
+        uiDepthAttachment.loadAction = MTLLoadActionClear;
+
+        uiPassDescriptor.renderTargetWidth = w;
+        uiPassDescriptor.renderTargetHeight = h;
+
+        id <MTLRenderCommandEncoder> uiPass = [commandBuffer renderCommandEncoderWithDescriptor:uiPassDescriptor];
+
+
+        [self renderUI2:view :passDescriptor :commandBuffer :uiPass];
+
+
+        [uiPass endEncoding];
+
     }
+    SirMetal::endFrame(SirMetal::CONTEXT);
 
     [commandBuffer presentDrawable:view.currentDrawable];
 
@@ -544,6 +573,24 @@ PSOCache getPSO(id <MTLDevice> device, const SirMetal::DrawTracker &tracker, con
     [commandBuffer commit];
 
 
+}
+
+- (void)renderUI2:(MTKView *)view :(MTLRenderPassDescriptor *)descriptor :(id <MTLCommandBuffer>)buffer :(id <MTLRenderCommandEncoder>)pass {
+
+    // Start the Dear ImGui frame
+    ImGui_ImplOSX_NewFrame(view);
+    ImGui_ImplMetal_NewFrame(descriptor);
+    ImGui::NewFrame();
+    ImGuizmo::BeginFrame();
+
+
+
+    //[self showImguiContent];
+    editorUI.show2(SirMetal::CONTEXT->screenWidth, SirMetal::CONTEXT->screenHeight);
+    // Rendering
+    ImGui::Render();
+    ImDrawData *drawData = ImGui::GetDrawData();
+    ImGui_ImplMetal_RenderDrawData(drawData, buffer, pass);
 }
 
 - (void)renderSelection:(float)w :(float)h :(id <MTLCommandBuffer>)commandBuffer

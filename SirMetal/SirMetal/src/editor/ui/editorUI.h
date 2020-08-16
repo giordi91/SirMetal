@@ -22,6 +22,8 @@ namespace SirMetal {
                 return viewportPanelSize;
             };
 
+            void show2(uint32_t i, uint32_t i1);
+
         private:
             void setupDockSpaceLayout(int width, int height);
 
