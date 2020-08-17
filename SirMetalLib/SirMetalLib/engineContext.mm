@@ -24,7 +24,7 @@ namespace SirMetal {
         MeshManager* meshManager= new MeshManager;
         meshManager->initialize(device,queue);
 
-        CONTEXT = new EngineContext{ 0,0, nullptr
+        CONTEXT = new EngineContext{ nullptr
         ,{
             textureManager,
             shaderManager,
@@ -33,7 +33,6 @@ namespace SirMetal {
         CONTEXT->cameraController.setCamera(&CONTEXT->camera);
 
         return true;
-
     }
 
     void endFrame(EngineContext *context) {

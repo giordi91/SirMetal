@@ -4,7 +4,7 @@
 #import <unordered_map>
 #import <stdint.h>
 
-#import <SirMetalLib/resources/handle.h>
+#import "SirMetalLib/resources/handle.h"
 
 namespace SirMetal {
     enum BUFFER_FLAGS_BITS {
@@ -17,10 +17,13 @@ namespace SirMetal {
     class GPUMemoryAllocator {
 
     public:
+        GPUMemoryAllocator() = default;
+
         ~GPUMemoryAllocator() = default;
 
         // deleted method to avoid copy, you can still move it though
         GPUMemoryAllocator(const GPUMemoryAllocator &) = delete;
+
         GPUMemoryAllocator &operator=(const GPUMemoryAllocator &) = delete;
 
         void initialize(id device) {
@@ -31,6 +34,8 @@ namespace SirMetal {
 
         BufferHandle allocate(const uint32_t sizeInBytes,
                 const char *name, const BUFFER_FLAGS flags);
+
+        void update(BufferHandle handle, void *data, uint32_t offset, uint32_t size) const;
 
         /*
         void free(BufferHandle handle) override;
@@ -45,6 +50,8 @@ namespace SirMetal {
             return m_bufferStorage.getConstRef(idx);
         }
          */
+        id getBuffer(BufferHandle handle);
+
     private:
         struct Buffer {
             id buffer;
@@ -53,6 +60,7 @@ namespace SirMetal {
             uint32_t offset;
             uint32_t range;
             uint32_t allocationSize;
+            BUFFER_FLAGS flags;
         };
 
     private:

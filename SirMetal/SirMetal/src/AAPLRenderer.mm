@@ -19,6 +19,7 @@
 #import "SirMetalLib/graphics/renderingContext.h"
 #import "SirMetalLib/SirMetalLib.h"
 #import "ImGuizmo.h"
+#import "SirMetalLib/core/memory/gpu/GPUMemoryAllocator.h"
 
 static const NSInteger MBEInFlightBufferCount = 3;
 const MTLIndexType MBEIndexType = MTLIndexTypeUInt32;
@@ -47,6 +48,8 @@ static SirMetal::Material m_jumpFloodMaskMaterial;
 static SirMetal::Material m_jumpFloodInitMaterial;
 static SirMetal::Material m_jumpOutlineMaterial;
 static SirMetal::DrawTracker m_drawTracker;
+static SirMetal::GPUMemoryAllocator m_gpuAlloc;
+static SirMetal::BufferHandle m_uniformHandle;
 static const uint MAX_COLOR_ATTACHMENT = 8;
 
 @interface AAPLRenderer ()
@@ -59,7 +62,7 @@ static const uint MAX_COLOR_ATTACHMENT = 8;
 @property(nonatomic) SirMetal::TextureHandle jumpHandle;
 @property(nonatomic) SirMetal::TextureHandle jumpHandle2;
 @property(nonatomic) SirMetal::TextureHandle jumpMaskHandle;
-@property(strong) id <MTLBuffer> uniformBuffer;
+//@property(strong) id <MTLBuffer> uniformBuffer;
 @property(strong) id <MTLBuffer> floodUniform;
 @property(strong) dispatch_semaphore_t displaySemaphore;
 @property(strong) dispatch_semaphore_t resizeSemaphore;
@@ -126,6 +129,7 @@ void updateVoidIndices(int w, int h, id <MTLBuffer> buffer) {
         testHello();
         TestClass c;
         c.helloFromClass();
+        m_gpuAlloc.initialize(_device);
     }
     //set up temporary stuff
     m_opaqueMaterial.shaderName = "Shaders";
@@ -192,16 +196,19 @@ void updateVoidIndices(int w, int h, id <MTLBuffer> buffer) {
 }
 
 - (void)makeBuffers {
+    /*
     _uniformBuffer = [_device newBufferWithLength:AlignUp(sizeof(MBEUniforms), MBEBufferAlignment) * MBEInFlightBufferCount
                                           options:MTLResourceOptionCPUCacheModeDefault];
     [_uniformBuffer setLabel:@"Uniforms"];
+     */
+    m_uniformHandle = m_gpuAlloc.allocate(AlignUp(sizeof(MBEUniforms), MBEBufferAlignment) * MBEInFlightBufferCount, "Uniform", 0);
 
     //allocating 16 values, then just moving the offset when binding, now
     //i am not sure what is the minimum stride so I am going for a 32*4 bits
     int sizeFlood = 256 * 16;
     _floodUniform = [_device newBufferWithLength:AlignUp(sizeFlood, MBEBufferAlignment) * MBEInFlightBufferCount
                                          options:MTLResourceOptionCPUCacheModeDefault];
-    [_uniformBuffer setLabel:@"floodUniforms"];
+    [_floodUniform setLabel:@"floodUniforms"];
 
     int w = 256;
     int h = 256;
@@ -240,7 +247,8 @@ void updateVoidIndices(int w, int h, id <MTLBuffer> buffer) {
     }
     cameraController.updateProjection(screenWidth, screenHeight);
     const NSUInteger uniformBufferOffset = AlignUp(sizeof(MBEUniforms), MBEBufferAlignment) * self.bufferIndex;
-    memcpy((char *) ([self.uniformBuffer contents]) + uniformBufferOffset, &uniforms, sizeof(uniforms));
+    //memcpy((char *) ([self.uniformBuffer contents]) + uniformBufferOffset, &uniforms, sizeof(uniforms));
+    m_gpuAlloc.update(m_uniformHandle, &uniforms, uniformBufferOffset, sizeof(uniforms));
 }
 
 - (void)createOffscreenTexture:(int)width :(int)height {
@@ -480,7 +488,7 @@ PSOCache getPSO(id <MTLDevice> device, const SirMetal::DrawTracker &tracker, con
 
     const NSUInteger uniformBufferOffset = AlignUp(sizeof(MBEUniforms), MBEBufferAlignment) * self.bufferIndex;
 
-    [renderPass setVertexBuffer:self.uniformBuffer offset:uniformBufferOffset atIndex:1];
+    [renderPass setVertexBuffer:m_gpuAlloc.getBuffer(m_uniformHandle) offset:uniformBufferOffset atIndex:1];
 
     auto nodes = SirMetal::CONTEXT->world.hierarchy.getNodes();
     size_t nodeSize = nodes.size();
@@ -621,7 +629,7 @@ PSOCache getPSO(id <MTLDevice> device, const SirMetal::DrawTracker &tracker, con
 
     const NSUInteger uniformBufferOffset = AlignUp(sizeof(MBEUniforms), MBEBufferAlignment) * self.bufferIndex;
 
-    [renderPass setVertexBuffer:self.uniformBuffer offset:uniformBufferOffset atIndex:1];
+    [renderPass setVertexBuffer:m_gpuAlloc.getBuffer(m_uniformHandle) offset:uniformBufferOffset atIndex:1];
 
     int selectedId = SirMetal::CONTEXT->world.hierarchy.getSelectedId();
     SirMetal::DenseTreeNode& selectedNode= SirMetal::CONTEXT->world.hierarchy.getNodes()[selectedId];
