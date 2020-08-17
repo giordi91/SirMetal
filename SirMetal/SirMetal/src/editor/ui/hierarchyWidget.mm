@@ -8,7 +8,7 @@
 
 namespace SirMetal {
     namespace Editor {
-        static constexpr char *DRAG_KEY = "drag-drop";
+        static const char * const DRAG_KEY = "drag-drop";
         struct ReparentOP {
             uint32_t sourceID;
             uint32_t targetID;
@@ -77,9 +77,6 @@ namespace SirMetal {
         }
 
         void Editor::HierarchyWidget::render(Hierarchy *hierarchy, bool *showWindow) {
-            //here we check if the mouse was clicked and our window was in focus
-            bool windowClicked = ImGui::IsMouseClicked(ImGuiMouseButton_Left) & ImGui::IsWindowFocused();
-
             ReparentOP op{0, 0, 0};
             const std::vector<DenseTreeNode> &nodes = hierarchy->getNodes();
 

@@ -8,7 +8,7 @@
 
 namespace SirMetal {
     enum BUFFER_FLAGS_BITS {
-        BUFFER_FLAG_RANDOM_NONE = 0,
+        BUFFER_FLAG_NONE = 0,
         BUFFER_FLAG_GPU_ONLY = 1,
     };
 
@@ -62,7 +62,6 @@ namespace SirMetal {
             uint32_t allocationSize;
             BUFFER_FLAGS flags;
         };
-
     private:
         std::unordered_map<uint32_t, Buffer> m_bufferStorage;
         uint32_t versionCounter = 1;

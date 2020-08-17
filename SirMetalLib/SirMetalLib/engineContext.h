@@ -13,16 +13,17 @@ namespace SirMetal {
     class ShaderManager;
     class TextureManager;
     class MeshManager;
+    class ConstantBufferManager;
 
-    struct World
-    {
+    struct World {
         Hierarchy hierarchy;
     };
 
     struct Resources {
         TextureManager *textureManager = nullptr;
         ShaderManager *shaderManager = nullptr;
-        MeshManager *meshManager= nullptr;
+        MeshManager *meshManager = nullptr;
+        ConstantBufferManager *constantBufferManager = nullptr;
     };
 
     enum InteractionFlagsBits {
@@ -31,7 +32,7 @@ namespace SirMetal {
         InteractionViewportGuizmo = 2,
     };
 
-    typedef uint32_t InteractionFlags ;
+    typedef uint32_t InteractionFlags;
 
     enum ViewEventsFlagsBits {
         ViewEventsNone = 0,
@@ -58,12 +59,12 @@ namespace SirMetal {
         uint32_t screenWidth;
         uint32_t screenHeight;
         uint32_t inFlightFrames = 3;
-
-
+        uint32_t frame;
     };
 
     bool initializeContext(id device, id queue);
-    void endFrame(EngineContext* context);
+
+    void endFrame(EngineContext *context);
 
     extern EngineContext *CONTEXT;
 }

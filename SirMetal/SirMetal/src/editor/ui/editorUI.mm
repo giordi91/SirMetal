@@ -12,7 +12,7 @@
 #import "SirMetalLib/core/logging/log.h"
 #import "project.h"
 #import "SirMetalLib/core/flags.h"
-#import "../../vendors/imguizmo/imguizmo.h"
+#import "../../vendors/imguizmo/ImGuizmo.h"
 #import "SirMetalLib/MBEMathUtilities.h"
 #import "SirMetalLib/resources/meshes/meshManager.h"
 
@@ -90,7 +90,6 @@ namespace SirMetal {
                 }
             }
             */
-            ImGuiIO &io = ImGui::GetIO();
             ImGuizmo::SetRect(screenCorner.x, screenCorner.y,
                     screenWidth.x, screenWidth.y);
             ImGuizmo::Manipulate(cameraView, cameraProjection, mCurrentGizmoOperation, mCurrentGizmoMode, matrix, NULL, useSnap ? &snap[0] : NULL, boundSizing ? bounds : NULL, boundSizingSnap ? boundsSnap : NULL);
@@ -191,7 +190,6 @@ namespace SirMetal {
                 const matrix_float4x4 *modelMatrix = &data->modelMatrix;
                 float *mat = (float *) modelMatrix;
 
-                ImGuiIO &io = ImGui::GetIO();
                 ImGuizmo::SetDrawlist();
                 EditTransform(view, proj, mat, true,
                         {x, y},

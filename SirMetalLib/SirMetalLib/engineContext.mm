@@ -1,17 +1,19 @@
 #include "engineContext.h"
 #include <stdio.h>
 #include <stdlib.h>
+#import <SirMetalLib/graphics/constantBufferManager.h>
 
 #import "Metal/Metal.h"
 
 #import "SirMetalLib/resources/shaderManager.h"
 #import "SirMetalLib/resources/textureManager.h"
 #import "SirMetalLib/resources/meshes/meshManager.h"
-#import "SirMetalLib/core/logging/log.h"
+#import "SirMetalLib/core/core.h"
 
 namespace SirMetal {
 
     EngineContext *CONTEXT = nullptr;
+    static const uint32_t CONSTANT_BUFFER_MANAGER_ALLOC_POOL_IN_MB = 16;
 
     bool initializeContext(id device, id queue)
     {
@@ -23,12 +25,15 @@ namespace SirMetal {
         textureManager->initialize();
         MeshManager* meshManager= new MeshManager;
         meshManager->initialize(device,queue);
+        ConstantBufferManager* constantBufferManager = new ConstantBufferManager();
+        constantBufferManager->initialize(device,CONSTANT_BUFFER_MANAGER_ALLOC_POOL_IN_MB* MB_TO_BYTE);
 
         CONTEXT = new EngineContext{ nullptr
         ,{
             textureManager,
             shaderManager,
             meshManager,
+            constantBufferManager,
         }};
         CONTEXT->cameraController.setCamera(&CONTEXT->camera);
 
@@ -40,6 +45,7 @@ namespace SirMetal {
         //if anything relies on it does not continue getting triggered
         context->input.m_mouseDeltaX = 0;
         context->input.m_mouseDeltaY = 0;
+        context->frame++;
     }
 
 
