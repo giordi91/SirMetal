@@ -29,7 +29,7 @@ namespace SirMetal {
         ConstantBufferData &constantData = m_constBuffers[dataIndex];
         bool isBuffered = (constantData.flags & CONSTANT_BUFFER_FLAG_BUFFERED) > 0;
         uint32_t currentFrame = CONTEXT->frame % CONTEXT->inFlightFrames;
-        uint32_t perFrameOffset = toMultipleOfAlignment(constantData.userRequestedSize) + currentFrame;
+        uint32_t perFrameOffset = toMultipleOfAlignment(constantData.userRequestedSize) * currentFrame;
         uint32_t finalOffset = static_cast<uint32_t>(constantData.range.m_offset + perFrameOffset * isBuffered);
 
         auto bufferHandle = m_bufferPools[constantData.allocIndex].bufferHandle;
@@ -63,5 +63,18 @@ namespace SirMetal {
         //if we are here it means we need a new buffer
         allocateBufferPool();
         return static_cast<uint32_t>(m_bufferPools.size() - 1);
+    }
+
+    BindInfo ConstantBufferManager::getBindInfo(const ConstantBufferHandle handle) {
+
+        assert(getTypeFromHandle(handle) == HANDLE_TYPE::CONSTANT_BUFFER);
+        int dataIndex = getIndexFromHandle(handle);
+        ConstantBufferData &constantData = m_constBuffers[dataIndex];
+        bool isBuffered = (constantData.flags & CONSTANT_BUFFER_FLAG_BUFFERED) > 0;
+        auto bufferHandle = m_bufferPools[constantData.allocIndex].bufferHandle;
+
+        return {m_allocator.getBuffer(bufferHandle),
+                static_cast<uint32_t>(constantData.range.m_offset),
+                static_cast<uint32_t>(constantData.range.m_size)};
     }
 }

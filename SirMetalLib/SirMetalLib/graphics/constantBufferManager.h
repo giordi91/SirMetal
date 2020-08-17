@@ -1,9 +1,9 @@
 #pragma once
 
 #import <cstdint>
-#import <SirMetalLib/core/memory/gpu/GPUMemoryAllocator.h>
 #import <vector>
-#import <SirMetalLib/core/memory/cpu/linearBufferManager.h>
+#import "SirMetalLib/core/memory/gpu/GPUMemoryAllocator.h"
+#import "SirMetalLib/core/memory/cpu/linearBufferManager.h"
 
 namespace SirMetal {
     enum CONSTANT_BUFFER_FLAGS_BITS {
@@ -11,6 +11,13 @@ namespace SirMetal {
         CONSTANT_BUFFER_FLAG_BUFFERED = 1,
     };
     typedef uint32_t CONSTANT_BUFFER_FLAGS;
+
+    struct BindInfo
+    {
+        id buffer;
+        uint32_t offset;
+        uint32_t size;
+    };
 
     class ConstantBufferManager {
     public:
@@ -22,6 +29,7 @@ namespace SirMetal {
         // deleted method to avoid copy, you can still move it though
         ConstantBufferManager(const ConstantBufferManager &) = delete;
         ConstantBufferManager &operator=(const ConstantBufferManager &) = delete;
+        BindInfo getBindInfo(const ConstantBufferHandle handle);
     private:
         struct PoolTracker
         {
