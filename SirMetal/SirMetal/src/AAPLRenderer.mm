@@ -20,6 +20,7 @@
 #import "SirMetalLib/SirMetalLib.h"
 #import "ImGuizmo.h"
 #import "SirMetalLib/core/memory/gpu/GPUMemoryAllocator.h"
+#import "SirMetalLib/graphics/constantBufferManager.h"
 
 static const NSInteger MBEInFlightBufferCount = 3;
 const MTLIndexType MBEIndexType = MTLIndexTypeUInt32;
@@ -49,7 +50,7 @@ static SirMetal::Material m_jumpFloodInitMaterial;
 static SirMetal::Material m_jumpOutlineMaterial;
 static SirMetal::DrawTracker m_drawTracker;
 static SirMetal::GPUMemoryAllocator m_gpuAlloc;
-static SirMetal::BufferHandle m_uniformHandle;
+static SirMetal::ConstantBufferHandle m_uniformHandle;
 static const uint MAX_COLOR_ATTACHMENT = 8;
 
 @interface AAPLRenderer ()
@@ -201,7 +202,8 @@ void updateVoidIndices(int w, int h, id <MTLBuffer> buffer) {
                                           options:MTLResourceOptionCPUCacheModeDefault];
     [_uniformBuffer setLabel:@"Uniforms"];
      */
-    m_uniformHandle = m_gpuAlloc.allocate(AlignUp(sizeof(MBEUniforms), MBEBufferAlignment) * MBEInFlightBufferCount, "Uniform", 0);
+    auto* cbManager = SirMetal::CONTEXT->managers.constantBufferManager;
+    m_uniformHandle = cbManager->allocate(sizeof(MBEUniforms),SirMetal::CONSTANT_BUFFER_FLAG_BUFFERED);
 
     //allocating 16 values, then just moving the offset when binding, now
     //i am not sure what is the minimum stride so I am going for a 32*4 bits
@@ -248,7 +250,8 @@ void updateVoidIndices(int w, int h, id <MTLBuffer> buffer) {
     cameraController.updateProjection(screenWidth, screenHeight);
     const NSUInteger uniformBufferOffset = AlignUp(sizeof(MBEUniforms), MBEBufferAlignment) * self.bufferIndex;
     //memcpy((char *) ([self.uniformBuffer contents]) + uniformBufferOffset, &uniforms, sizeof(uniforms));
-    m_gpuAlloc.update(m_uniformHandle, &uniforms, uniformBufferOffset, sizeof(uniforms));
+    auto* cbManager = SirMetal::CONTEXT->managers.constantBufferManager;
+    cbManager->update(m_uniformHandle, &uniforms);
 }
 
 - (void)createOffscreenTexture:(int)width :(int)height {
@@ -488,7 +491,10 @@ PSOCache getPSO(id <MTLDevice> device, const SirMetal::DrawTracker &tracker, con
 
     const NSUInteger uniformBufferOffset = AlignUp(sizeof(MBEUniforms), MBEBufferAlignment) * self.bufferIndex;
 
-    [renderPass setVertexBuffer:m_gpuAlloc.getBuffer(m_uniformHandle) offset:uniformBufferOffset atIndex:1];
+    auto* cbManager = SirMetal::CONTEXT->managers.constantBufferManager;
+    SirMetal::BindInfo  bindInfo = cbManager->getBindInfo(m_uniformHandle);
+
+    [renderPass setVertexBuffer:bindInfo.buffer offset:bindInfo.offset atIndex:1];
 
     auto nodes = SirMetal::CONTEXT->world.hierarchy.getNodes();
     size_t nodeSize = nodes.size();
@@ -629,7 +635,12 @@ PSOCache getPSO(id <MTLDevice> device, const SirMetal::DrawTracker &tracker, con
 
     const NSUInteger uniformBufferOffset = AlignUp(sizeof(MBEUniforms), MBEBufferAlignment) * self.bufferIndex;
 
-    [renderPass setVertexBuffer:m_gpuAlloc.getBuffer(m_uniformHandle) offset:uniformBufferOffset atIndex:1];
+    //[renderPass setVertexBuffer:m_gpuAlloc.getBuffer(m_uniformHandle) offset:uniformBufferOffset atIndex:1];
+
+    auto* cbManager = SirMetal::CONTEXT->managers.constantBufferManager;
+    SirMetal::BindInfo  bindInfo = cbManager->getBindInfo(m_uniformHandle);
+
+    [renderPass setVertexBuffer:bindInfo.buffer offset:bindInfo.offset atIndex:1];
 
     int selectedId = SirMetal::CONTEXT->world.hierarchy.getSelectedId();
     SirMetal::DenseTreeNode& selectedNode= SirMetal::CONTEXT->world.hierarchy.getNodes()[selectedId];

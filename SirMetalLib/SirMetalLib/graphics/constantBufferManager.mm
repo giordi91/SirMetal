@@ -73,8 +73,12 @@ namespace SirMetal {
         bool isBuffered = (constantData.flags & CONSTANT_BUFFER_FLAG_BUFFERED) > 0;
         auto bufferHandle = m_bufferPools[constantData.allocIndex].bufferHandle;
 
+        uint32_t currentFrame = CONTEXT->frame % CONTEXT->inFlightFrames;
+        uint32_t perFrameOffset = toMultipleOfAlignment(constantData.userRequestedSize) * currentFrame;
+        uint32_t finalOffset = static_cast<uint32_t>(constantData.range.m_offset + perFrameOffset * isBuffered);
+
         return {m_allocator.getBuffer(bufferHandle),
-                static_cast<uint32_t>(constantData.range.m_offset),
+                static_cast<uint32_t>(finalOffset),
                 static_cast<uint32_t>(constantData.range.m_size)};
     }
 }

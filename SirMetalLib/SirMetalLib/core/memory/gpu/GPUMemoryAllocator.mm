@@ -21,7 +21,7 @@ namespace SirMetal {
 
         Buffer bufferData{};
         id <MTLDevice> device = m_device;
-        uint32_t allocatedSize = static_cast<uint32_t>(alignUp(sizeof(sizeInBytes), bufferAlignmentInBytes));
+        uint32_t allocatedSize = static_cast<uint32_t>(alignUp(sizeInBytes, bufferAlignmentInBytes));
         id <MTLBuffer> buffer = [device newBufferWithLength:allocatedSize
                                                     options:MTLResourceOptionCPUCacheModeDefault];
         if (name != nullptr) {
