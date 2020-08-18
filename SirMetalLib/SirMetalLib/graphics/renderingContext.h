@@ -12,6 +12,14 @@ namespace  SirMetal{
     {
         id renderTargets[8];
         id depthTarget;
+        void reset()
+        {
+            for (int i = 0; i < SirMetal::MAX_COLOR_ATTACHMENT; ++i) {
+                renderTargets[i] = nil;
+            }
+            depthTarget = nil;
+        }
     };
+
 
 }

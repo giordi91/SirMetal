@@ -7,8 +7,6 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		C0BF91BD24E1F34C00824030 /* SirMetalLib.h in Headers */ = {isa = PBXBuildFile; fileRef = C0BF91BC24E1F34C00824030 /* SirMetalLib.h */; };
-		C0BF91BF24E1F34C00824030 /* SirMetalLib.mm in Sources */ = {isa = PBXBuildFile; fileRef = C0BF91BE24E1F34C00824030 /* SirMetalLib.mm */; };
 		C0BF91DC24E1F98100824030 /* input.h in Headers */ = {isa = PBXBuildFile; fileRef = C0BF91D324E1F98100824030 /* input.h */; };
 		C0BF91DD24E1F98100824030 /* file.mm in Sources */ = {isa = PBXBuildFile; fileRef = C0BF91D424E1F98100824030 /* file.mm */; };
 		C0BF91DE24E1F98100824030 /* flags.h in Headers */ = {isa = PBXBuildFile; fileRef = C0BF91D524E1F98100824030 /* flags.h */; };
@@ -150,9 +148,9 @@
 		C9EA94DAA17767E39072358D /* GPUMemoryAllocator.h in Headers */ = {isa = PBXBuildFile; fileRef = C9EA9186765F8F4315FD8C42 /* GPUMemoryAllocator.h */; };
 		C9EA96D6EB4E663CA2A4858C /* constantBufferManager.h in Headers */ = {isa = PBXBuildFile; fileRef = C9EA93275D58B880991372D8 /* constantBufferManager.h */; };
 		C9EA981EDA4F351A5F8D1D0B /* hierarchy.mm in Sources */ = {isa = PBXBuildFile; fileRef = C9EA921B3372A88C3258CD13 /* hierarchy.mm */; };
-		C9EA982F89D7BF411F4E76A2 /* selection.h in Headers */ = {isa = PBXBuildFile; fileRef = C9EA9B2B5386EDA8D9307872 /* selection.h */; };
+		C9EA982F89D7BF411F4E76A2 /* selectionRendering.h in Headers */ = {isa = PBXBuildFile; fileRef = C9EA9B2B5386EDA8D9307872 /* selectionRendering.h */; };
 		C9EA9835208AA3AEA2258EB9 /* hierarchy.h in Headers */ = {isa = PBXBuildFile; fileRef = C9EA9FD86429E5F1AEF225F4 /* hierarchy.h */; };
-		C9EA986E61731D113687522E /* selection.mm in Sources */ = {isa = PBXBuildFile; fileRef = C9EA9AC6A64DC9A5D6A1B38E /* selection.mm */; };
+		C9EA986E61731D113687522E /* selectionRendering.mm in Sources */ = {isa = PBXBuildFile; fileRef = C9EA9AC6A64DC9A5D6A1B38E /* selectionRendering.mm */; };
 		C9EA990C65ACA0AB7A186590 /* PSOGenerator.mm in Sources */ = {isa = PBXBuildFile; fileRef = C9EA945A083361DE6FA26476 /* PSOGenerator.mm */; };
 		C9EA9932526EA2BACF30DD0F /* PSOGenerator.h in Headers */ = {isa = PBXBuildFile; fileRef = C9EA9BCFEC560724B6561626 /* PSOGenerator.h */; };
 		C9EA9BC3E7ED186368FA9F4B /* core.h in Headers */ = {isa = PBXBuildFile; fileRef = C9EA9E374315D47B394DAE73 /* core.h */; };
@@ -162,8 +160,6 @@
 
 /* Begin PBXFileReference section */
 		C0BF91B924E1F34C00824030 /* libSirMetalLib.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = libSirMetalLib.a; sourceTree = BUILT_PRODUCTS_DIR; };
-		C0BF91BC24E1F34C00824030 /* SirMetalLib.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = SirMetalLib.h; sourceTree = "<group>"; };
-		C0BF91BE24E1F34C00824030 /* SirMetalLib.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; path = SirMetalLib.mm; sourceTree = "<group>"; };
 		C0BF91D324E1F98100824030 /* input.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = input.h; sourceTree = "<group>"; };
 		C0BF91D424E1F98100824030 /* file.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = file.mm; sourceTree = "<group>"; };
 		C0BF91D524E1F98100824030 /* flags.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = flags.h; sourceTree = "<group>"; };
@@ -307,8 +303,8 @@
 		C9EA945A083361DE6FA26476 /* PSOGenerator.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = PSOGenerator.mm; sourceTree = "<group>"; };
 		C9EA94AEC599CE853ABB8759 /* denseTree.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = denseTree.mm; sourceTree = "<group>"; };
 		C9EA95277E0D2C2763476702 /* GPUMemoryAllocator.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = GPUMemoryAllocator.mm; sourceTree = "<group>"; };
-		C9EA9AC6A64DC9A5D6A1B38E /* selection.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = selection.mm; sourceTree = "<group>"; };
-		C9EA9B2B5386EDA8D9307872 /* selection.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = selection.h; sourceTree = "<group>"; };
+		C9EA9AC6A64DC9A5D6A1B38E /* selectionRendering.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = selectionRendering.mm; sourceTree = "<group>"; };
+		C9EA9B2B5386EDA8D9307872 /* selectionRendering.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = selectionRendering.h; sourceTree = "<group>"; };
 		C9EA9BCFEC560724B6561626 /* PSOGenerator.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = PSOGenerator.h; sourceTree = "<group>"; };
 		C9EA9E374315D47B394DAE73 /* core.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = core.h; sourceTree = "<group>"; };
 		C9EA9EE19873FC3BB9FAFD72 /* denseTree.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = denseTree.h; sourceTree = "<group>"; };
@@ -354,8 +350,6 @@
 				C0BF92C324E25F2500824030 /* resources */,
 				C0BF91E424E2517000824030 /* vendors */,
 				C0BF91D224E1F98100824030 /* core */,
-				C0BF91BC24E1F34C00824030 /* SirMetalLib.h */,
-				C0BF91BE24E1F34C00824030 /* SirMetalLib.mm */,
 				C9EA9FDE06AA4A15F3A0114E /* world */,
 			);
 			path = SirMetalLib;
@@ -627,8 +621,8 @@
 		C9EA948CD685F98E6DD789F5 /* techniques */ = {
 			isa = PBXGroup;
 			children = (
-				C9EA9AC6A64DC9A5D6A1B38E /* selection.mm */,
-				C9EA9B2B5386EDA8D9307872 /* selection.h */,
+				C9EA9AC6A64DC9A5D6A1B38E /* selectionRendering.mm */,
+				C9EA9B2B5386EDA8D9307872 /* selectionRendering.h */,
 			);
 			path = techniques;
 			sourceTree = "<group>";
@@ -750,7 +744,6 @@
 				C0BF928624E2517100824030 /* base_sink.h in Headers */,
 				C0BF928224E2517100824030 /* daily_file_sink.h in Headers */,
 				C0BF927F24E2517100824030 /* stdout_sinks.h in Headers */,
-				C0BF91BD24E1F34C00824030 /* SirMetalLib.h in Headers */,
 				C0BF92D524E25F2500824030 /* shaderManager.h in Headers */,
 				C0BF928B24E2517100824030 /* sink-inl.h in Headers */,
 				C0BF92A824E2517100824030 /* registry-inl.h in Headers */,
@@ -783,7 +776,7 @@
 				C9EA96D6EB4E663CA2A4858C /* constantBufferManager.h in Headers */,
 				C9EA94DAA17767E39072358D /* GPUMemoryAllocator.h in Headers */,
 				C9EA9BC3E7ED186368FA9F4B /* core.h in Headers */,
-				C9EA982F89D7BF411F4E76A2 /* selection.h in Headers */,
+				C9EA982F89D7BF411F4E76A2 /* selectionRendering.h in Headers */,
 				C9EA9932526EA2BACF30DD0F /* PSOGenerator.h in Headers */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -859,7 +852,6 @@
 				C0BF925D24E2517000824030 /* overdrawoptimizer.cpp in Sources */,
 				C0BF926524E2517100824030 /* indexgenerator.cpp in Sources */,
 				C0BF926024E2517000824030 /* vcacheanalyzer.cpp in Sources */,
-				C0BF91BF24E1F34C00824030 /* SirMetalLib.mm in Sources */,
 				C0BF92DE24E261FF00824030 /* materialManager.mm in Sources */,
 				C0BF92EB24E2625E00824030 /* engineContext.mm in Sources */,
 				C0BF926624E2517100824030 /* vfetchanalyzer.cpp in Sources */,
@@ -878,7 +870,7 @@
 				C9EA981EDA4F351A5F8D1D0B /* hierarchy.mm in Sources */,
 				C9EA9D4E1F17886FD2A55F09 /* constantBufferManager.mm in Sources */,
 				C9EA943B879C14F0B4489589 /* GPUMemoryAllocator.mm in Sources */,
-				C9EA986E61731D113687522E /* selection.mm in Sources */,
+				C9EA986E61731D113687522E /* selectionRendering.mm in Sources */,
 				C9EA990C65ACA0AB7A186590 /* PSOGenerator.mm in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;

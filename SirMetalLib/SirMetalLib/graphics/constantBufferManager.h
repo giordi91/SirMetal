@@ -7,7 +7,7 @@
 
 namespace SirMetal {
     enum CONSTANT_BUFFER_FLAGS_BITS {
-        CONSTANT_BUFFER_FLAG_RANDOM_NONE = 0,
+        CONSTANT_BUFFER_FLAG_NONE = 0,
         CONSTANT_BUFFER_FLAG_BUFFERED = 1,
     };
     typedef uint32_t CONSTANT_BUFFER_FLAGS;

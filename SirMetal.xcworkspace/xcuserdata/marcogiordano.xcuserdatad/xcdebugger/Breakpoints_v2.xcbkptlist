@@ -31,9 +31,7 @@
             startingColumnNumber = "9223372036854775807"
             endingColumnNumber = "9223372036854775807"
             startingLineNumber = "497"
-            endingLineNumber = "497"
-            landmarkName = "-renderUI2::::"
-            landmarkType = "7">
+            endingLineNumber = "497">
          </BreakpointContent>
       </BreakpointProxy>
       <BreakpointProxy
@@ -63,9 +61,7 @@
             startingColumnNumber = "9223372036854775807"
             endingColumnNumber = "9223372036854775807"
             startingLineNumber = "495"
-            endingLineNumber = "495"
-            landmarkName = "-renderUI2::::"
-            landmarkType = "7">
+            endingLineNumber = "495">
          </BreakpointContent>
       </BreakpointProxy>
    </Breakpoints>
