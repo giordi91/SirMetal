@@ -170,9 +170,18 @@ void Selection::render(id inDevice,
   [renderPass2 endEncoding];
 
   //compute offset for jump flooding
-  //TODO fix the jump flooding offset
   int passIndex = 0;
+  //TODO hardcoded width we should get this from the settings
   int N = 64;
+  //we compute the offset up to 2^16, and we lay them in a buffer
+  //so instead of updating the buffer at every iteration, we simply
+  //bind with an offset and avoid the updates. since the buffer beings
+  //with 2^16 and goes down, we need to compute how far down the buffer we have to go
+  //and is the difference between the log 2 of the max offset minus the log2 of the offset
+  //width we are using now
+  int maxOffsetPower = 16;
+  int baseOffsetPower = static_cast<int>(log2(64));
+  int uniformBufferShift = maxOffsetPower - baseOffsetPower;
   int offset = 9999;
   id<MTLTexture> outTex = m_jumpTexture;
   tracker.depthTarget = nil;
@@ -199,8 +208,13 @@ void Selection::render(id inDevice,
     [renderPass3 setFrontFacingWinding:MTLWindingClockwise];
     [renderPass3 setCullMode:MTLCullModeNone];
     [renderPass3 setFragmentTexture:passIndex % 2 == 0 ? m_jumpTexture : m_jumpTexture2 atIndex:0];
-    //TODO fix hardcoded offset
-    [renderPass3 setFragmentBuffer:floodUniform.buffer offset:floodUniform.offset + 10 * 256 + passIndex * 256 atIndex:0];
+
+    //the constant buffer are pooled, sub allocations of bigger buffers, so we have
+    //a basic allocation buffer, then we have our uniformBuffer shift which tells us
+    //how many "slots" in the buffer we have to jump, the slot itself would be very small,
+    //3 integers, but of course we have alignment requirement which is 256 so we offset by that
+    uint32_t bufferOffset = floodUniform.offset + (uniformBufferShift + passIndex) * 256;
+    [renderPass3 setFragmentBuffer:floodUniform.buffer offset: bufferOffset atIndex:0];
 
 
     //first screen pass
