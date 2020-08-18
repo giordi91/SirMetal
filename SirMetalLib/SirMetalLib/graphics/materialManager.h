@@ -1,7 +1,7 @@
 #pragma once
 
 #import <Metal/Metal.h>
-
+#include <string>
 namespace SirMetal {
 
     struct AlphaBlendingState

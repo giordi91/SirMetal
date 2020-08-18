@@ -21,6 +21,7 @@
 #import "ImGuizmo.h"
 #import "SirMetalLib/core/memory/gpu/GPUMemoryAllocator.h"
 #import "SirMetalLib/graphics/constantBufferManager.h"
+#import "SirMetalLib/graphics/PSOGenerator.h"
 
 static const NSInteger MBEInFlightBufferCount = 3;
 const MTLIndexType MBEIndexType = MTLIndexTypeUInt32;
@@ -37,12 +38,7 @@ static const uint32_t MBEBufferAlignment = 256;
 
 
 //temporary until i figure out what to do with this
-struct PSOCache {
-    id <MTLRenderPipelineState> color = nil;
-    id <MTLDepthStencilState> depth = nil;
-};
 static SirMetal::Editor::EditorUI editorUI = SirMetal::Editor::EditorUI();
-static std::unordered_map<std::size_t, PSOCache> m_psoCache;
 static SirMetal::Material m_opaqueMaterial;
 static SirMetal::Material m_jumpFloodMaterial;
 static SirMetal::Material m_jumpFloodMaskMaterial;
@@ -51,7 +47,6 @@ static SirMetal::Material m_jumpOutlineMaterial;
 static SirMetal::DrawTracker m_drawTracker;
 static SirMetal::GPUMemoryAllocator m_gpuAlloc;
 static SirMetal::ConstantBufferHandle m_uniformHandle;
-static const uint MAX_COLOR_ATTACHMENT = 8;
 
 @interface AAPLRenderer ()
 @property(strong) id <MTLTexture> depthTexture;
@@ -152,7 +147,7 @@ void updateVoidIndices(int w, int h, id <MTLBuffer> buffer) {
     alpha.destinationAlphaBlendFactor = MTLBlendFactorOneMinusSourceAlpha;
 
 
-    for (int i = 0; i < MAX_COLOR_ATTACHMENT; ++i) {
+    for (int i = 0; i < SirMetal::MAX_COLOR_ATTACHMENT; ++i) {
         m_drawTracker.renderTargets[i] = nil;
     }
     return self;
@@ -307,91 +302,7 @@ void updateVoidIndices(int w, int h, id <MTLBuffer> buffer) {
     ImGui_ImplMetal_RenderDrawData(drawData, commandBuffer, renderPass);
 }
 
-template<class T>
-constexpr void hash_combine(std::size_t &seed, const T &v) {
-    std::hash<T> hasher;
-    seed ^= hasher(v) + 0x9e3779b9 + (seed << 6) + (seed >> 2);
-}
 
-
-std::size_t computePSOHash(const SirMetal::DrawTracker &tracker, const SirMetal::Material &material) {
-    std::size_t toReturn = 0;
-
-    for (int i = 0; i < MAX_COLOR_ATTACHMENT; ++i) {
-        if (tracker.renderTargets[i] != nil) {
-            id <MTLTexture> tex = tracker.renderTargets[i];
-            hash_combine(toReturn, static_cast<int>(tex.pixelFormat));
-        }
-    }
-    if (tracker.depthTarget != nil) {
-        id <MTLTexture> tex = tracker.depthTarget;
-        hash_combine(toReturn, static_cast<int>(tex.pixelFormat));
-    }
-
-    if (material.state.enabled) {
-        hash_combine(toReturn, material.state.rgbBlendOperation);
-        hash_combine(toReturn, material.state.alphaBlendOperation);
-        hash_combine(toReturn, material.state.sourceRGBBlendFactor);
-        hash_combine(toReturn, material.state.sourceAlphaBlendFactor);
-        hash_combine(toReturn, material.state.destinationRGBBlendFactor);
-        hash_combine(toReturn, material.state.destinationAlphaBlendFactor);
-    }
-
-    hash_combine(toReturn, material.shaderName);
-    return toReturn;
-}
-
-
-PSOCache getPSO(id <MTLDevice> device, const SirMetal::DrawTracker &tracker, const SirMetal::Material &material) {
-
-    std::size_t hash = computePSOHash(tracker, material);
-    auto found = m_psoCache.find(hash);
-    if (found != m_psoCache.end()) {
-        return found->second;
-    }
-    SirMetal::ShaderManager *sManager = SirMetal::CONTEXT->managers.shaderManager;
-    SirMetal::LibraryHandle lh = sManager->getHandleFromName(material.shaderName);
-
-    MTLRenderPipelineDescriptor *pipelineDescriptor = [MTLRenderPipelineDescriptor new];
-    pipelineDescriptor.vertexFunction = sManager->getVertexFunction(lh);
-    pipelineDescriptor.fragmentFunction = sManager->getFragmentFunction(lh);
-
-    for (int i = 0; i < MAX_COLOR_ATTACHMENT; ++i) {
-        id <MTLTexture> texture = tracker.renderTargets[i];
-        pipelineDescriptor.colorAttachments[i].pixelFormat = texture.pixelFormat;
-    }
-
-    //NOTE for now we will use the albpla blending only for the first color attachment
-    //need to figure out a way to let the user specify per render target maybe?
-    if (material.state.enabled) {
-        pipelineDescriptor.colorAttachments[0].blendingEnabled = YES;
-        pipelineDescriptor.colorAttachments[0].rgbBlendOperation = material.state.rgbBlendOperation;
-        pipelineDescriptor.colorAttachments[0].alphaBlendOperation = material.state.alphaBlendOperation;
-        pipelineDescriptor.colorAttachments[0].sourceRGBBlendFactor = material.state.sourceRGBBlendFactor;
-        pipelineDescriptor.colorAttachments[0].sourceAlphaBlendFactor = material.state.sourceAlphaBlendFactor;
-        pipelineDescriptor.colorAttachments[0].destinationRGBBlendFactor = material.state.destinationAlphaBlendFactor;
-        pipelineDescriptor.colorAttachments[0].destinationAlphaBlendFactor = material.state.destinationAlphaBlendFactor;
-    }
-
-
-    PSOCache cache{nil, nil};
-
-    if (tracker.depthTarget != nil) {
-        //need to do depth stuff here
-        id <MTLTexture> texture = tracker.depthTarget;
-        pipelineDescriptor.depthAttachmentPixelFormat = texture.pixelFormat;
-        MTLDepthStencilDescriptor *depthStencilDescriptor = [MTLDepthStencilDescriptor new];
-        depthStencilDescriptor.depthCompareFunction = MTLCompareFunctionLess;
-        depthStencilDescriptor.depthWriteEnabled = YES;
-        cache.depth = [device newDepthStencilStateWithDescriptor:depthStencilDescriptor];
-    }
-
-    NSError *error = NULL;
-    cache.color = [device newRenderPipelineStateWithDescriptor:pipelineDescriptor
-                                                         error:&error];
-    m_psoCache[hash] = cache;
-    return cache;
-}
 
 
 /// Called whenever the view needs to render a frame.
@@ -474,7 +385,7 @@ PSOCache getPSO(id <MTLDevice> device, const SirMetal::DrawTracker &tracker, con
 
     m_drawTracker.renderTargets[0] = isViewport ? self.offScreenTexture : view.currentDrawable.texture;
     m_drawTracker.depthTarget = isViewport ? self.depthTexture : self.depthTextureGUI;
-    PSOCache cache = getPSO(_device, m_drawTracker, m_opaqueMaterial);
+    SirMetal::PSOCache cache = getPSO(_device, m_drawTracker, m_opaqueMaterial);
 
     id <MTLRenderCommandEncoder> renderPass = [commandBuffer renderCommandEncoderWithDescriptor:passDescriptor];
     [renderPass setRenderPipelineState:cache.color];
@@ -615,7 +526,7 @@ PSOCache getPSO(id <MTLDevice> device, const SirMetal::DrawTracker &tracker, con
     //TODO use a reset function on tracker
     tracker->depthTarget = nil;
     tracker->renderTargets[0] = self.jumpMaskTexture;
-    PSOCache cache = getPSO(_device, *tracker, m_jumpFloodMaskMaterial);
+    SirMetal::PSOCache cache = getPSO(_device, *tracker, m_jumpFloodMaskMaterial);
 
     //[renderPass setRenderPipelineState:self.jumpMaskPipelineState];
     [renderPass setRenderPipelineState:cache.color];
