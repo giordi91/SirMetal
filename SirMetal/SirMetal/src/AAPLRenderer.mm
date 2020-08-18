@@ -63,7 +63,6 @@ static const uint MAX_COLOR_ATTACHMENT = 8;
 @property(nonatomic) SirMetal::TextureHandle jumpHandle;
 @property(nonatomic) SirMetal::TextureHandle jumpHandle2;
 @property(nonatomic) SirMetal::TextureHandle jumpMaskHandle;
-//@property(strong) id <MTLBuffer> uniformBuffer;
 @property(strong) id <MTLBuffer> floodUniform;
 @property(strong) dispatch_semaphore_t displaySemaphore;
 @property(strong) dispatch_semaphore_t resizeSemaphore;
@@ -197,11 +196,7 @@ void updateVoidIndices(int w, int h, id <MTLBuffer> buffer) {
 }
 
 - (void)makeBuffers {
-    /*
-    _uniformBuffer = [_device newBufferWithLength:AlignUp(sizeof(MBEUniforms), MBEBufferAlignment) * MBEInFlightBufferCount
-                                          options:MTLResourceOptionCPUCacheModeDefault];
-    [_uniformBuffer setLabel:@"Uniforms"];
-     */
+
     auto* cbManager = SirMetal::CONTEXT->managers.constantBufferManager;
     m_uniformHandle = cbManager->allocate(sizeof(MBEUniforms),SirMetal::CONSTANT_BUFFER_FLAG_BUFFERED);
 
@@ -248,8 +243,7 @@ void updateVoidIndices(int w, int h, id <MTLBuffer> buffer) {
 
     }
     cameraController.updateProjection(screenWidth, screenHeight);
-    const NSUInteger uniformBufferOffset = AlignUp(sizeof(MBEUniforms), MBEBufferAlignment) * self.bufferIndex;
-    //memcpy((char *) ([self.uniformBuffer contents]) + uniformBufferOffset, &uniforms, sizeof(uniforms));
+
     auto* cbManager = SirMetal::CONTEXT->managers.constantBufferManager;
     cbManager->update(m_uniformHandle, &uniforms);
 }
@@ -489,8 +483,6 @@ PSOCache getPSO(id <MTLDevice> device, const SirMetal::DrawTracker &tracker, con
     [renderPass setCullMode:MTLCullModeBack];
 
 
-    const NSUInteger uniformBufferOffset = AlignUp(sizeof(MBEUniforms), MBEBufferAlignment) * self.bufferIndex;
-
     auto* cbManager = SirMetal::CONTEXT->managers.constantBufferManager;
     SirMetal::BindInfo  bindInfo = cbManager->getBindInfo(m_uniformHandle);
 
@@ -597,8 +589,6 @@ PSOCache getPSO(id <MTLDevice> device, const SirMetal::DrawTracker &tracker, con
     ImGui::NewFrame();
     ImGuizmo::BeginFrame();
 
-
-
     //[self showImguiContent];
     editorUI.show2(SirMetal::CONTEXT->screenWidth, SirMetal::CONTEXT->screenHeight);
     // Rendering
@@ -696,7 +686,7 @@ PSOCache getPSO(id <MTLDevice> device, const SirMetal::DrawTracker &tracker, con
     cache = getPSO(_device, *tracker, m_jumpFloodMaterial);
 
     while (offset != 1) {
-        offset = pow(2, (log2(N) - passIndex - 1));
+        offset = static_cast<int>(pow(2, (log2(N) - passIndex - 1)));
 
         //do render here
         MTLRenderPassDescriptor *passDescriptorP = [[MTLRenderPassDescriptor alloc] init];
@@ -705,8 +695,8 @@ PSOCache getPSO(id <MTLDevice> device, const SirMetal::DrawTracker &tracker, con
         colorAttachment.clearColor = MTLClearColorMake(0.0, 0.0, 0.0, 1.0);
         colorAttachment.storeAction = MTLStoreActionStore;
         colorAttachment.loadAction = MTLLoadActionClear;
-        passDescriptorP.renderTargetWidth = w;
-        passDescriptorP.renderTargetHeight = h;
+        passDescriptorP.renderTargetWidth = static_cast<NSUInteger>(w);
+        passDescriptorP.renderTargetHeight = static_cast<NSUInteger>(h);
 
         id <MTLRenderCommandEncoder> renderPass3 = [commandBuffer renderCommandEncoderWithDescriptor:passDescriptorP];
 
@@ -715,7 +705,7 @@ PSOCache getPSO(id <MTLDevice> device, const SirMetal::DrawTracker &tracker, con
         [renderPass3 setCullMode:MTLCullModeNone];
         [renderPass3 setFragmentTexture:passIndex % 2 == 0 ? self.jumpTexture : self.jumpTexture2 atIndex:0];
         //TODO fix hardcoded offset
-        [renderPass3 setFragmentBuffer:self.floodUniform offset:9 * 256 + passIndex * 256 atIndex:0];
+        [renderPass3 setFragmentBuffer:self.floodUniform offset:10 * 256 + passIndex * 256 atIndex:0];
 
 
         //first screen pass
@@ -735,8 +725,8 @@ PSOCache getPSO(id <MTLDevice> device, const SirMetal::DrawTracker &tracker, con
     colorAttachment.clearColor = MTLClearColorMake(0.0, 0.0, 0.0, 1.0);
     colorAttachment.storeAction = MTLStoreActionStore;
     colorAttachment.loadAction = MTLLoadActionLoad;
-    passDescriptor.renderTargetWidth = w;
-    passDescriptor.renderTargetHeight = h;
+    passDescriptor.renderTargetWidth = static_cast<NSUInteger>(w);
+    passDescriptor.renderTargetHeight = static_cast<NSUInteger>(h);
 
     id <MTLRenderCommandEncoder> renderPass4 = [commandBuffer renderCommandEncoderWithDescriptor:passDescriptor];
     tracker->depthTarget = nil;

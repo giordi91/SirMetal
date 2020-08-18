@@ -150,7 +150,9 @@
 		C9EA94DAA17767E39072358D /* GPUMemoryAllocator.h in Headers */ = {isa = PBXBuildFile; fileRef = C9EA9186765F8F4315FD8C42 /* GPUMemoryAllocator.h */; };
 		C9EA96D6EB4E663CA2A4858C /* constantBufferManager.h in Headers */ = {isa = PBXBuildFile; fileRef = C9EA93275D58B880991372D8 /* constantBufferManager.h */; };
 		C9EA981EDA4F351A5F8D1D0B /* hierarchy.mm in Sources */ = {isa = PBXBuildFile; fileRef = C9EA921B3372A88C3258CD13 /* hierarchy.mm */; };
+		C9EA982F89D7BF411F4E76A2 /* selection.h in Headers */ = {isa = PBXBuildFile; fileRef = C9EA9B2B5386EDA8D9307872 /* selection.h */; };
 		C9EA9835208AA3AEA2258EB9 /* hierarchy.h in Headers */ = {isa = PBXBuildFile; fileRef = C9EA9FD86429E5F1AEF225F4 /* hierarchy.h */; };
+		C9EA986E61731D113687522E /* selection.mm in Sources */ = {isa = PBXBuildFile; fileRef = C9EA9AC6A64DC9A5D6A1B38E /* selection.mm */; };
 		C9EA9BC3E7ED186368FA9F4B /* core.h in Headers */ = {isa = PBXBuildFile; fileRef = C9EA9E374315D47B394DAE73 /* core.h */; };
 		C9EA9D4E1F17886FD2A55F09 /* constantBufferManager.mm in Sources */ = {isa = PBXBuildFile; fileRef = C9EA9F82584179A723F47455 /* constantBufferManager.mm */; };
 		C9EA9F6627E488144AD2AA34 /* denseTree.mm in Sources */ = {isa = PBXBuildFile; fileRef = C9EA94AEC599CE853ABB8759 /* denseTree.mm */; };
@@ -302,6 +304,8 @@
 		C9EA93275D58B880991372D8 /* constantBufferManager.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = constantBufferManager.h; sourceTree = "<group>"; };
 		C9EA94AEC599CE853ABB8759 /* denseTree.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = denseTree.mm; sourceTree = "<group>"; };
 		C9EA95277E0D2C2763476702 /* GPUMemoryAllocator.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = GPUMemoryAllocator.mm; sourceTree = "<group>"; };
+		C9EA9AC6A64DC9A5D6A1B38E /* selection.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = selection.mm; sourceTree = "<group>"; };
+		C9EA9B2B5386EDA8D9307872 /* selection.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = selection.h; sourceTree = "<group>"; };
 		C9EA9E374315D47B394DAE73 /* core.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = core.h; sourceTree = "<group>"; };
 		C9EA9EE19873FC3BB9FAFD72 /* denseTree.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = denseTree.h; sourceTree = "<group>"; };
 		C9EA9F82584179A723F47455 /* constantBufferManager.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = constantBufferManager.mm; sourceTree = "<group>"; };
@@ -599,6 +603,7 @@
 				C0BF92DD24E261FF00824030 /* materialManager.h */,
 				C9EA9F82584179A723F47455 /* constantBufferManager.mm */,
 				C9EA93275D58B880991372D8 /* constantBufferManager.h */,
+				C9EA948CD685F98E6DD789F5 /* techniques */,
 			);
 			path = graphics;
 			sourceTree = "<group>";
@@ -611,6 +616,15 @@
 				C0BF930724EA5EF900824030 /* resizableVector.h */,
 			);
 			path = cpu;
+			sourceTree = "<group>";
+		};
+		C9EA948CD685F98E6DD789F5 /* techniques */ = {
+			isa = PBXGroup;
+			children = (
+				C9EA9AC6A64DC9A5D6A1B38E /* selection.mm */,
+				C9EA9B2B5386EDA8D9307872 /* selection.h */,
+			);
+			path = techniques;
 			sourceTree = "<group>";
 		};
 		C9EA9D4FE16FD5CCDA4159CD /* memory */ = {
@@ -763,6 +777,7 @@
 				C9EA96D6EB4E663CA2A4858C /* constantBufferManager.h in Headers */,
 				C9EA94DAA17767E39072358D /* GPUMemoryAllocator.h in Headers */,
 				C9EA9BC3E7ED186368FA9F4B /* core.h in Headers */,
+				C9EA982F89D7BF411F4E76A2 /* selection.h in Headers */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -856,6 +871,7 @@
 				C9EA981EDA4F351A5F8D1D0B /* hierarchy.mm in Sources */,
 				C9EA9D4E1F17886FD2A55F09 /* constantBufferManager.mm in Sources */,
 				C9EA943B879C14F0B4489589 /* GPUMemoryAllocator.mm in Sources */,
+				C9EA986E61731D113687522E /* selection.mm in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
