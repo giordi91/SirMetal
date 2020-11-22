@@ -7,7 +7,6 @@
 #import "SirMetalLib/core/input.h"
 #import "SirMetalLib/engineContext.h"
 #import "SirMetalLib/core/logging/log.h"
-#import "project.h"
 #import "entryPoint.h"
 
 //NOTE Main problem with this file was disabling ARC, that is mostly

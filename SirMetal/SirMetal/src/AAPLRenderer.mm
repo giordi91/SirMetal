@@ -13,7 +13,6 @@
 #import "imgui_internal.h"
 #import "editorUI.h"
 #import "SirMetalLib/core/logging/log.h"
-#import "project.h"
 #import "SirMetalLib/core/flags.h"
 #import "SirMetalLib/graphics/materialManager.h"
 #import "SirMetalLib/graphics/renderingContext.h"
@@ -99,6 +98,8 @@ static SirMetal::Selection m_selection;
   for (int i = 0; i < SirMetal::MAX_COLOR_ATTACHMENT; ++i) {
     m_drawTracker.renderTargets[i] = nil;
   }
+
+
   return self;
 }
 
@@ -129,9 +130,15 @@ static SirMetal::Selection m_selection;
   self.depthTextureGUI = [_device newTextureWithDescriptor:descriptor];
   self.depthTextureGUI.label = @"DepthStencilGUI";
 
-  SirMetal::MeshHandle mesh = SirMetal::CONTEXT->managers.meshManager->getHandleFromName("lucy");
-  SirMetal::MeshHandle cube = SirMetal::CONTEXT->managers.meshManager->getHandleFromName("cube");
-  SirMetal::MeshHandle cone = SirMetal::CONTEXT->managers.meshManager->getHandleFromName("cone");
+
+  std::string projectPath = "/Users/marcogiordano/WORK_IN_PROGRESS/SirMetalProject/";
+  std::string path = projectPath + "lucy.obj";
+  SirMetal::MeshHandle mesh = SirMetal::CONTEXT->managers.meshManager->loadMesh(projectPath + "lucy.obj");
+  SirMetal::MeshHandle cube = SirMetal::CONTEXT->managers.meshManager->loadMesh(projectPath + "cube.obj");
+  SirMetal::MeshHandle cone = SirMetal::CONTEXT->managers.meshManager->loadMesh(projectPath + "cone.obj");
+  path = projectPath + "shaders/Shaders.metal";
+  SirMetal::LibraryHandle shaderH = SirMetal::CONTEXT->managers.shaderManager->loadShader(path.c_str());
+
   SirMetal::CONTEXT->world.hierarchy.addToRoot(mesh);
   SirMetal::CONTEXT->world.hierarchy.addToRoot(cube);
   SirMetal::CONTEXT->world.hierarchy.addToRoot(cone);
@@ -155,28 +162,15 @@ static SirMetal::Selection m_selection;
   auto *data = SirMetal::CONTEXT->managers.meshManager->getMeshData(handle);
   const matrix_float4x4 modelMatrix = data->modelMatrix;
 
-  ImGuiIO &io = ImGui::GetIO();
-  //we wish to update the camera aka move it only when we are in
-  //viewport mode, if the viewport is in focus, or when we are not
-  //in viewport mode, meaning fullscreen. if one of those two conditions
-  //is true we update the camera.
-  bool isViewport = (io.ConfigFlags & ImGuiConfigFlags_DockingEnable) > 0;
-  bool isViewportInFocus =
-      isFlagSet(SirMetal::CONTEXT->flags.interaction, SirMetal::InteractionFlagsBits::InteractionViewportFocused);
-  bool isManipulator =
-      isFlagSet(SirMetal::CONTEXT->flags.interaction, SirMetal::InteractionFlagsBits::InteractionViewportGuizmo);
-
-  bool shouldControlViewport = isViewport & isViewportInFocus & (!isManipulator);
   MBEUniforms uniforms;
   uniforms.modelViewProjectionMatrix = matrix_multiply(camera.VP, modelMatrix);
-  if (shouldControlViewport | (!isViewport)) {
-    SirMetal::Input &input = SirMetal::CONTEXT->input;
+  SirMetal::Input &input = SirMetal::CONTEXT->input;
 
-    const SirMetal::CameraManipulationConfig &camConfig = SirMetal::Editor::PROJECT->getSettings().m_cameraConfig;
-    cameraController.update(camConfig, &input);
-    uniforms.modelViewProjectionMatrix = matrix_multiply(camera.VP, modelMatrix);
+  const SirMetal::CameraManipulationConfig camConfig
+      {1.0,1.0,1.0f,1.0f,1.0f,0.2f,0.005f};
+  cameraController.update(camConfig, &input);
+  uniforms.modelViewProjectionMatrix = matrix_multiply(camera.VP, modelMatrix);
 
-  }
   cameraController.updateProjection(screenWidth, screenHeight);
 
   auto *cbManager = SirMetal::CONTEXT->managers.constantBufferManager;
@@ -194,7 +188,6 @@ static SirMetal::Selection m_selection;
   };
   self.viewportHandle = textureManager->allocate(_device, request);
   self.offScreenTexture = textureManager->getNativeFromHandle(self.viewportHandle);
-  SirMetal::CONTEXT->viewportTexture = (__bridge void *) self.offScreenTexture;
 
   SirMetal::AllocTextureRequest requestDepth{
       static_cast<uint32_t>(width), static_cast<uint32_t>(height),
@@ -207,19 +200,13 @@ static SirMetal::Selection m_selection;
 
 - (void)renderUI:(MTKView *)view :(MTLRenderPassDescriptor *)passDescriptor :(id<MTLCommandBuffer>)commandBuffer
     :(id<MTLRenderCommandEncoder>)renderPass {
-  // Start the Dear ImGui frame
-  ImGui_ImplOSX_NewFrame(view);
-  ImGui_ImplMetal_NewFrame(passDescriptor);
-  ImGui::NewFrame();
 
 
+  editorUI.beginUI(view,passDescriptor);
 
   //[self showImguiContent];
   editorUI.show(SirMetal::CONTEXT->screenWidth, SirMetal::CONTEXT->screenHeight);
-  // Rendering
-  ImGui::Render();
-  ImDrawData *drawData = ImGui::GetDrawData();
-  ImGui_ImplMetal_RenderDrawData(drawData, commandBuffer, renderPass);
+  editorUI.endUI(commandBuffer,renderPass);
 }
 
 /// Called whenever the view needs to render a frame.
@@ -228,11 +215,13 @@ static SirMetal::Selection m_selection;
   static int frame = 0;
   frame++;
   //dispatch_semaphore_wait(self.displaySemaphore, DISPATCH_TIME_FOREVER);
-  ImVec2 viewportSize = editorUI.getViewportSize();
-  bool viewportChanged = SirMetal::isFlagSet(SirMetal::CONTEXT->flags.viewEvents,
-                                             SirMetal::ViewEventsFlagsBits::ViewEventsViewportSizeChanged);
+  bool viewportChanged = false;
+
+  //bool viewportChanged = SirMetal::isFlagSet(SirMetal::CONTEXT->flags.viewEvents,
+  //                                           SirMetal::ViewEventsFlagsBits::ViewEventsViewportSizeChanged);
   if (viewportChanged) {
 
+    /*
     id<MTLCommandBuffer> commandBuffer = [_commandQueue commandBuffer];
     [commandBuffer addCompletedHandler:^(id<MTLCommandBuffer> commandBuffer) {
       dispatch_semaphore_signal(self.resizeSemaphore);
@@ -256,6 +245,7 @@ static SirMetal::Selection m_selection;
     SirMetal::setFlagBitfield(SirMetal::CONTEXT->flags.viewEvents,
                               SirMetal::ViewEventsFlagsBits::ViewEventsViewportSizeChanged,
                               false);
+    */
   }
 
   ImGuiIO &io = ImGui::GetIO();
@@ -271,8 +261,8 @@ static SirMetal::Selection m_selection;
   float w = view.drawableSize.width;
   float h = view.drawableSize.height;
 
-  bool isViewport = (io.ConfigFlags & ImGuiConfigFlags_DockingEnable) > 0;
-  [self updateUniformsForView:(isViewport ? viewportSize.x : w) :(isViewport ? viewportSize.y : h)];
+  bool isViewport = false;//(io.ConfigFlags & ImGuiConfigFlags_DockingEnable) > 0;
+  [self updateUniformsForView:( w) :( h)];
 
   id<MTLCommandBuffer> commandBuffer = [_commandQueue commandBuffer];
   MTLRenderPassDescriptor *passDescriptor = [view currentRenderPassDescriptor];
@@ -335,14 +325,14 @@ static SirMetal::Selection m_selection;
     m_selection.render(_device, commandBuffer, wToUse, hToUse, m_uniformHandle, isViewport? self.offScreenTexture:view.currentDrawable.texture);
   }
 
-  if (isViewport) {
+  //if (isViewport) {
 
     MTLRenderPassDescriptor *uiPassDescriptor = [[MTLRenderPassDescriptor alloc] init];
     MTLRenderPassColorAttachmentDescriptor *uiColorAttachment = uiPassDescriptor.colorAttachments[0];
     uiColorAttachment.texture = view.currentDrawable.texture;
     uiColorAttachment.clearColor = MTLClearColorMake(0.0, 0.0, 0.0, 1.0);
     uiColorAttachment.storeAction = MTLStoreActionStore;
-    uiColorAttachment.loadAction = MTLLoadActionClear;
+    uiColorAttachment.loadAction = MTLLoadActionLoad;
 
     MTLRenderPassDepthAttachmentDescriptor *uiDepthAttachment = uiPassDescriptor.depthAttachment;
     uiDepthAttachment.texture = self.depthTextureGUI;
@@ -358,7 +348,7 @@ static SirMetal::Selection m_selection;
     [self renderUI:view :passDescriptor :commandBuffer :uiPass];
 
     [uiPass endEncoding];
-  }
+  //}
   SirMetal::endFrame(SirMetal::CONTEXT);
 
   [commandBuffer presentDrawable:view.currentDrawable];

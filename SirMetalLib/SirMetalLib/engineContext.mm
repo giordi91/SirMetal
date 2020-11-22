@@ -28,8 +28,8 @@ namespace SirMetal {
         ConstantBufferManager* constantBufferManager = new ConstantBufferManager();
         constantBufferManager->initialize(device,CONSTANT_BUFFER_MANAGER_ALLOC_POOL_IN_MB* MB_TO_BYTE);
 
-        CONTEXT = new EngineContext{ nullptr
-        ,{
+        CONTEXT = new EngineContext{
+        {
             textureManager,
             shaderManager,
             meshManager,

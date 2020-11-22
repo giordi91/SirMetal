@@ -26,30 +26,9 @@ namespace SirMetal {
         ConstantBufferManager *constantBufferManager = nullptr;
     };
 
-    enum InteractionFlagsBits {
-        InteractionNone = 0,
-        InteractionViewportFocused = 1,
-        InteractionViewportGuizmo = 2,
-    };
-
-    typedef uint32_t InteractionFlags;
-
-    enum ViewEventsFlagsBits {
-        ViewEventsNone = 0,
-        ViewEventsViewportSizeChanged = 1,
-    };
-
-    typedef uint32_t ViewEventsFlags;
-
-    struct EditorFlags {
-        InteractionFlags interaction = 0;
-        ViewEventsFlags viewEvents = 0;
-    };
 
     struct EngineContext {
-        void *viewportTexture;
         Resources managers;
-        EditorFlags flags;
         Input input;
         World world;
         //for now the camera lives here until we start to have a more

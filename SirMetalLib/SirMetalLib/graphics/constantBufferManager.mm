@@ -12,7 +12,9 @@ namespace SirMetal {
 
     ConstantBufferHandle ConstantBufferManager::allocate(uint32_t size, CONSTANT_BUFFER_FLAGS flags) {
         bool isBuffered = (flags & CONSTANT_BUFFER_FLAG_BUFFERED) > 0;
-        uint32_t requestedSize = isBuffered ? toMultipleOfAlignment(size) * CONTEXT->inFlightFrames : size;
+        auto multiple = toMultipleOfAlignment(size);
+        auto buffSize = multiple * CONTEXT->inFlightFrames;
+        uint32_t requestedSize = isBuffered ? buffSize : size;
         uint32_t allocIndex = findAllocator(requestedSize);
         PoolTracker &allocator = m_bufferPools[allocIndex];
         BufferRangeHandle rangeHandle = allocator.linearManager->allocate(requestedSize, bufferAlignment);
