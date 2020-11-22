@@ -1,10 +1,10 @@
 #pragma once
 
-#import "imgui.h"
+#import "imgui/imgui.h"
 
 namespace SirMetal {
 namespace Editor {
-class EditorUI {
+class ImguiRenderer {
 
  public:
   void beginUI(MTKView* view, MTLRenderPassDescriptor* passDescriptor);

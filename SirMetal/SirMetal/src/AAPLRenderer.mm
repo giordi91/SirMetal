@@ -6,19 +6,16 @@
 #include "SirMetalLib/resources/shaderManager.h"
 #include "SirMetalLib/resources/textureManager.h"
 #import "SirMetalLib/MBEMathUtilities.h"
-#import "vendors/imgui/imgui.h"
-#import "vendors/imgui/imgui_impl_metal.h"
+#import "imgui/imgui.h"
+#import "imgui/imgui_impl_metal.h"
 #import "SirMetalLib/resources/meshes/meshManager.h"
-#import "imgui_impl_osx.h"
-#import "imgui_internal.h"
-#import "editorUI.h"
+#import "SirMetalLib/debug/imguiRenderer.h"
 #import "SirMetalLib/core/logging/log.h"
 #import "SirMetalLib/core/flags.h"
 #import "SirMetalLib/graphics/materialManager.h"
 #import "SirMetalLib/graphics/renderingContext.h"
 #import "SirMetalLib/graphics/constantBufferManager.h"
 #import "SirMetalLib/graphics/PSOGenerator.h"
-#import "SirMetalLib/graphics/techniques/selectionRendering.h"
 
 static const NSInteger MBEInFlightBufferCount = 3;
 const MTLIndexType MBEIndexType = MTLIndexTypeUInt32;
@@ -27,23 +24,14 @@ typedef struct {
   matrix_float4x4 modelViewProjectionMatrix;
 } MBEUniforms;
 
-static inline uint64_t AlignUp(uint64_t n, uint32_t alignment) {
-  return ((n + alignment - 1) / alignment) * alignment;
-}
-
-static const uint32_t MBEBufferAlignment = 256;
-
 //temporary until i figure out what to do with this
-static SirMetal::Editor::EditorUI editorUI = SirMetal::Editor::EditorUI();
+static SirMetal::Editor::ImguiRenderer editorUI = SirMetal::Editor::ImguiRenderer();
 static SirMetal::Material m_opaqueMaterial;
 static SirMetal::DrawTracker m_drawTracker;
 static SirMetal::ConstantBufferHandle m_uniformHandle;
-static SirMetal::Selection m_selection;
 
 @interface AAPLRenderer ()
 @property(strong) id<MTLTexture> depthTexture;
-@property(strong) id<MTLTexture> depthTextureGUI;
-@property(strong) id<MTLTexture> offScreenTexture;
 @property(strong) dispatch_semaphore_t displaySemaphore;
 @property(strong) dispatch_semaphore_t resizeSemaphore;
 @property(assign) NSInteger bufferIndex;
@@ -94,21 +82,17 @@ static SirMetal::Selection m_selection;
   m_opaqueMaterial.shaderName = "Shaders";
   m_opaqueMaterial.state.enabled = false;
 
-
   for (int i = 0; i < SirMetal::MAX_COLOR_ATTACHMENT; ++i) {
     m_drawTracker.renderTargets[i] = nil;
   }
-
 
   return self;
 }
 
 - (void)initGraphicsObjectsTemp {
 
-  //create the pipeline
-  [self makeBuffers];
-  //TODO probably grab the start viewport size from the context
-  [self createOffscreenTexture:256 :256];
+  auto *cbManager = SirMetal::CONTEXT->managers.constantBufferManager;
+  m_uniformHandle = cbManager->allocate(sizeof(MBEUniforms), SirMetal::CONSTANT_BUFFER_FLAG_BUFFERED);
 
   //view matrix
   //initializing the camera to the identity
@@ -127,8 +111,8 @@ static SirMetal::Selection m_selection;
   descriptor.storageMode = MTLStorageModePrivate;
   descriptor.usage = MTLTextureUsageRenderTarget;
   descriptor.pixelFormat = MTLPixelFormatDepth32Float_Stencil8;
-  self.depthTextureGUI = [_device newTextureWithDescriptor:descriptor];
-  self.depthTextureGUI.label = @"DepthStencilGUI";
+  self.depthTexture = [_device newTextureWithDescriptor:descriptor];
+  self.depthTexture.label = @"DepthStencilGUI";
 
 
   std::string projectPath = "/Users/marcogiordano/WORK_IN_PROGRESS/SirMetalProject/";
@@ -143,14 +127,6 @@ static SirMetal::Selection m_selection;
   SirMetal::CONTEXT->world.hierarchy.addToRoot(cube);
   SirMetal::CONTEXT->world.hierarchy.addToRoot(cone);
 
-  m_selection.initialize(_device);
-
-}
-
-- (void)makeBuffers {
-
-  auto *cbManager = SirMetal::CONTEXT->managers.constantBufferManager;
-  m_uniformHandle = cbManager->allocate(sizeof(MBEUniforms), SirMetal::CONSTANT_BUFFER_FLAG_BUFFERED);
 }
 
 - (void)updateUniformsForView:(float)screenWidth :(float)screenHeight {
@@ -177,38 +153,6 @@ static SirMetal::Selection m_selection;
   cbManager->update(m_uniformHandle, &uniforms);
 }
 
-- (void)createOffscreenTexture:(int)width :(int)height {
-
-  SirMetal::TextureManager *textureManager = SirMetal::CONTEXT->managers.textureManager;
-
-  SirMetal::AllocTextureRequest request{
-      static_cast<uint32_t>(width), static_cast<uint32_t>(height),
-      1, MTLTextureType2D, MTLPixelFormatBGRA8Unorm,
-      MTLTextureUsageRenderTarget | MTLTextureUsageShaderRead, MTLStorageModePrivate, 1, "offscreenTexture"
-  };
-  self.viewportHandle = textureManager->allocate(_device, request);
-  self.offScreenTexture = textureManager->getNativeFromHandle(self.viewportHandle);
-
-  SirMetal::AllocTextureRequest requestDepth{
-      static_cast<uint32_t>(width), static_cast<uint32_t>(height),
-      1, MTLTextureType2D, MTLPixelFormatDepth32Float_Stencil8,
-      MTLTextureUsageRenderTarget | MTLTextureUsageShaderRead, MTLStorageModePrivate, 1, "depthTexture"
-  };
-  self.depthHandle = textureManager->allocate(_device, requestDepth);
-  self.depthTexture = textureManager->getNativeFromHandle(self.depthHandle);
-}
-
-- (void)renderUI:(MTKView *)view :(MTLRenderPassDescriptor *)passDescriptor :(id<MTLCommandBuffer>)commandBuffer
-    :(id<MTLRenderCommandEncoder>)renderPass {
-
-
-  editorUI.beginUI(view,passDescriptor);
-
-  //[self showImguiContent];
-  editorUI.show(SirMetal::CONTEXT->screenWidth, SirMetal::CONTEXT->screenHeight);
-  editorUI.endUI(commandBuffer,renderPass);
-}
-
 /// Called whenever the view needs to render a frame.
 - (void)drawInMTKView:(nonnull MTKView *)view {
 
@@ -216,37 +160,6 @@ static SirMetal::Selection m_selection;
   frame++;
   //dispatch_semaphore_wait(self.displaySemaphore, DISPATCH_TIME_FOREVER);
   bool viewportChanged = false;
-
-  //bool viewportChanged = SirMetal::isFlagSet(SirMetal::CONTEXT->flags.viewEvents,
-  //                                           SirMetal::ViewEventsFlagsBits::ViewEventsViewportSizeChanged);
-  if (viewportChanged) {
-
-    /*
-    id<MTLCommandBuffer> commandBuffer = [_commandQueue commandBuffer];
-    [commandBuffer addCompletedHandler:^(id<MTLCommandBuffer> commandBuffer) {
-      dispatch_semaphore_signal(self.resizeSemaphore);
-    }];
-    [commandBuffer commit];
-    dispatch_semaphore_wait(self.resizeSemaphore, DISPATCH_TIME_FOREVER);
-
-    SirMetal::TextureManager *texManager = SirMetal::CONTEXT->managers.textureManager;
-    bool viewportResult = texManager->resizeTexture(_device, self.viewportHandle, viewportSize.x, viewportSize.y);
-    bool depthResult = texManager->resizeTexture(_device, self.depthHandle, viewportSize.x, viewportSize.y);
-    if ((!viewportResult) | (!depthResult)) {
-      SIR_CORE_FATAL("Could not resize viewport color or depth buffer");
-    } else {
-      //if we got no error we extract the new texture so that can be used
-      self.offScreenTexture = texManager->getNativeFromHandle(self.viewportHandle);
-      self.depthTexture = texManager->getNativeFromHandle(self.depthHandle);
-      SirMetal::CONTEXT->viewportTexture = (__bridge void *) self.offScreenTexture;
-      SirMetal::CONTEXT->cameraController.updateProjection(viewportSize.x, viewportSize.y);
-
-    }
-    SirMetal::setFlagBitfield(SirMetal::CONTEXT->flags.viewEvents,
-                              SirMetal::ViewEventsFlagsBits::ViewEventsViewportSizeChanged,
-                              false);
-    */
-  }
 
   ImGuiIO &io = ImGui::GetIO();
   io.DisplaySize.x = static_cast<float>(view.bounds.size.width);
@@ -261,32 +174,30 @@ static SirMetal::Selection m_selection;
   float w = view.drawableSize.width;
   float h = view.drawableSize.height;
 
-  bool isViewport = false;//(io.ConfigFlags & ImGuiConfigFlags_DockingEnable) > 0;
   [self updateUniformsForView:( w) :( h)];
 
   id<MTLCommandBuffer> commandBuffer = [_commandQueue commandBuffer];
   MTLRenderPassDescriptor *passDescriptor = [view currentRenderPassDescriptor];
-  //passDescriptor.depthAttachment
 
-  float wToUse = isViewport ? self.offScreenTexture.width : view.currentDrawable.texture.width;
-  float hToUse = isViewport ? self.offScreenTexture.height : view.currentDrawable.texture.height;
+  float wToUse = view.currentDrawable.texture.width;
+  float hToUse =  view.currentDrawable.texture.height;
 
   passDescriptor.renderTargetWidth = wToUse;
   passDescriptor.renderTargetHeight = hToUse;
   MTLRenderPassColorAttachmentDescriptor *colorAttachment = passDescriptor.colorAttachments[0];
-  colorAttachment.texture = isViewport ? self.offScreenTexture : view.currentDrawable.texture;
+  colorAttachment.texture = view.currentDrawable.texture;
   colorAttachment.clearColor = MTLClearColorMake(0.8, 0.8, 0.8, 1.0);
   colorAttachment.storeAction = MTLStoreActionStore;
   colorAttachment.loadAction = MTLLoadActionClear;
 
   MTLRenderPassDepthAttachmentDescriptor *depthAttachment = passDescriptor.depthAttachment;
-  depthAttachment.texture = isViewport ? self.depthTexture : self.depthTextureGUI;
+  depthAttachment.texture =  self.depthTexture;
   depthAttachment.clearDepth = 1.0;
   depthAttachment.storeAction = MTLStoreActionDontCare;
   depthAttachment.loadAction = MTLLoadActionClear;
 
-  m_drawTracker.renderTargets[0] = isViewport ? self.offScreenTexture : view.currentDrawable.texture;
-  m_drawTracker.depthTarget = isViewport ? self.depthTexture : self.depthTextureGUI;
+  m_drawTracker.renderTargets[0] =  view.currentDrawable.texture;
+  m_drawTracker.depthTarget =  self.depthTexture;
   SirMetal::PSOCache cache = getPSO(_device, m_drawTracker, m_opaqueMaterial);
 
   id<MTLRenderCommandEncoder> renderPass = [commandBuffer renderCommandEncoderWithDescriptor:passDescriptor];
@@ -305,7 +216,6 @@ static SirMetal::Selection m_selection;
   //skipping the root
   for (size_t i = 1; i < nodeSize; ++i) {
     const SirMetal::DenseTreeNode &node = nodes[i];
-    //SirMetal::MeshHandle mesh = SirMetal::CONTEXT->managers.meshManager->getHandleFromName("lucy");
     const SirMetal::MeshData
         *meshData = SirMetal::CONTEXT->managers.meshManager->getMeshData(SirMetal::MeshHandle{node.id});
 
@@ -320,35 +230,30 @@ static SirMetal::Selection m_selection;
 
   [renderPass endEncoding];
 
-  if (SirMetal::CONTEXT->world.hierarchy.getSelectedId() != -1) {
-    //[self renderSelection:wToUse :hToUse :commandBuffer :&m_drawTracker];
-    m_selection.render(_device, commandBuffer, wToUse, hToUse, m_uniformHandle, isViewport? self.offScreenTexture:view.currentDrawable.texture);
-  }
+  MTLRenderPassDescriptor *uiPassDescriptor = [[MTLRenderPassDescriptor alloc] init];
+  MTLRenderPassColorAttachmentDescriptor *uiColorAttachment = uiPassDescriptor.colorAttachments[0];
+  uiColorAttachment.texture = view.currentDrawable.texture;
+  uiColorAttachment.clearColor = MTLClearColorMake(0.0, 0.0, 0.0, 1.0);
+  uiColorAttachment.storeAction = MTLStoreActionStore;
+  uiColorAttachment.loadAction = MTLLoadActionLoad;
 
-  //if (isViewport) {
+  MTLRenderPassDepthAttachmentDescriptor *uiDepthAttachment = uiPassDescriptor.depthAttachment;
+  uiDepthAttachment.texture = self.depthTexture;
+  uiDepthAttachment.clearDepth = 1.0;
+  uiDepthAttachment.storeAction = MTLStoreActionDontCare;
+  uiDepthAttachment.loadAction = MTLLoadActionClear;
 
-    MTLRenderPassDescriptor *uiPassDescriptor = [[MTLRenderPassDescriptor alloc] init];
-    MTLRenderPassColorAttachmentDescriptor *uiColorAttachment = uiPassDescriptor.colorAttachments[0];
-    uiColorAttachment.texture = view.currentDrawable.texture;
-    uiColorAttachment.clearColor = MTLClearColorMake(0.0, 0.0, 0.0, 1.0);
-    uiColorAttachment.storeAction = MTLStoreActionStore;
-    uiColorAttachment.loadAction = MTLLoadActionLoad;
+  uiPassDescriptor.renderTargetWidth = w;
+  uiPassDescriptor.renderTargetHeight = h;
 
-    MTLRenderPassDepthAttachmentDescriptor *uiDepthAttachment = uiPassDescriptor.depthAttachment;
-    uiDepthAttachment.texture = self.depthTextureGUI;
-    uiDepthAttachment.clearDepth = 1.0;
-    uiDepthAttachment.storeAction = MTLStoreActionDontCare;
-    uiDepthAttachment.loadAction = MTLLoadActionClear;
+  id<MTLRenderCommandEncoder> uiPass = [commandBuffer renderCommandEncoderWithDescriptor:uiPassDescriptor];
 
-    uiPassDescriptor.renderTargetWidth = w;
-    uiPassDescriptor.renderTargetHeight = h;
 
-    id<MTLRenderCommandEncoder> uiPass = [commandBuffer renderCommandEncoderWithDescriptor:uiPassDescriptor];
+  editorUI.beginUI(view,passDescriptor);
+  editorUI.show(SirMetal::CONTEXT->screenWidth, SirMetal::CONTEXT->screenHeight);
+  editorUI.endUI(commandBuffer,renderPass);
 
-    [self renderUI:view :passDescriptor :commandBuffer :uiPass];
-
-    [uiPass endEncoding];
-  //}
+  [uiPass endEncoding];
   SirMetal::endFrame(SirMetal::CONTEXT);
 
   [commandBuffer presentDrawable:view.currentDrawable];

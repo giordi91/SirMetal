@@ -7,6 +7,24 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		C0A5A517256AEDD50005F885 /* imguiRenderer.h in Headers */ = {isa = PBXBuildFile; fileRef = C0A5A515256AEDD50005F885 /* imguiRenderer.h */; };
+		C0A5A518256AEDD50005F885 /* imguiRenderer.mm in Sources */ = {isa = PBXBuildFile; fileRef = C0A5A516256AEDD50005F885 /* imguiRenderer.mm */; };
+		C0A5A52B256AEE280005F885 /* imgui.h in Headers */ = {isa = PBXBuildFile; fileRef = C0A5A51A256AEE280005F885 /* imgui.h */; };
+		C0A5A52C256AEE280005F885 /* imstb_textedit.h in Headers */ = {isa = PBXBuildFile; fileRef = C0A5A51B256AEE280005F885 /* imstb_textedit.h */; };
+		C0A5A52D256AEE280005F885 /* imconfig.h in Headers */ = {isa = PBXBuildFile; fileRef = C0A5A51C256AEE280005F885 /* imconfig.h */; };
+		C0A5A52E256AEE280005F885 /* imgui_widgets.cpp in Sources */ = {isa = PBXBuildFile; fileRef = C0A5A51D256AEE280005F885 /* imgui_widgets.cpp */; };
+		C0A5A52F256AEE280005F885 /* imstb_truetype.h in Headers */ = {isa = PBXBuildFile; fileRef = C0A5A51E256AEE280005F885 /* imstb_truetype.h */; };
+		C0A5A530256AEE280005F885 /* imgui_impl_osx.h in Headers */ = {isa = PBXBuildFile; fileRef = C0A5A51F256AEE280005F885 /* imgui_impl_osx.h */; };
+		C0A5A531256AEE280005F885 /* imgui_impl_metal.mm in Sources */ = {isa = PBXBuildFile; fileRef = C0A5A520256AEE280005F885 /* imgui_impl_metal.mm */; };
+		C0A5A532256AEE280005F885 /* imgui.cpp in Sources */ = {isa = PBXBuildFile; fileRef = C0A5A521256AEE280005F885 /* imgui.cpp */; };
+		C0A5A533256AEE280005F885 /* imgui_internal.h in Headers */ = {isa = PBXBuildFile; fileRef = C0A5A522256AEE280005F885 /* imgui_internal.h */; };
+		C0A5A534256AEE280005F885 /* imgui_impl_metal.h in Headers */ = {isa = PBXBuildFile; fileRef = C0A5A523256AEE280005F885 /* imgui_impl_metal.h */; };
+		C0A5A535256AEE280005F885 /* imgui_impl_osx.mm in Sources */ = {isa = PBXBuildFile; fileRef = C0A5A524256AEE280005F885 /* imgui_impl_osx.mm */; };
+		C0A5A536256AEE280005F885 /* imstb_rectpack.h in Headers */ = {isa = PBXBuildFile; fileRef = C0A5A525256AEE280005F885 /* imstb_rectpack.h */; };
+		C0A5A537256AEE280005F885 /* imgui_demo.cpp in Sources */ = {isa = PBXBuildFile; fileRef = C0A5A526256AEE280005F885 /* imgui_demo.cpp */; };
+		C0A5A538256AEE280005F885 /* imgui_draw.cpp in Sources */ = {isa = PBXBuildFile; fileRef = C0A5A527256AEE280005F885 /* imgui_draw.cpp */; };
+		C0A5A539256AEE280005F885 /* ImGuizmo.h in Headers */ = {isa = PBXBuildFile; fileRef = C0A5A529256AEE280005F885 /* ImGuizmo.h */; };
+		C0A5A53A256AEE280005F885 /* ImGuizmo.cpp in Sources */ = {isa = PBXBuildFile; fileRef = C0A5A52A256AEE280005F885 /* ImGuizmo.cpp */; };
 		C0BF91DC24E1F98100824030 /* input.h in Headers */ = {isa = PBXBuildFile; fileRef = C0BF91D324E1F98100824030 /* input.h */; };
 		C0BF91DD24E1F98100824030 /* file.mm in Sources */ = {isa = PBXBuildFile; fileRef = C0BF91D424E1F98100824030 /* file.mm */; };
 		C0BF91DE24E1F98100824030 /* flags.h in Headers */ = {isa = PBXBuildFile; fileRef = C0BF91D524E1F98100824030 /* flags.h */; };
@@ -159,6 +177,24 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
+		C0A5A515256AEDD50005F885 /* imguiRenderer.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = imguiRenderer.h; sourceTree = "<group>"; };
+		C0A5A516256AEDD50005F885 /* imguiRenderer.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = imguiRenderer.mm; sourceTree = "<group>"; };
+		C0A5A51A256AEE280005F885 /* imgui.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = imgui.h; sourceTree = "<group>"; };
+		C0A5A51B256AEE280005F885 /* imstb_textedit.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = imstb_textedit.h; sourceTree = "<group>"; };
+		C0A5A51C256AEE280005F885 /* imconfig.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = imconfig.h; sourceTree = "<group>"; };
+		C0A5A51D256AEE280005F885 /* imgui_widgets.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = imgui_widgets.cpp; sourceTree = "<group>"; };
+		C0A5A51E256AEE280005F885 /* imstb_truetype.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = imstb_truetype.h; sourceTree = "<group>"; };
+		C0A5A51F256AEE280005F885 /* imgui_impl_osx.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = imgui_impl_osx.h; sourceTree = "<group>"; };
+		C0A5A520256AEE280005F885 /* imgui_impl_metal.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = imgui_impl_metal.mm; sourceTree = "<group>"; };
+		C0A5A521256AEE280005F885 /* imgui.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = imgui.cpp; sourceTree = "<group>"; };
+		C0A5A522256AEE280005F885 /* imgui_internal.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = imgui_internal.h; sourceTree = "<group>"; };
+		C0A5A523256AEE280005F885 /* imgui_impl_metal.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = imgui_impl_metal.h; sourceTree = "<group>"; };
+		C0A5A524256AEE280005F885 /* imgui_impl_osx.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = imgui_impl_osx.mm; sourceTree = "<group>"; };
+		C0A5A525256AEE280005F885 /* imstb_rectpack.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = imstb_rectpack.h; sourceTree = "<group>"; };
+		C0A5A526256AEE280005F885 /* imgui_demo.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = imgui_demo.cpp; sourceTree = "<group>"; };
+		C0A5A527256AEE280005F885 /* imgui_draw.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = imgui_draw.cpp; sourceTree = "<group>"; };
+		C0A5A529256AEE280005F885 /* ImGuizmo.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ImGuizmo.h; sourceTree = "<group>"; };
+		C0A5A52A256AEE280005F885 /* ImGuizmo.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = ImGuizmo.cpp; sourceTree = "<group>"; };
 		C0BF91B924E1F34C00824030 /* libSirMetalLib.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = libSirMetalLib.a; sourceTree = BUILT_PRODUCTS_DIR; };
 		C0BF91D324E1F98100824030 /* input.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = input.h; sourceTree = "<group>"; };
 		C0BF91D424E1F98100824030 /* file.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = file.mm; sourceTree = "<group>"; };
@@ -323,6 +359,45 @@
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
+		C0A5A514256AEDD50005F885 /* debug */ = {
+			isa = PBXGroup;
+			children = (
+				C0A5A515256AEDD50005F885 /* imguiRenderer.h */,
+				C0A5A516256AEDD50005F885 /* imguiRenderer.mm */,
+			);
+			path = debug;
+			sourceTree = "<group>";
+		};
+		C0A5A519256AEE280005F885 /* imgui */ = {
+			isa = PBXGroup;
+			children = (
+				C0A5A51A256AEE280005F885 /* imgui.h */,
+				C0A5A51B256AEE280005F885 /* imstb_textedit.h */,
+				C0A5A51C256AEE280005F885 /* imconfig.h */,
+				C0A5A51D256AEE280005F885 /* imgui_widgets.cpp */,
+				C0A5A51E256AEE280005F885 /* imstb_truetype.h */,
+				C0A5A51F256AEE280005F885 /* imgui_impl_osx.h */,
+				C0A5A520256AEE280005F885 /* imgui_impl_metal.mm */,
+				C0A5A521256AEE280005F885 /* imgui.cpp */,
+				C0A5A522256AEE280005F885 /* imgui_internal.h */,
+				C0A5A523256AEE280005F885 /* imgui_impl_metal.h */,
+				C0A5A524256AEE280005F885 /* imgui_impl_osx.mm */,
+				C0A5A525256AEE280005F885 /* imstb_rectpack.h */,
+				C0A5A526256AEE280005F885 /* imgui_demo.cpp */,
+				C0A5A527256AEE280005F885 /* imgui_draw.cpp */,
+			);
+			path = imgui;
+			sourceTree = "<group>";
+		};
+		C0A5A528256AEE280005F885 /* imguizmo */ = {
+			isa = PBXGroup;
+			children = (
+				C0A5A529256AEE280005F885 /* ImGuizmo.h */,
+				C0A5A52A256AEE280005F885 /* ImGuizmo.cpp */,
+			);
+			path = imguizmo;
+			sourceTree = "<group>";
+		};
 		C0BF91B024E1F34C00824030 = {
 			isa = PBXGroup;
 			children = (
@@ -342,6 +417,7 @@
 		C0BF91BB24E1F34C00824030 /* SirMetalLib */ = {
 			isa = PBXGroup;
 			children = (
+				C0A5A514256AEDD50005F885 /* debug */,
 				C0BF92EC24E2652E00824030 /* MBEMathUtilities.h */,
 				C0BF92ED24E2652E00824030 /* MBEMathUtilities.mm */,
 				C0BF92E624E2625E00824030 /* engineContext.h */,
@@ -383,6 +459,8 @@
 		C0BF91E424E2517000824030 /* vendors */ = {
 			isa = PBXGroup;
 			children = (
+				C0A5A519256AEE280005F885 /* imgui */,
+				C0A5A528256AEE280005F885 /* imguizmo */,
 				C0BF91E524E2517000824030 /* meshoptimizer */,
 				C0BF91F624E2517000824030 /* objparser */,
 				C0BF91F924E2517000824030 /* spdlog */,
@@ -665,6 +743,7 @@
 			files = (
 				C0BF929024E2517100824030 /* syslog_sink.h in Headers */,
 				C0BF928724E2517100824030 /* stdout_color_sinks.h in Headers */,
+				C0A5A539256AEE280005F885 /* ImGuizmo.h in Headers */,
 				C0BF927924E2517100824030 /* posix.h in Headers */,
 				C0BF929C24E2517100824030 /* log_msg_buffer-inl.h in Headers */,
 				C0BF92A724E2517100824030 /* backtracer.h in Headers */,
@@ -674,6 +753,7 @@
 				C0BF927224E2517100824030 /* ranges.h in Headers */,
 				C0BF92B824E2517100824030 /* argv.h in Headers */,
 				C0BF928424E2517100824030 /* ansicolor_sink.h in Headers */,
+				C0A5A52C256AEE280005F885 /* imstb_textedit.h in Headers */,
 				C0BF926C24E2517100824030 /* fwd.h in Headers */,
 				C0BF92BE24E2517100824030 /* async_logger-inl.h in Headers */,
 				C0BF928824E2517100824030 /* dist_sink.h in Headers */,
@@ -691,8 +771,10 @@
 				C0BF92BC24E2517100824030 /* async.h in Headers */,
 				C0BF92A424E2517100824030 /* fmt_helper.h in Headers */,
 				C0BF928524E2517100824030 /* systemd_sink.h in Headers */,
+				C0A5A536256AEE280005F885 /* imstb_rectpack.h in Headers */,
 				C0BF92D424E25F2500824030 /* handle.h in Headers */,
 				C0BF92A624E2517100824030 /* registry.h in Headers */,
+				C0A5A52B256AEE280005F885 /* imgui.h in Headers */,
 				C0BF927724E2517100824030 /* printf.h in Headers */,
 				C0BF92C124E2517100824030 /* spdlog-inl.h in Headers */,
 				C0BF92C224E2517100824030 /* json.hpp in Headers */,
@@ -728,6 +810,7 @@
 				C0BF927024E2517100824030 /* ostream.h in Headers */,
 				C0BF91DF24E1F98100824030 /* file.h in Headers */,
 				C0BF928C24E2517100824030 /* wincolor_sink-inl.h in Headers */,
+				C0A5A533256AEE280005F885 /* imgui_internal.h in Headers */,
 				C0BF929824E2517100824030 /* base_sink-inl.h in Headers */,
 				C0BF91E124E1F98100824030 /* bufferedLog.h in Headers */,
 				C0BF927624E2517100824030 /* color.h in Headers */,
@@ -738,6 +821,7 @@
 				C0BF927B24E2517100824030 /* fmt.h in Headers */,
 				C0BF927124E2517100824030 /* format-inl.h in Headers */,
 				C0BF925E24E2517000824030 /* meshoptimizer.h in Headers */,
+				C0A5A530256AEE280005F885 /* imgui_impl_osx.h in Headers */,
 				C0BF92BD24E2517100824030 /* common.h in Headers */,
 				C0BF929624E2517100824030 /* basic_file_sink-inl.h in Headers */,
 				C0BF929324E2517100824030 /* stdout_color_sinks-inl.h in Headers */,
@@ -747,7 +831,9 @@
 				C0BF92D524E25F2500824030 /* shaderManager.h in Headers */,
 				C0BF928B24E2517100824030 /* sink-inl.h in Headers */,
 				C0BF92A824E2517100824030 /* registry-inl.h in Headers */,
+				C0A5A52F256AEE280005F885 /* imstb_truetype.h in Headers */,
 				C0BF928D24E2517100824030 /* android_sink.h in Headers */,
+				C0A5A534256AEE280005F885 /* imgui_impl_metal.h in Headers */,
 				C0BF92BB24E2517100824030 /* tweakme.h in Headers */,
 				C0BF92AC24E2517100824030 /* os-inl.h in Headers */,
 				C0BF927324E2517100824030 /* core.h in Headers */,
@@ -758,8 +844,10 @@
 				C0BF926B24E2517100824030 /* pattern_formatter-inl.h in Headers */,
 				C0BF92E024E261FF00824030 /* camera.h in Headers */,
 				C0BF92EA24E2625E00824030 /* engineContext.h in Headers */,
+				C0A5A52D256AEE280005F885 /* imconfig.h in Headers */,
 				C0BF91DC24E1F98100824030 /* input.h in Headers */,
 				C0BF929A24E2517100824030 /* formatter.h in Headers */,
+				C0A5A517256AEDD50005F885 /* imguiRenderer.h in Headers */,
 				C0BF92A224E2517100824030 /* os.h in Headers */,
 				C0BF928A24E2517100824030 /* tcp_sink.h in Headers */,
 				C0BF92AB24E2517100824030 /* synchronous_factory.h in Headers */,
@@ -845,25 +933,32 @@
 				C0BF925C24E2517000824030 /* vcacheoptimizer.cpp in Sources */,
 				C0BF92CF24E25F2500824030 /* textureManager.mm in Sources */,
 				C0BF92EF24E2652E00824030 /* MBEMathUtilities.mm in Sources */,
+				C0A5A535256AEE280005F885 /* imgui_impl_osx.mm in Sources */,
+				C0A5A52E256AEE280005F885 /* imgui_widgets.cpp in Sources */,
 				C0BF925924E2517000824030 /* vertexfilter.cpp in Sources */,
 				C0BF92E124E261FF00824030 /* renderingContext.mm in Sources */,
 				C0BF926724E2517100824030 /* clusterizer.cpp in Sources */,
 				C0BF925F24E2517000824030 /* stripifier.cpp in Sources */,
 				C0BF925D24E2517000824030 /* overdrawoptimizer.cpp in Sources */,
+				C0A5A532256AEE280005F885 /* imgui.cpp in Sources */,
 				C0BF926524E2517100824030 /* indexgenerator.cpp in Sources */,
 				C0BF926024E2517000824030 /* vcacheanalyzer.cpp in Sources */,
 				C0BF92DE24E261FF00824030 /* materialManager.mm in Sources */,
 				C0BF92EB24E2625E00824030 /* engineContext.mm in Sources */,
 				C0BF926624E2517100824030 /* vfetchanalyzer.cpp in Sources */,
+				C0A5A53A256AEE280005F885 /* ImGuizmo.cpp in Sources */,
 				C0BF926224E2517000824030 /* vfetchoptimizer.cpp in Sources */,
 				C0BF926124E2517000824030 /* indexcodec.cpp in Sources */,
+				C0A5A518256AEDD50005F885 /* imguiRenderer.mm in Sources */,
 				C0BF92D324E25F2500824030 /* meshManager.mm in Sources */,
+				C0A5A538256AEE280005F885 /* imgui_draw.cpp in Sources */,
 				C0BF92DF24E261FF00824030 /* camera.mm in Sources */,
 				C0BF926324E2517000824030 /* allocator.cpp in Sources */,
 				C0BF91DD24E1F98100824030 /* file.mm in Sources */,
 				C0BF925A24E2517000824030 /* vertexcodec.cpp in Sources */,
 				C0BF925B24E2517000824030 /* overdrawanalyzer.cpp in Sources */,
 				C0BF92CE24E25F2500824030 /* shaderManager.mm in Sources */,
+				C0A5A531256AEE280005F885 /* imgui_impl_metal.mm in Sources */,
 				C0BF92D224E25F2500824030 /* wavefrontobj.mm in Sources */,
 				C0BF926824E2517100824030 /* simplifier.cpp in Sources */,
 				C9EA9F6627E488144AD2AA34 /* denseTree.mm in Sources */,
@@ -871,6 +966,7 @@
 				C9EA9D4E1F17886FD2A55F09 /* constantBufferManager.mm in Sources */,
 				C9EA943B879C14F0B4489589 /* GPUMemoryAllocator.mm in Sources */,
 				C9EA986E61731D113687522E /* selectionRendering.mm in Sources */,
+				C0A5A537256AEE280005F885 /* imgui_demo.cpp in Sources */,
 				C9EA990C65ACA0AB7A186590 /* PSOGenerator.mm in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;

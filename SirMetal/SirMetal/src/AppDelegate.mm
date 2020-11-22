@@ -1,7 +1,7 @@
 
 #include <iostream>
 #import <AppKit/AppKit.h>
-#import "vendors/imgui/imgui_impl_osx.h"
+#import "imgui/imgui_impl_osx.h"
 #import "AppDelegate.hpp"
 #import "AAPLRenderer.h"
 #import "SirMetalLib/core/input.h"

@@ -16,7 +16,7 @@
             endingColumnNumber = "9223372036854775807"
             startingLineNumber = "210"
             endingLineNumber = "210"
-            landmarkName = "EditorUI::show(width, height)"
+            landmarkName = "ImguiRenderer::show(width, height)"
             landmarkType = "7">
          </BreakpointContent>
       </BreakpointProxy>
