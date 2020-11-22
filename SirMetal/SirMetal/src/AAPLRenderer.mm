@@ -17,8 +17,6 @@
 #import "SirMetalLib/core/flags.h"
 #import "SirMetalLib/graphics/materialManager.h"
 #import "SirMetalLib/graphics/renderingContext.h"
-#import "ImGuizmo.h"
-#import "SirMetalLib/core/memory/gpu/GPUMemoryAllocator.h"
 #import "SirMetalLib/graphics/constantBufferManager.h"
 #import "SirMetalLib/graphics/PSOGenerator.h"
 #import "SirMetalLib/graphics/techniques/selectionRendering.h"
@@ -55,9 +53,6 @@ static SirMetal::Selection m_selection;
 // Main class performing the rendering
 @implementation AAPLRenderer {
   id<MTLDevice> _device;
-
-  //// The command queue used to pass commands to the device.
-  //id <MTLCommandQueue> _commandQueue;
 }
 
 - (void)logGPUInformation:(id<MTLDevice>)device {
@@ -337,7 +332,7 @@ static SirMetal::Selection m_selection;
 
   if (SirMetal::CONTEXT->world.hierarchy.getSelectedId() != -1) {
     //[self renderSelection:wToUse :hToUse :commandBuffer :&m_drawTracker];
-    m_selection.render(_device, commandBuffer, wToUse, hToUse, m_uniformHandle, self.offScreenTexture);
+    m_selection.render(_device, commandBuffer, wToUse, hToUse, m_uniformHandle, isViewport? self.offScreenTexture:view.currentDrawable.texture);
   }
 
   if (isViewport) {
@@ -363,31 +358,6 @@ static SirMetal::Selection m_selection;
     [self renderUI:view :passDescriptor :commandBuffer :uiPass];
 
     [uiPass endEncoding];
-
-  } else {
-    MTLRenderPassDescriptor *uiPassDescriptor = [[MTLRenderPassDescriptor alloc] init];
-    MTLRenderPassColorAttachmentDescriptor *uiColorAttachment = uiPassDescriptor.colorAttachments[0];
-    uiColorAttachment.texture = view.currentDrawable.texture;
-    uiColorAttachment.clearColor = MTLClearColorMake(0.0, 0.0, 0.0, 1.0);
-    uiColorAttachment.storeAction = MTLStoreActionStore;
-    uiColorAttachment.loadAction = MTLLoadActionLoad;
-
-    MTLRenderPassDepthAttachmentDescriptor *uiDepthAttachment = uiPassDescriptor.depthAttachment;
-    //uiDepthAttachment.texture = self.depthTextureGUI;
-    uiDepthAttachment.texture = nil;
-    uiDepthAttachment.clearDepth = 1.0;
-    uiDepthAttachment.storeAction = MTLStoreActionDontCare;
-    uiDepthAttachment.loadAction = MTLLoadActionClear;
-
-    uiPassDescriptor.renderTargetWidth = w;
-    uiPassDescriptor.renderTargetHeight = h;
-
-    id<MTLRenderCommandEncoder> uiPass = [commandBuffer renderCommandEncoderWithDescriptor:uiPassDescriptor];
-
-    [self renderUI2:view :passDescriptor :commandBuffer :uiPass];
-
-    [uiPass endEncoding];
-
   }
   SirMetal::endFrame(SirMetal::CONTEXT);
 
@@ -400,22 +370,6 @@ static SirMetal::Selection m_selection;
 
   [commandBuffer commit];
 
-}
-
-- (void)renderUI2:(MTKView *)view :(MTLRenderPassDescriptor *)descriptor :(id<MTLCommandBuffer>)buffer :(id<MTLRenderCommandEncoder>)pass {
-
-  // Start the Dear ImGui frame
-  ImGui_ImplOSX_NewFrame(view);
-  ImGui_ImplMetal_NewFrame(descriptor);
-  ImGui::NewFrame();
-  ImGuizmo::BeginFrame();
-
-  //[self showImguiContent];
-  editorUI.show2(SirMetal::CONTEXT->screenWidth, SirMetal::CONTEXT->screenHeight);
-  // Rendering
-  ImGui::Render();
-  ImDrawData *drawData = ImGui::GetDrawData();
-  ImGui_ImplMetal_RenderDrawData(drawData, buffer, pass);
 }
 
 - (void)mtkView:(nonnull MTKView *)view drawableSizeWillChange:(CGSize)size {

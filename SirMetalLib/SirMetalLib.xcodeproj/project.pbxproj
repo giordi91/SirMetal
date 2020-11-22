@@ -992,6 +992,8 @@
 		C0BF91C324E1F34C00824030 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				CODE_SIGN_IDENTITY = "";
+				CODE_SIGN_INJECT_BASE_ENTITLEMENTS = YES;
 				CODE_SIGN_STYLE = Automatic;
 				DEVELOPMENT_TEAM = XXL4SLD26M;
 				EXECUTABLE_PREFIX = lib;
@@ -1014,6 +1016,8 @@
 		C0BF91C424E1F34C00824030 /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				CODE_SIGN_IDENTITY = "";
+				CODE_SIGN_INJECT_BASE_ENTITLEMENTS = YES;
 				CODE_SIGN_STYLE = Automatic;
 				DEVELOPMENT_TEAM = XXL4SLD26M;
 				EXECUTABLE_PREFIX = lib;

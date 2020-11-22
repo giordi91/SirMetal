@@ -57,7 +57,7 @@ void Selection::initialize(id inDevice) {
   SirMetal::TextureManager *textureManager = SirMetal::CONTEXT->managers.textureManager;
   SirMetal::AllocTextureRequest jumpRequest{
       static_cast<uint32_t>(m_screenWidth), static_cast<uint32_t>(m_screenHeight),
-      1, MTLTextureType2D, MTLPixelFormatRG32Float,
+      1, MTLTextureType2D, MTLPixelFormatRG16Float,
       MTLTextureUsageRenderTarget | MTLTextureUsageShaderRead, MTLStorageModePrivate, 1, "jumpFloodTexture"
   };
   m_jumpHandle = textureManager->allocate(device, jumpRequest);

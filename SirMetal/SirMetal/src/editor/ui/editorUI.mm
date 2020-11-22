@@ -285,17 +285,5 @@ void EditorUI::setupDockSpaceLayout(int width, int height) {
   }
 }
 
-void EditorUI::show2(uint32_t i, uint32_t i1) {
-  Camera &camera = CONTEXT->camera;
-  float *view = (float *) &camera.viewInverse;
-  float *proj = (float *) &camera.projection;
-  auto matrix = matrix_float4x4_translation(vector_float3{0, 0, 0});
-  float *mat = (float *) &matrix;
-
-  ImGuiIO &io = ImGui::GetIO();
-  EditTransform(view, proj, mat, true, ImVec2{0, 0},
-                ImVec2{io.DisplaySize.x, io.DisplaySize.y});
-
-}
 }
 }
