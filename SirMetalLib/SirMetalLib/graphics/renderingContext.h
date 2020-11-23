@@ -2,8 +2,17 @@
 
 
 #import <objc/objc.h>
+#import <metal/metal.h>
 
 namespace  SirMetal{
+
+    class RenderingContext
+    {
+     public:
+      void initialize (id device, id queue){m_device = device; m_queue= queue;}
+      id<MTLDevice> m_device;
+      id<MTLCommandQueue> m_queue;
+    };
 
     static const uint MAX_COLOR_ATTACHMENT = 8;
     //This class is intended to keep track of the state

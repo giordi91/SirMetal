@@ -2,11 +2,10 @@
 
 #import <cstdint>
 #import <objc/objc.h>
+#import "SirMetalLib/graphics/renderingContext.h"
 #import "graphics/camera.h"
 #import "SirMetalLib/core/input.h"
 #import "SirMetalLib/world/hierarchy.h"
-
-const char *readFile(const char *filePath);
 
 namespace SirMetal {
 
@@ -26,11 +25,11 @@ namespace SirMetal {
         ConstantBufferManager *constantBufferManager = nullptr;
     };
 
-
     struct EngineContext {
         Resources managers;
         Input input;
         World world;
+        RenderingContext renderingCtx;
         //for now the camera lives here until we start to have a more
         //proper rendering context;
         Camera camera;

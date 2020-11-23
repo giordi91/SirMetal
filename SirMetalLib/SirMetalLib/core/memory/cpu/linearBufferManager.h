@@ -31,7 +31,8 @@ struct BufferRangeTracker {
  * accessible, for example GPU ram, but from the CPU side you will be able to
  * know which part is free, usable , make sub allocations and so on.
  */
-template class ResizableVector<BufferRangeTracker>;
+template
+class ResizableVector<BufferRangeTracker>;
 class LinearBufferManager {
  public:
   static constexpr uint32_t DEFAULT_ALLOCATION_RESERVE = 64;
@@ -42,7 +43,7 @@ class LinearBufferManager {
       const uint32_t preAlloc = DEFAULT_ALLOCATION_RESERVE)
       : m_bufferSizeInBytes(bufferSizeInBytes),
         m_allocations(preAlloc),
-        m_freeAllocations(preAlloc){};
+        m_freeAllocations(preAlloc) {};
 
   BufferRangeHandle allocate(const uint64_t allocSizeInBytes,
                              const uint32_t alignment);
@@ -64,7 +65,7 @@ class LinearBufferManager {
   }
 
   [[nodiscard]] const ResizableVector<BufferRangeTracker> *getAllocations()
-      const {
+  const {
     return &m_allocations;
   }
 

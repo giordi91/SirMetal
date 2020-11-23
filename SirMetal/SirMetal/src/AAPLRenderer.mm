@@ -63,12 +63,6 @@ static SirMetal::ConstantBufferHandle m_uniformHandle;
     // Create the command queue
     _commandQueue = [_device newCommandQueue];
 
-    IMGUI_CHECKVERSION();
-    ImGui::CreateContext();
-    ImGui::StyleColorsDark();
-
-    ImGui_ImplMetal_Init(_device);
-
     NSLog(@"Initializing Sir Metal: v0.0.1");
     [self logGPUInformation:_device];
 
@@ -78,6 +72,12 @@ static SirMetal::ConstantBufferHandle m_uniformHandle;
     self.screenHeight = mtkView.drawableSize.height;
 
   }
+
+  return self;
+}
+
+- (void)initGraphicsObjectsTemp {
+
   //set up temporary stuff
   m_opaqueMaterial.shaderName = "Shaders";
   m_opaqueMaterial.state.enabled = false;
@@ -86,13 +86,10 @@ static SirMetal::ConstantBufferHandle m_uniformHandle;
     m_drawTracker.renderTargets[i] = nil;
   }
 
-  return self;
-}
-
-- (void)initGraphicsObjectsTemp {
-
+  editorUI.initialize(_device);
   auto *cbManager = SirMetal::CONTEXT->managers.constantBufferManager;
   m_uniformHandle = cbManager->allocate(sizeof(MBEUniforms), SirMetal::CONSTANT_BUFFER_FLAG_BUFFERED);
+
 
   //view matrix
   //initializing the camera to the identity
@@ -113,7 +110,6 @@ static SirMetal::ConstantBufferHandle m_uniformHandle;
   descriptor.pixelFormat = MTLPixelFormatDepth32Float_Stencil8;
   self.depthTexture = [_device newTextureWithDescriptor:descriptor];
   self.depthTexture.label = @"DepthStencilGUI";
-
 
   std::string projectPath = "/Users/marcogiordano/WORK_IN_PROGRESS/SirMetalProject/";
   std::string path = projectPath + "lucy.obj";
@@ -143,7 +139,7 @@ static SirMetal::ConstantBufferHandle m_uniformHandle;
   SirMetal::Input &input = SirMetal::CONTEXT->input;
 
   const SirMetal::CameraManipulationConfig camConfig
-      {1.0,1.0,1.0f,1.0f,1.0f,0.2f,0.005f};
+      {1.0, 1.0, 1.0f, 1.0f, 1.0f, 0.2f, 0.005f};
   cameraController.update(camConfig, &input);
   uniforms.modelViewProjectionMatrix = matrix_multiply(camera.VP, modelMatrix);
 
@@ -159,28 +155,20 @@ static SirMetal::ConstantBufferHandle m_uniformHandle;
   static int frame = 0;
   frame++;
   //dispatch_semaphore_wait(self.displaySemaphore, DISPATCH_TIME_FOREVER);
-  bool viewportChanged = false;
 
-  ImGuiIO &io = ImGui::GetIO();
-  io.DisplaySize.x = static_cast<float>(view.bounds.size.width);
-  io.DisplaySize.y = static_cast<float>(view.bounds.size.height);
-
-  CGFloat framebufferScale = view.window.screen.backingScaleFactor ?: NSScreen.mainScreen.backingScaleFactor;
-  io.DisplayFramebufferScale = ImVec2(framebufferScale, framebufferScale);
-  io.DeltaTime = 1 / float(view.preferredFramesPerSecond ?: 60);
 
   view.clearColor = MTLClearColorMake(0.95, 0.95, 0.95, 1);
 
   float w = view.drawableSize.width;
   float h = view.drawableSize.height;
 
-  [self updateUniformsForView:( w) :( h)];
+  [self updateUniformsForView:(w) :(h)];
 
   id<MTLCommandBuffer> commandBuffer = [_commandQueue commandBuffer];
   MTLRenderPassDescriptor *passDescriptor = [view currentRenderPassDescriptor];
 
   float wToUse = view.currentDrawable.texture.width;
-  float hToUse =  view.currentDrawable.texture.height;
+  float hToUse = view.currentDrawable.texture.height;
 
   passDescriptor.renderTargetWidth = wToUse;
   passDescriptor.renderTargetHeight = hToUse;
@@ -191,13 +179,13 @@ static SirMetal::ConstantBufferHandle m_uniformHandle;
   colorAttachment.loadAction = MTLLoadActionClear;
 
   MTLRenderPassDepthAttachmentDescriptor *depthAttachment = passDescriptor.depthAttachment;
-  depthAttachment.texture =  self.depthTexture;
+  depthAttachment.texture = self.depthTexture;
   depthAttachment.clearDepth = 1.0;
   depthAttachment.storeAction = MTLStoreActionDontCare;
   depthAttachment.loadAction = MTLLoadActionClear;
 
-  m_drawTracker.renderTargets[0] =  view.currentDrawable.texture;
-  m_drawTracker.depthTarget =  self.depthTexture;
+  m_drawTracker.renderTargets[0] = view.currentDrawable.texture;
+  m_drawTracker.depthTarget = self.depthTexture;
   SirMetal::PSOCache cache = getPSO(_device, m_drawTracker, m_opaqueMaterial);
 
   id<MTLRenderCommandEncoder> renderPass = [commandBuffer renderCommandEncoderWithDescriptor:passDescriptor];
@@ -248,10 +236,9 @@ static SirMetal::ConstantBufferHandle m_uniformHandle;
 
   id<MTLRenderCommandEncoder> uiPass = [commandBuffer renderCommandEncoderWithDescriptor:uiPassDescriptor];
 
-
-  editorUI.beginUI(view,passDescriptor);
+  editorUI.beginUI(view, passDescriptor);
   editorUI.show(SirMetal::CONTEXT->screenWidth, SirMetal::CONTEXT->screenHeight);
-  editorUI.endUI(commandBuffer,renderPass);
+  editorUI.endUI(commandBuffer, renderPass);
 
   [uiPass endEncoding];
   SirMetal::endFrame(SirMetal::CONTEXT);

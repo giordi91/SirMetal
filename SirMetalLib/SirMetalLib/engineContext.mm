@@ -35,6 +35,8 @@ namespace SirMetal {
             meshManager,
             constantBufferManager,
         }};
+
+        CONTEXT->renderingCtx.initialize(device, queue);
         CONTEXT->cameraController.setCamera(&CONTEXT->camera);
 
         return true;
