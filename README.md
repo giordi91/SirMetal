@@ -1,4 +1,4 @@
-<img style="float: right;" src="SirMetal/SirMetal/docs/images/logo.png">
+<img style="float: right;" src="docs/images/logo.png">
 
 # SirMetal
 A metal-based game editor 
