@@ -12,6 +12,7 @@ include_directories(${PROJECT_NAME}
         ${SDL2_INCLUDE_DIRS}
         "${CMAKE_CURRENT_SOURCE_DIR}/src"
         "${CMAKE_SOURCE_DIR}/vendors/json/include"
+        "${CMAKE_SOURCE_DIR}/vendors/meshoptimizer"
         )
 
 
@@ -20,4 +21,4 @@ include_directories(${PROJECT_NAME}
 
 #adding the executable
 add_library(${PROJECT_NAME} STATIC ${SOURCE_FILES} ${INCLUDES_FILES} ${SHADER_FILES})
-target_link_libraries(${PROJECT_NAME} ${LINK_LIBS} ${SDL2_LIBRARIES})
+target_link_libraries(${PROJECT_NAME} ${LINK_LIBS} ${SDL2_LIBRARIES} meshoptimizer)

@@ -18,6 +18,9 @@ public:
   void onUpdate() override;
   bool onEvent(SirMetal::Event& event) override;
   void clear() override;
+private:
+  void makePipeline();
+  void makeBuffers();
 
 private:
   //BlackHole::Camera3DPivot camera;

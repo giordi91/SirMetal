@@ -50,6 +50,7 @@ struct EngineContext {
   EngineConfig m_config{};
   SDLWindow *m_window;
   Timing m_timings;
+  uint32_t inFlightFrames = 3;
   /*
   // Graphics
   graphics::RenderingContext *m_renderingContext{};

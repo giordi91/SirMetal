@@ -2,33 +2,19 @@
 
 #import <Metal/Metal.h>
 #import <QuartzCore/CAMetalLayer.h>
+#include <simd/types.h>
 
 #include "SirMetal/application/window.h"
-#include "SirMetal/engine.h"
 #include "SirMetal/core/input.h"
+#include "SirMetal/engine.h"
+static id<MTLRenderPipelineState> renderPipelineState;
+static id<MTLDepthStencilState> depthStencilState;
+static id<MTLBuffer> vertexBuffer;
 
-
-
-/*
-#include "blackHole/application/application.h"
-#include "blackHole/application/window.h"
-#include "blackHole/core/actions.h"
-#include "blackHole/core/log.h"
-#include "blackHole/engine.h"
-#include "blackHole/graphics/buffermanager.h"
-#include "blackHole/graphics/debugRenderer.h"
-#include "blackHole/graphics/meshManager.h"
-#include "blackHole/graphics/renderingContext.h"
-#include "blackHole/graphics/shaderManager.h"
-#include "blackHole/graphics/textureManager.h"
-
-// Temporary data
-BlackHole::ShaderHandle VSMESH;
-BlackHole::ShaderHandle PSMESH;
-BlackHole::BufferHandle MATRIX_BUFFER;
-BlackHole::MeshHandle REAL_MESH;
-BlackHole::TextureHandle TEX;
- */
+typedef struct {
+  vector_float4 position;
+  vector_float4 color;
+} MBEVertex;
 
 namespace Sandbox {
 void GraphicsLayer::onAttach(SirMetal::EngineContext *context) {
@@ -45,9 +31,68 @@ void GraphicsLayer::onAttach(SirMetal::EngineContext *context) {
    */
   m_engine = context;
   color = MTLClearColorMake(0, 0, 0, 1);
+  makePipeline();
+  makeBuffers();
 }
 
 void GraphicsLayer::onDetach() {}
+
+void GraphicsLayer::makePipeline() {
+  const char *shader = "Shaders.metal";
+  NSString *shaderPath =
+      [NSString stringWithCString:shader
+                         encoding:[NSString defaultCStringEncoding]];
+  __autoreleasing NSError *errorLib = nil;
+
+  /*
+  const char *cString = [shaderPath cStringUsingEncoding:NSASCIIStringEncoding];
+  std::ifstream t(shader);
+  std::string str((std::istreambuf_iterator<char>(t)),
+                  std::istreambuf_iterator<char>());
+  const char *shaderData = readFile(t);
+   */
+
+  auto device = m_engine->m_window->getGPU();
+
+  NSString *content = [NSString stringWithContentsOfFile:shaderPath
+                                                encoding:NSUTF8StringEncoding
+                                                   error:nil];
+  NSLog(shaderPath);
+  id<MTLLibrary> libraryRaw =
+      [device newLibraryWithSource:content options:nil error:&errorLib];
+
+  id<MTLFunction> vertexFunc = [libraryRaw newFunctionWithName:@"vertex_main"];
+  id<MTLFunction> fragmentFunc =
+      [libraryRaw newFunctionWithName:@"fragment_main"];
+
+  MTLRenderPipelineDescriptor *pipelineDescriptor =
+      [MTLRenderPipelineDescriptor new];
+  pipelineDescriptor.colorAttachments[0].pixelFormat = MTLPixelFormatBGRA8Unorm;
+  pipelineDescriptor.vertexFunction = vertexFunc;
+  pipelineDescriptor.fragmentFunction = fragmentFunc;
+
+  NSError *error = nil;
+  renderPipelineState =
+      [device newRenderPipelineStateWithDescriptor:pipelineDescriptor
+                                             error:&error];
+
+  if (!renderPipelineState) {
+    printf("[ERROR] Error occurred when creating render pipeline state:");
+  }
+}
+
+void GraphicsLayer::makeBuffers() {
+  static const MBEVertex vertices[] = {
+      {.position = {0.0, 0.5, 0, 1}, .color = {1, 0, 0, 1}},
+      {.position = {-0.5, -0.5, 0, 1}, .color = {0, 1, 0, 1}},
+      {.position = {0.5, -0.5, 0, 1}, .color = {0, 0, 1, 1}}};
+
+  auto device = m_engine->m_window->getGPU();
+  vertexBuffer =
+      [device newBufferWithBytes:vertices
+                          length:sizeof(vertices)
+                         options:MTLResourceOptionCPUCacheModeDefault];
+}
 
 void GraphicsLayer::onUpdate() {
 
@@ -63,7 +108,32 @@ void GraphicsLayer::onUpdate() {
 
   @autoreleasepool {
     id<CAMetalDrawable> surface = [swapchain nextDrawable];
+    id<MTLTexture> texture = surface.texture;
+    if (surface) {
+      MTLRenderPassDescriptor *passDescriptor =
+          [MTLRenderPassDescriptor renderPassDescriptor];
+      passDescriptor.colorAttachments[0].texture = texture;
+      passDescriptor.colorAttachments[0].clearColor =
+          MTLClearColorMake(0.85, 0.85, 0.85, 1);
+      passDescriptor.colorAttachments[0].storeAction = MTLStoreActionStore;
+      passDescriptor.colorAttachments[0].loadAction = MTLLoadActionClear;
 
+      id<MTLCommandBuffer> commandBuffer = [queue commandBuffer];
+
+      id<MTLRenderCommandEncoder> commandEncoder =
+          [commandBuffer renderCommandEncoderWithDescriptor:passDescriptor];
+      [commandEncoder setRenderPipelineState:renderPipelineState];
+      [commandEncoder setVertexBuffer:vertexBuffer offset:0 atIndex:0];
+      [commandEncoder drawPrimitives:MTLPrimitiveTypeTriangle
+                         vertexStart:0
+                         vertexCount:3];
+      [commandEncoder endEncoding];
+
+      [commandBuffer presentDrawable:surface];
+      [commandBuffer commit];
+    }
+
+    /*
     color.red = (color.red > 1.0) ? 0 : color.red + 0.01;
 
     MTLRenderPassDescriptor *pass =
@@ -79,6 +149,7 @@ void GraphicsLayer::onUpdate() {
     [encoder endEncoding];
     [buffer presentDrawable:surface];
     [buffer commit];
+     */
   }
 }
 

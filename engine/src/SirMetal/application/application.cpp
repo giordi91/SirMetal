@@ -4,7 +4,6 @@
 #include "SirMetal/application/window.h"
 #include "SirMetal/core/event.h"
 #include "SirMetal/engine.h"
-#include <iostream>
 
 /*
 #include "blackHole/application/layer.h"
