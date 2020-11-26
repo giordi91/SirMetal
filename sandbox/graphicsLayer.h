@@ -32,5 +32,6 @@ private:
   SirMetal::EngineContext *m_engine{};
   MTLClearColor color;
   SirMetal::ConstantBufferHandle m_uniformHandle;
+  SirMetal::MeshHandle m_mesh;
 };
 } // namespace Sandbox

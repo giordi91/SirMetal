@@ -11,12 +11,12 @@ class Input;
 class Window;
 class ShaderManager;
 class ConstantBufferManager;
+class MeshManager;
 
 namespace graphics {
 class BufferManager;
 class DebugRenderer;
 class RenderingContext;
-class MeshManager;
 class TextureManager;
 } // namespace graphics
 
@@ -58,8 +58,8 @@ struct EngineContext {
   ShaderManager *m_shaderManager{};
   //TODO convert this to a generic buffer manager
   ConstantBufferManager *m_constantBufferManager{};
+  MeshManager *m_meshManager{};
   /*
-  graphics::MeshManager *m_meshManager{};
   graphics::TextureManager *m_textureManager{};
   graphics::DebugRenderer *m_debugRenderer{};
   */

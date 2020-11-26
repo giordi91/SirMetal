@@ -9,8 +9,10 @@
 #include "SirMetal/graphics/renderingContext.h"
 #include "SirMetal/graphics/constantBufferManager.h"
 #include "SirMetal/resources/shaderManager.h"
+#include "SirMetal/resources/meshes/meshManager.h"
+
+#import <Metal/Metal.h>
 /*
-#include "blackHole/graphics/meshManager.h"
 #include "blackHole/graphics/textureManager.h"
 #include "blackHole/io/fileUtils.h"
 #include "graphics/buffermanager.h"
@@ -19,12 +21,12 @@
 
 namespace SirMetal{
 
-static const std::string CONFIG_DATA_SOURCE_KEY = "dataSource";
-static const std::string CONFIG_START_FULL_SCREEN = "startFullScreen";
-static const std::string CONFIG_WINDOW_TITLE = "windowTitle";
-static const std::string CONFIG_WINDOW_WIDTH = "windowWidth";
-static const std::string CONFIG_WINDOW_HEIGHT = "windowHeight";
-static const std::string CONFIG_FRAME_BUFFERING_COUNT = "frameBufferingCount";
+static const char* CONFIG_DATA_SOURCE_KEY = "dataSource";
+static const char* CONFIG_START_FULL_SCREEN = "startFullScreen";
+static const char* CONFIG_WINDOW_TITLE = "windowTitle";
+static const char* CONFIG_WINDOW_WIDTH = "windowWidth";
+static const char* CONFIG_WINDOW_HEIGHT = "windowHeight";
+static const char* CONFIG_FRAME_BUFFERING_COUNT = "frameBufferingCount";
 
 static const std::string DEFAULT_STRING = "";
 
@@ -88,13 +90,14 @@ EngineContext *engineStartUp(const EngineConfig &config,SDL_Window *window) {
   context->m_renderingContext = new graphics::RenderingContext();
   context->m_renderingContext->initialize(config,window);
   id<MTLDevice> device = context->m_renderingContext->getDevice();
+  id<MTLCommandQueue> queue = context->m_renderingContext->getQueue();
   context->m_shaderManager = new ShaderManager();
   context->m_shaderManager->initialize(device);
   context->m_constantBufferManager= new ConstantBufferManager();
   context->m_constantBufferManager->initialize(device,20*MB_TO_BYTE);
+  context->m_meshManager = new MeshManager();
+  context->m_meshManager->initialize(device,queue);
   /*
-  context->m_meshManager = new graphics::MeshManager();
-  context->m_meshManager->initialize();
   context->m_bufferManager = new graphics::BufferManager();
   context->m_bufferManager->initialize();
   context->m_textureManager = new graphics::TextureManager();

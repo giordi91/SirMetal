@@ -11,6 +11,7 @@
 #include "SirMetal/engine.h"
 #include "SirMetal/graphics/constantBufferManager.h"
 #include "SirMetal/graphics/renderingContext.h"
+#include "SirMetal/resources/meshes/meshManager.h"
 #include "SirMetal/resources/shaderManager.h"
 
 static id<MTLRenderPipelineState> renderPipelineState;
@@ -52,11 +53,7 @@ void GraphicsLayer::onAttach(SirMetal::EngineContext *context) {
       m_engine, sizeof(MBEUniforms),
       SirMetal::CONSTANT_BUFFER_FLAGS_BITS::CONSTANT_BUFFER_FLAG_BUFFERED);
 
-  // id<MTLDevice> device = m_engine->m_renderingContext->getDevice();
-  // uniformBuffer =
-  //    [device newBufferWithLength:AlignUp(sizeof(MBEUniforms), 256) * 3
-  //                        options:MTLResourceOptionCPUCacheModeDefault];
-  //[uniformBuffer setLabel:@"Uniforms"];
+  m_mesh = m_engine->m_meshManager->loadMesh("lucy.obj");
 }
 
 void GraphicsLayer::onDetach() {}
@@ -155,10 +152,19 @@ void GraphicsLayer::onUpdate() {
       SirMetal::BindInfo info = m_engine->m_constantBufferManager->getBindInfo(
           m_engine, m_uniformHandle);
       [commandEncoder setVertexBuffer:info.buffer offset:info.offset atIndex:1];
-      [commandEncoder setVertexBuffer:vertexBuffer offset:0 atIndex:0];
-      [commandEncoder drawPrimitives:MTLPrimitiveTypeTriangle
-                         vertexStart:0
-                         vertexCount:3];
+
+      const SirMetal::MeshData *meshData =
+          m_engine->m_meshManager->getMeshData(m_mesh);
+
+      [commandEncoder setVertexBuffer:meshData->vertexBuffer
+                               offset:0
+                              atIndex:0];
+      [commandEncoder drawIndexedPrimitives:MTLPrimitiveTypeTriangle
+                                 indexCount:meshData->primitivesCount
+                                 indexCount:meshData->primitivesCount
+                                  indexType:MTLIndexTypeUInt32
+                                indexBuffer:meshData->indexBuffer
+                          indexBufferOffset:0];
       [commandEncoder endEncoding];
 
       [commandBuffer presentDrawable:surface];

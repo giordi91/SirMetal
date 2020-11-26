@@ -1,6 +1,6 @@
 
-#include "meshManager.h"
-#import "wavefrontobj.h"
+#include "SirMetal/resources/meshes/meshManager.h"
+#import "SirMetal/resources/meshes/wavefrontobj.h"
 #import <Metal/Metal.h>
 #include <SirMetal/io/file.h>
 
