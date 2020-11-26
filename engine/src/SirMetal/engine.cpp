@@ -6,9 +6,9 @@
 #include "SirMetal/io/fileUtils.h"
 #include "SirMetal/io/json.h"
 #include "SirMetal/core/input.h"
+#include "SirMetal/graphics/renderingContext.h"
 /*
 #include "blackHole/graphics/meshManager.h"
-#include "blackHole/graphics/renderingContext.h"
 #include "blackHole/graphics/shaderManager.h"
 #include "blackHole/graphics/textureManager.h"
 #include "blackHole/io/fileUtils.h"
@@ -78,15 +78,15 @@ EngineConfig loadEngineConfigFile(const std::string &path) {
   return initializeConfigDefault();
 }
 
-EngineContext *engineStartUp(const EngineConfig &config) {
+EngineContext *engineStartUp(const EngineConfig &config,SDL_Window *window) {
 
   auto *context = new EngineContext{};
   context->m_config = config;
   context->m_inputManager = new Input();
   context->m_inputManager->initialize();
-  /*
   context->m_renderingContext = new graphics::RenderingContext();
-  context->m_renderingContext->initialize(config, hwnd);
+  context->m_renderingContext->initialize(config,window);
+  /*
   context->m_shaderManager = new graphics::ShaderManager();
   context->m_shaderManager->initialize();
   context->m_meshManager = new graphics::MeshManager();

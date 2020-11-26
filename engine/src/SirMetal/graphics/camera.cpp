@@ -71,7 +71,6 @@ namespace SirMetal {
         //Should this update the inverse matrix? Up for discussion
         //for now the only place where that happens is in update
         m_camera->viewMatrix.columns[3] = simd_float4{x, y, z, 1.0f};
-
     }
 
     void EditorFPSCameraController::updateProjection(float screenWidth, float screenHeight)

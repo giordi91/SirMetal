@@ -1,30 +1,21 @@
 #include "window.h"
 
 #include <assert.h>
-#include <iostream>
 
-#import <Metal/Metal.h>
 #import <QuartzCore/CAMetalLayer.h>
 
 #include "SirMetal/core/input.h"
 #include "SirMetal/engine.h"
 
-/*
-#include "blackHole/core/actions.h"
-#include "blackHole/graphics/gfxDebug/imgui_impl_sdl.h"
- */
+//#include "blackHole/graphics/gfxDebug/imgui_impl_sdl.h"
 
 namespace SirMetal {
-bool SDLWindow::create(const WindowProps &props) {
+bool Window::create(const WindowProps &props) {
 
   SDL_SetHint(SDL_HINT_RENDER_DRIVER, "metal");
   SDL_InitSubSystem(SDL_INIT_VIDEO);
   m_window = SDL_CreateWindow(props.m_title.c_str(), -1, -1, props.m_width,
                               props.m_height, SDL_WINDOW_ALLOW_HIGHDPI);
-  m_renderer = SDL_CreateRenderer(m_window, -1, SDL_RENDERER_PRESENTVSYNC);
-  swapchain = (__bridge CAMetalLayer *)SDL_RenderGetMetalLayer(m_renderer);
-  gpu = swapchain.device;
-  queue = [gpu newCommandQueue];
   SDL_SetWindowResizable(m_window, SDL_TRUE);
 
   // Check that the window was successfully created
@@ -37,10 +28,9 @@ bool SDLWindow::create(const WindowProps &props) {
   return true;
 }
 
-void SDLWindow::destory() {
+void Window::destroy() {
   // Close and destroy the window
   SDL_DestroyWindow(m_window);
-  SDL_DestroyRenderer(m_renderer);
 
   // Clean up
   SDL_Quit();
@@ -90,7 +80,7 @@ void handleEvent(const SDL_Event event, SirMetal::Input *input) {
   }
 }
 
-void SDLWindow::onUpdate() const {
+void Window::onUpdate() const {
   SDL_Event event;
   while (SDL_PollEvent(&event)) {
     if (event.type == SDL_QUIT) {

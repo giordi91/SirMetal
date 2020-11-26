@@ -7,6 +7,8 @@
 #include "SirMetal/application/window.h"
 #include "SirMetal/core/input.h"
 #include "SirMetal/engine.h"
+#include "SirMetal/graphics/renderingContext.h"
+
 static id<MTLRenderPipelineState> renderPipelineState;
 static id<MTLDepthStencilState> depthStencilState;
 static id<MTLBuffer> vertexBuffer;
@@ -52,12 +54,12 @@ void GraphicsLayer::makePipeline() {
   const char *shaderData = readFile(t);
    */
 
-  auto device = m_engine->m_window->getGPU();
+
+  id<MTLDevice> device = m_engine->m_renderingContext->getDevice();
 
   NSString *content = [NSString stringWithContentsOfFile:shaderPath
                                                 encoding:NSUTF8StringEncoding
                                                    error:nil];
-  NSLog(shaderPath);
   id<MTLLibrary> libraryRaw =
       [device newLibraryWithSource:content options:nil error:&errorLib];
 
@@ -87,7 +89,7 @@ void GraphicsLayer::makeBuffers() {
       {.position = {-0.5, -0.5, 0, 1}, .color = {0, 1, 0, 1}},
       {.position = {0.5, -0.5, 0, 1}, .color = {0, 0, 1, 1}}};
 
-  auto device = m_engine->m_window->getGPU();
+  id<MTLDevice> device = m_engine->m_renderingContext->getDevice();
   vertexBuffer =
       [device newBufferWithBytes:vertices
                           length:sizeof(vertices)
@@ -103,8 +105,8 @@ void GraphicsLayer::onUpdate() {
     SDL_PushEvent(&sdlevent);
   }
 
-  CAMetalLayer *swapchain = m_engine->m_window->getSwapchain();
-  id<MTLCommandQueue> queue = m_engine->m_window->getQueue();
+  CAMetalLayer *swapchain = m_engine->m_renderingContext->getSwapchain();
+  id<MTLCommandQueue> queue = m_engine->m_renderingContext->getQueue();
 
   @autoreleasepool {
     id<CAMetalDrawable> surface = [swapchain nextDrawable];
@@ -152,6 +154,7 @@ void GraphicsLayer::onUpdate() {
      */
   }
 }
+
 
 bool GraphicsLayer::onEvent(SirMetal::Event &) {
   // TODO start processing events the game cares about, like

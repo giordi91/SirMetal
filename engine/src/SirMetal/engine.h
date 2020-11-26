@@ -5,9 +5,10 @@
 #include "SirMetal/core/clock.h"
 #include "SirMetal/graphics/graphicsDefines.h"
 
+class SDL_Window;
 namespace SirMetal {
 class Input;
-class SDLWindow;
+class Window;
 
 namespace graphics {
 class BufferManager;
@@ -48,12 +49,12 @@ struct Timing {
 struct EngineContext {
   // Core
   EngineConfig m_config{};
-  SDLWindow *m_window;
+  Window *m_window;
   Timing m_timings;
   uint32_t inFlightFrames = 3;
-  /*
   // Graphics
   graphics::RenderingContext *m_renderingContext{};
+  /*
   graphics::ShaderManager *m_shaderManager{};
   graphics::MeshManager *m_meshManager{};
   graphics::TextureManager *m_textureManager{};
@@ -65,7 +66,7 @@ struct EngineContext {
 };
 
 EngineConfig loadEngineConfigFile(const std::string& path);
-EngineContext *engineStartUp(const EngineConfig &config);
+EngineContext *engineStartUp(const EngineConfig &config,SDL_Window* window);
 void engineShutdown(EngineContext *context);
 
 } // namespace SirMetal

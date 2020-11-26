@@ -6,7 +6,7 @@
 
 namespace SirMetal {
 
-class SDLWindow;
+class Window;
 struct EngineContext;
 struct Event;
 
@@ -20,8 +20,7 @@ public:
   void queueEvent(Event *e) const;
 
 protected:
-
-  SDLWindow *m_window;
+  Window *m_window;
   bool m_run = true;
   LayerStack m_layerStack;
   EngineContext *m_engine;

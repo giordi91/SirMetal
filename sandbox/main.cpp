@@ -12,7 +12,7 @@ int main(int argc, char *args[]) {
   Sandbox::SandboxApplication sand;
   sand.run();
   /*
-  SirMetal::SDLWindow sdlWin;
+  SirMetal::Window sdlWin;
   SirMetal::WindowProps props{"SirMetal", 1280, 720, false, false};
   sdlWin.create(props);
 
@@ -52,7 +52,7 @@ int main(int argc, char *args[]) {
     [buffer commit];
     //}
   }
-  sdlWin.destory();
+  sdlWin.destroy();
    */
 
   return 0;

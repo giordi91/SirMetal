@@ -29,7 +29,7 @@ Application::Application(const std::string &configFile) {
   EngineConfig engineConfig = loadEngineConfigFile(configFile);
 
   // create the window with requested config
-  m_window = new SDLWindow();
+  m_window = new Window();
   m_window->create(engineConfig.m_windowConfig);
   // this is the function that gets called whenever the window emits an event,
   // for example mouse move etc, it will be calling the application function we
@@ -37,7 +37,7 @@ Application::Application(const std::string &configFile) {
   // to handle the events.
   m_window->setEventCallback([this](Event &e) -> void { this->onEvent(e); });
 
-  m_engine = engineStartUp(engineConfig);
+  m_engine = engineStartUp(engineConfig,m_window->getWindow());
   m_engine->m_window = m_window;
 
   m_window->setInputManagersInWindow(m_engine->m_inputManager);
@@ -47,7 +47,7 @@ Application::Application(const std::string &configFile) {
 }
 
 Application::~Application() {
-  m_window->destory();
+  m_window->destroy();
   engineShutdown(m_engine);
 }
 void Application::run() {
