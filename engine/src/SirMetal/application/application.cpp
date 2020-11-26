@@ -4,6 +4,7 @@
 #include "SirMetal/application/window.h"
 #include "SirMetal/core/event.h"
 #include "SirMetal/engine.h"
+#include "SirMetal/core/input.h"
 
 /*
 #include "blackHole/application/layer.h"
@@ -75,9 +76,8 @@ void Application::run() {
       layers[i]->onUpdate();
     }
     // m_engine->m_renderingContext->endScene();
-    //// update input and actions to cache current input for next frame
-    // m_engine->m_inputManager->swapInputBuffers();
-    // m_engine->m_actionManager->swapActionsBuffers();
+    // update input and actions to cache current input for next frame
+    m_engine->m_inputManager->swapInputBuffers();
   }
   // lets clean up the layers, now is safe to free up resources
   const int count = m_layerStack.count();

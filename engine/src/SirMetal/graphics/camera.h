@@ -44,7 +44,7 @@ namespace SirMetal {
         Camera *m_camera = nullptr;
     };
 
-    class EditorFPSCameraController : public CameraController {
+    class FPSCameraController : public CameraController {
     public:
         void update(const CameraManipulationConfig& camConfig, Input *input) override;
         void updateProjection(float screenWidth, float screenHeight) override;

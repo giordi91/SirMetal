@@ -2,6 +2,8 @@
 
 #import <Metal/Metal.h>
 #import <QuartzCore/CAMetalLayer.h>
+#include <SirMetal/MBEMathUtilities.h>
+#include <simd/simd.h>
 #include <simd/types.h>
 
 #include "SirMetal/application/window.h"
@@ -12,29 +14,47 @@
 static id<MTLRenderPipelineState> renderPipelineState;
 static id<MTLDepthStencilState> depthStencilState;
 static id<MTLBuffer> vertexBuffer;
+static id<MTLBuffer> uniformBuffer;
 
+static simd_float4x4 viewMatrix;
 typedef struct {
   vector_float4 position;
   vector_float4 color;
 } MBEVertex;
 
+typedef struct {
+  matrix_float4x4 modelViewProjectionMatrix;
+} MBEUniforms;
+
+static inline uint64_t AlignUp(uint64_t n, uint32_t alignment) {
+  return ((n + alignment - 1) / alignment) * alignment;
+}
+static const NSInteger MBEInFlightBufferCount = 3;
+static const NSInteger bufferIndex = 0;
+const MTLIndexType MBEIndexType = MTLIndexTypeUInt32;
 namespace Sandbox {
 void GraphicsLayer::onAttach(SirMetal::EngineContext *context) {
-  /*
-  camera.setLookAt(0.0f, 0.0f, 0.0f);
-  camera.setPosition(0.0f, 5.0f, -10.0f);
 
-  BlackHole::CameraManipulationConfig camConfig{
-      -0.01f, 0.01f, 0.012f, 0.012f, -0.07f,
-  };
-  camera.setManipulationMultipliers(camConfig);
-  camera.setCameraPhyisicalParameters(60.0f, 0.01f, 200.0f);
-
-   */
   m_engine = context;
   color = MTLClearColorMake(0, 0, 0, 1);
   makePipeline();
   makeBuffers();
+
+  // view matrix
+  viewMatrix = matrix_float4x4_translation(vector_float3{0, 0, 5});
+  // initializing the camera to the identity
+  m_camera.viewMatrix = matrix_float4x4_translation(vector_float3{0, 0, 0});
+  m_camera.fov = M_PI / 4;
+  m_camera.nearPlane = 1;
+  m_camera.farPlane = 100;
+  m_cameraController.setCamera(&m_camera);
+  m_cameraController.setPosition(0, 0, 5);
+  m_camConfig = {1.0f, 1.0f, -1.0f, 1.0f, 1.0f, 0.2, 0.002};
+
+  id<MTLDevice> device = m_engine->m_renderingContext->getDevice();
+  uniformBuffer = [device newBufferWithLength:AlignUp(sizeof(MBEUniforms), 256) *3
+  options:MTLResourceOptionCPUCacheModeDefault];
+  [uniformBuffer setLabel:@"Uniforms"];
 }
 
 void GraphicsLayer::onDetach() {}
@@ -53,7 +73,6 @@ void GraphicsLayer::makePipeline() {
                   std::istreambuf_iterator<char>());
   const char *shaderData = readFile(t);
    */
-
 
   id<MTLDevice> device = m_engine->m_renderingContext->getDevice();
 
@@ -81,6 +100,28 @@ void GraphicsLayer::makePipeline() {
   if (!renderPipelineState) {
     printf("[ERROR] Error occurred when creating render pipeline state:");
   }
+
+}
+
+void GraphicsLayer::updateUniformsForView(float screenWidth,
+                                          float screenHeight) {
+
+  const matrix_float4x4 modelMatrix =
+      matrix_float4x4_translation(vector_float3{0, 0, 0});
+  MBEUniforms uniforms;
+  uniforms.modelViewProjectionMatrix =
+      matrix_multiply(m_camera.VP, modelMatrix);
+  SirMetal::Input *input = m_engine->m_inputManager;
+  m_cameraController.update(m_camConfig, input);
+  uniforms.modelViewProjectionMatrix =
+      matrix_multiply(m_camera.VP, modelMatrix);
+
+  static const uint32_t MBEBufferAlignment = 256;
+  m_cameraController.updateProjection(screenWidth, screenHeight);
+  const NSUInteger uniformBufferOffset =
+      AlignUp(sizeof(MBEUniforms), MBEBufferAlignment) * bufferIndex;
+  memcpy((char *)([uniformBuffer contents]) + uniformBufferOffset, &uniforms,
+         sizeof(uniforms));
 }
 
 void GraphicsLayer::makeBuffers() {
@@ -111,6 +152,10 @@ void GraphicsLayer::onUpdate() {
   @autoreleasepool {
     id<CAMetalDrawable> surface = [swapchain nextDrawable];
     id<MTLTexture> texture = surface.texture;
+
+    float w = texture.width;
+    float h = texture.height;
+    updateUniformsForView(w,h);
     if (surface) {
       MTLRenderPassDescriptor *passDescriptor =
           [MTLRenderPassDescriptor renderPassDescriptor];
@@ -124,7 +169,10 @@ void GraphicsLayer::onUpdate() {
 
       id<MTLRenderCommandEncoder> commandEncoder =
           [commandBuffer renderCommandEncoderWithDescriptor:passDescriptor];
+
+        const NSUInteger uniformBufferOffset = AlignUp(sizeof(MBEUniforms), 256) * bufferIndex;
       [commandEncoder setRenderPipelineState:renderPipelineState];
+        [commandEncoder setVertexBuffer:uniformBuffer offset:uniformBufferOffset atIndex:1];
       [commandEncoder setVertexBuffer:vertexBuffer offset:0 atIndex:0];
       [commandEncoder drawPrimitives:MTLPrimitiveTypeTriangle
                          vertexStart:0
@@ -154,7 +202,6 @@ void GraphicsLayer::onUpdate() {
      */
   }
 }
-
 
 bool GraphicsLayer::onEvent(SirMetal::Event &) {
   // TODO start processing events the game cares about, like

@@ -2,7 +2,7 @@
 
 #include "SirMetal//application/layer.h"
 #import <Metal/Metal.h>
-//#include "blackHole/graphics/camera.h"
+#include "SirMetal/graphics/camera.h"
 
 namespace SirMetal{
 struct EngineContext;
@@ -19,11 +19,14 @@ public:
   bool onEvent(SirMetal::Event& event) override;
   void clear() override;
 private:
+  void updateUniformsForView(float screenWidth ,float screenHeight);
   void makePipeline();
   void makeBuffers();
 
 private:
-  //BlackHole::Camera3DPivot camera;
+  SirMetal::Camera m_camera;
+  SirMetal::FPSCameraController m_cameraController;
+  SirMetal::CameraManipulationConfig m_camConfig{};
   SirMetal::EngineContext* m_engine{};
   MTLClearColor color;
 
