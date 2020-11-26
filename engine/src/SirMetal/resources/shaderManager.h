@@ -1,16 +1,13 @@
 #pragma once
 
 #import <objc/objc.h>
-
+//
 #include <unordered_map>
 #include <string>
 #include "handle.h"
+#include "SirMetal/graphics/graphicsDefines.h"
 
 namespace SirMetal {
-    enum class SHADER_TYPE {
-        RASTER,
-        COMPUTE
-    };
 
     class ShaderManager {
         struct ShaderMetadata {
@@ -31,6 +28,7 @@ namespace SirMetal {
         void initialize(id device) {
             m_device = device;
         };
+        void cleanup(){};
 
         id getVertexFunction(LibraryHandle handle);
         id getFragmentFunction(LibraryHandle handle);

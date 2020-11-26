@@ -5,7 +5,7 @@ namespace SirMetal {
 
 // Common graphics defines
 
-enum class SHADER_TYPE { VERTEX = 0, FRAGMENT, COMPUTE, INVALID };
+enum class SHADER_TYPE { RASTER = 0, COMPUTE, INVALID };
 
 // angles
 static constexpr float PI = 3.14159265358979323846f;

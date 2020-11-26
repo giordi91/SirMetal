@@ -7,9 +7,9 @@
 #include "SirMetal/io/json.h"
 #include "SirMetal/core/input.h"
 #include "SirMetal/graphics/renderingContext.h"
+#include "SirMetal/resources/shaderManager.h"
 /*
 #include "blackHole/graphics/meshManager.h"
-#include "blackHole/graphics/shaderManager.h"
 #include "blackHole/graphics/textureManager.h"
 #include "blackHole/io/fileUtils.h"
 #include "graphics/buffermanager.h"
@@ -86,9 +86,10 @@ EngineContext *engineStartUp(const EngineConfig &config,SDL_Window *window) {
   context->m_inputManager->initialize();
   context->m_renderingContext = new graphics::RenderingContext();
   context->m_renderingContext->initialize(config,window);
+  id<MTLDevice> device = context->m_renderingContext->getDevice();
+  context->m_shaderManager = new ShaderManager();
+  context->m_shaderManager->initialize(device);
   /*
-  context->m_shaderManager = new graphics::ShaderManager();
-  context->m_shaderManager->initialize();
   context->m_meshManager = new graphics::MeshManager();
   context->m_meshManager->initialize();
   context->m_bufferManager = new graphics::BufferManager();
@@ -110,6 +111,8 @@ void Timing::newFrame() {
 void engineShutdown(EngineContext *context) {
   context->m_inputManager->cleanup();
   delete context->m_inputManager;
+  context->m_shaderManager->cleanup();
+  delete context->m_shaderManager;
   /*
   context->m_debugRenderer->cleanup(context);
   delete context->m_debugRenderer;
@@ -119,8 +122,6 @@ void engineShutdown(EngineContext *context) {
   delete context->m_bufferManager;
   context->m_meshManager->cleanup();
   delete context->m_meshManager;
-  context->m_shaderManager->cleanup();
-  delete context->m_shaderManager;
   context->m_renderingContext->cleanup();
   delete context->m_renderingContext;
   */

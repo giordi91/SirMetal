@@ -10,6 +10,7 @@
 #include "SirMetal/core/input.h"
 #include "SirMetal/engine.h"
 #include "SirMetal/graphics/renderingContext.h"
+#include "SirMetal/resources/shaderManager.h"
 
 static id<MTLRenderPipelineState> renderPipelineState;
 static id<MTLDepthStencilState> depthStencilState;
@@ -49,7 +50,7 @@ void GraphicsLayer::onAttach(SirMetal::EngineContext *context) {
   m_camera.farPlane = 100;
   m_cameraController.setCamera(&m_camera);
   m_cameraController.setPosition(0, 0, 5);
-  m_camConfig = {1.0f, 1.0f, -1.0f, 1.0f, 1.0f, 0.2, 0.002};
+  m_camConfig = {1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 0.2, 0.002};
 
   id<MTLDevice> device = m_engine->m_renderingContext->getDevice();
   uniformBuffer = [device newBufferWithLength:AlignUp(sizeof(MBEUniforms), 256) *3
@@ -61,30 +62,9 @@ void GraphicsLayer::onDetach() {}
 
 void GraphicsLayer::makePipeline() {
   const char *shader = "Shaders.metal";
-  NSString *shaderPath =
-      [NSString stringWithCString:shader
-                         encoding:[NSString defaultCStringEncoding]];
-  __autoreleasing NSError *errorLib = nil;
-
-  /*
-  const char *cString = [shaderPath cStringUsingEncoding:NSASCIIStringEncoding];
-  std::ifstream t(shader);
-  std::string str((std::istreambuf_iterator<char>(t)),
-                  std::istreambuf_iterator<char>());
-  const char *shaderData = readFile(t);
-   */
-
-  id<MTLDevice> device = m_engine->m_renderingContext->getDevice();
-
-  NSString *content = [NSString stringWithContentsOfFile:shaderPath
-                                                encoding:NSUTF8StringEncoding
-                                                   error:nil];
-  id<MTLLibrary> libraryRaw =
-      [device newLibraryWithSource:content options:nil error:&errorLib];
-
-  id<MTLFunction> vertexFunc = [libraryRaw newFunctionWithName:@"vertex_main"];
-  id<MTLFunction> fragmentFunc =
-      [libraryRaw newFunctionWithName:@"fragment_main"];
+  SirMetal::LibraryHandle libHandle = m_engine->m_shaderManager->loadShader(shader);
+  id<MTLFunction> vertexFunc = m_engine->m_shaderManager->getVertexFunction(libHandle);
+  id<MTLFunction> fragmentFunc = m_engine->m_shaderManager->getFragmentFunction(libHandle);
 
   MTLRenderPipelineDescriptor *pipelineDescriptor =
       [MTLRenderPipelineDescriptor new];
@@ -93,6 +73,7 @@ void GraphicsLayer::makePipeline() {
   pipelineDescriptor.fragmentFunction = fragmentFunc;
 
   NSError *error = nil;
+  id<MTLDevice> device = m_engine->m_renderingContext->getDevice();
   renderPipelineState =
       [device newRenderPipelineStateWithDescriptor:pipelineDescriptor
                                              error:&error];

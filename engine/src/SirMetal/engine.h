@@ -9,11 +9,11 @@ class SDL_Window;
 namespace SirMetal {
 class Input;
 class Window;
+class ShaderManager;
 
 namespace graphics {
 class BufferManager;
 class DebugRenderer;
-class ShaderManager;
 class RenderingContext;
 class MeshManager;
 class TextureManager;
@@ -54,8 +54,8 @@ struct EngineContext {
   uint32_t inFlightFrames = 3;
   // Graphics
   graphics::RenderingContext *m_renderingContext{};
+  ShaderManager *m_shaderManager{};
   /*
-  graphics::ShaderManager *m_shaderManager{};
   graphics::MeshManager *m_meshManager{};
   graphics::TextureManager *m_textureManager{};
   graphics::BufferManager *m_bufferManager{};
