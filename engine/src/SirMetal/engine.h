@@ -10,6 +10,7 @@ namespace SirMetal {
 class Input;
 class Window;
 class ShaderManager;
+class ConstantBufferManager;
 
 namespace graphics {
 class BufferManager;
@@ -55,10 +56,11 @@ struct EngineContext {
   // Graphics
   graphics::RenderingContext *m_renderingContext{};
   ShaderManager *m_shaderManager{};
+  //TODO convert this to a generic buffer manager
+  ConstantBufferManager *m_constantBufferManager{};
   /*
   graphics::MeshManager *m_meshManager{};
   graphics::TextureManager *m_textureManager{};
-  graphics::BufferManager *m_bufferManager{};
   graphics::DebugRenderer *m_debugRenderer{};
   */
   // Input

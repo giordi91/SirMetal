@@ -9,15 +9,14 @@
 #include "SirMetal/application/window.h"
 #include "SirMetal/core/input.h"
 #include "SirMetal/engine.h"
+#include "SirMetal/graphics/constantBufferManager.h"
 #include "SirMetal/graphics/renderingContext.h"
 #include "SirMetal/resources/shaderManager.h"
 
 static id<MTLRenderPipelineState> renderPipelineState;
 static id<MTLDepthStencilState> depthStencilState;
 static id<MTLBuffer> vertexBuffer;
-static id<MTLBuffer> uniformBuffer;
 
-static simd_float4x4 viewMatrix;
 typedef struct {
   vector_float4 position;
   vector_float4 color;
@@ -30,9 +29,8 @@ typedef struct {
 static inline uint64_t AlignUp(uint64_t n, uint32_t alignment) {
   return ((n + alignment - 1) / alignment) * alignment;
 }
-static const NSInteger MBEInFlightBufferCount = 3;
 static const NSInteger bufferIndex = 0;
-const MTLIndexType MBEIndexType = MTLIndexTypeUInt32;
+
 namespace Sandbox {
 void GraphicsLayer::onAttach(SirMetal::EngineContext *context) {
 
@@ -41,8 +39,6 @@ void GraphicsLayer::onAttach(SirMetal::EngineContext *context) {
   makePipeline();
   makeBuffers();
 
-  // view matrix
-  viewMatrix = matrix_float4x4_translation(vector_float3{0, 0, 5});
   // initializing the camera to the identity
   m_camera.viewMatrix = matrix_float4x4_translation(vector_float3{0, 0, 0});
   m_camera.fov = M_PI / 4;
@@ -52,19 +48,27 @@ void GraphicsLayer::onAttach(SirMetal::EngineContext *context) {
   m_cameraController.setPosition(0, 0, 5);
   m_camConfig = {1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 0.2, 0.002};
 
-  id<MTLDevice> device = m_engine->m_renderingContext->getDevice();
-  uniformBuffer = [device newBufferWithLength:AlignUp(sizeof(MBEUniforms), 256) *3
-  options:MTLResourceOptionCPUCacheModeDefault];
-  [uniformBuffer setLabel:@"Uniforms"];
+  m_uniformHandle = m_engine->m_constantBufferManager->allocate(
+      m_engine, sizeof(MBEUniforms),
+      SirMetal::CONSTANT_BUFFER_FLAGS_BITS::CONSTANT_BUFFER_FLAG_BUFFERED);
+
+  // id<MTLDevice> device = m_engine->m_renderingContext->getDevice();
+  // uniformBuffer =
+  //    [device newBufferWithLength:AlignUp(sizeof(MBEUniforms), 256) * 3
+  //                        options:MTLResourceOptionCPUCacheModeDefault];
+  //[uniformBuffer setLabel:@"Uniforms"];
 }
 
 void GraphicsLayer::onDetach() {}
 
 void GraphicsLayer::makePipeline() {
   const char *shader = "Shaders.metal";
-  SirMetal::LibraryHandle libHandle = m_engine->m_shaderManager->loadShader(shader);
-  id<MTLFunction> vertexFunc = m_engine->m_shaderManager->getVertexFunction(libHandle);
-  id<MTLFunction> fragmentFunc = m_engine->m_shaderManager->getFragmentFunction(libHandle);
+  SirMetal::LibraryHandle libHandle =
+      m_engine->m_shaderManager->loadShader(shader);
+  id<MTLFunction> vertexFunc =
+      m_engine->m_shaderManager->getVertexFunction(libHandle);
+  id<MTLFunction> fragmentFunc =
+      m_engine->m_shaderManager->getFragmentFunction(libHandle);
 
   MTLRenderPipelineDescriptor *pipelineDescriptor =
       [MTLRenderPipelineDescriptor new];
@@ -81,7 +85,6 @@ void GraphicsLayer::makePipeline() {
   if (!renderPipelineState) {
     printf("[ERROR] Error occurred when creating render pipeline state:");
   }
-
 }
 
 void GraphicsLayer::updateUniformsForView(float screenWidth,
@@ -97,12 +100,9 @@ void GraphicsLayer::updateUniformsForView(float screenWidth,
   uniforms.modelViewProjectionMatrix =
       matrix_multiply(m_camera.VP, modelMatrix);
 
-  static const uint32_t MBEBufferAlignment = 256;
   m_cameraController.updateProjection(screenWidth, screenHeight);
-  const NSUInteger uniformBufferOffset =
-      AlignUp(sizeof(MBEUniforms), MBEBufferAlignment) * bufferIndex;
-  memcpy((char *)([uniformBuffer contents]) + uniformBufferOffset, &uniforms,
-         sizeof(uniforms));
+  m_engine->m_constantBufferManager->update(m_engine, m_uniformHandle,
+                                            &uniforms);
 }
 
 void GraphicsLayer::makeBuffers() {
@@ -122,7 +122,7 @@ void GraphicsLayer::onUpdate() {
 
   // NOTE: very temp ESC handy to close the game
   if (m_engine->m_inputManager->isKeyDown(SDL_SCANCODE_ESCAPE)) {
-    SDL_Event sdlevent;
+    SDL_Event sdlevent{};
     sdlevent.type = SDL_QUIT;
     SDL_PushEvent(&sdlevent);
   }
@@ -136,7 +136,7 @@ void GraphicsLayer::onUpdate() {
 
     float w = texture.width;
     float h = texture.height;
-    updateUniformsForView(w,h);
+    updateUniformsForView(w, h);
     if (surface) {
       MTLRenderPassDescriptor *passDescriptor =
           [MTLRenderPassDescriptor renderPassDescriptor];
@@ -151,9 +151,10 @@ void GraphicsLayer::onUpdate() {
       id<MTLRenderCommandEncoder> commandEncoder =
           [commandBuffer renderCommandEncoderWithDescriptor:passDescriptor];
 
-        const NSUInteger uniformBufferOffset = AlignUp(sizeof(MBEUniforms), 256) * bufferIndex;
       [commandEncoder setRenderPipelineState:renderPipelineState];
-        [commandEncoder setVertexBuffer:uniformBuffer offset:uniformBufferOffset atIndex:1];
+      SirMetal::BindInfo info = m_engine->m_constantBufferManager->getBindInfo(
+          m_engine, m_uniformHandle);
+      [commandEncoder setVertexBuffer:info.buffer offset:info.offset atIndex:1];
       [commandEncoder setVertexBuffer:vertexBuffer offset:0 atIndex:0];
       [commandEncoder drawPrimitives:MTLPrimitiveTypeTriangle
                          vertexStart:0

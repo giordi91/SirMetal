@@ -7,6 +7,7 @@
 #include "SirMetal/io/json.h"
 #include "SirMetal/core/input.h"
 #include "SirMetal/graphics/renderingContext.h"
+#include "SirMetal/graphics/constantBufferManager.h"
 #include "SirMetal/resources/shaderManager.h"
 /*
 #include "blackHole/graphics/meshManager.h"
@@ -89,6 +90,8 @@ EngineContext *engineStartUp(const EngineConfig &config,SDL_Window *window) {
   id<MTLDevice> device = context->m_renderingContext->getDevice();
   context->m_shaderManager = new ShaderManager();
   context->m_shaderManager->initialize(device);
+  context->m_constantBufferManager= new ConstantBufferManager();
+  context->m_constantBufferManager->initialize(device,20*MB_TO_BYTE);
   /*
   context->m_meshManager = new graphics::MeshManager();
   context->m_meshManager->initialize();
