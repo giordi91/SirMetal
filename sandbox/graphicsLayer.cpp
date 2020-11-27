@@ -3,6 +3,7 @@
 #import <Metal/Metal.h>
 #import <QuartzCore/CAMetalLayer.h>
 #include <SirMetal/MBEMathUtilities.h>
+#include <SirMetal/resources/textureManager.h>
 #include <simd/simd.h>
 #include <simd/types.h>
 
@@ -37,8 +38,6 @@ void GraphicsLayer::onAttach(SirMetal::EngineContext *context) {
 
   m_engine = context;
   color = MTLClearColorMake(0, 0, 0, 1);
-  makePipeline();
-  makeBuffers();
 
   // initializing the camera to the identity
   m_camera.viewMatrix = matrix_float4x4_translation(vector_float3{0, 0, 0});
@@ -57,6 +56,7 @@ void GraphicsLayer::onAttach(SirMetal::EngineContext *context) {
 
   id<MTLDevice> device = m_engine->m_renderingContext->getDevice();
 
+  /*
   MTLTextureDescriptor *descriptor = [MTLTextureDescriptor
       texture2DDescriptorWithPixelFormat:MTLPixelFormatDepth32Float_Stencil8
                                    width:1280*2
@@ -67,6 +67,15 @@ void GraphicsLayer::onAttach(SirMetal::EngineContext *context) {
   descriptor.pixelFormat = MTLPixelFormatDepth32Float_Stencil8;
   m_depthTexture = [device newTextureWithDescriptor:descriptor];
   m_depthTexture.label = @"DepthStencilGUI";
+  */
+  SirMetal::AllocTextureRequest requestDepth{
+      static_cast<uint32_t>(1280*2), static_cast<uint32_t>(720*2),
+      1, MTLTextureType2D, MTLPixelFormatDepth32Float_Stencil8,
+      MTLTextureUsageRenderTarget | MTLTextureUsageShaderRead, MTLStorageModePrivate, 1, "depthTexture"
+  };
+  m_depthHandle = m_engine->m_textureManager->allocate(device, requestDepth);
+  makePipeline();
+  makeBuffers();
 }
 
 void GraphicsLayer::onDetach() {}
@@ -88,7 +97,7 @@ void GraphicsLayer::makePipeline() {
   pipelineDescriptor.vertexFunction = vertexFunc;
   pipelineDescriptor.fragmentFunction = fragmentFunc;
 
-  pipelineDescriptor.depthAttachmentPixelFormat = m_depthTexture.pixelFormat;
+  pipelineDescriptor.depthAttachmentPixelFormat = m_engine->m_textureManager->getFormat(m_depthHandle);
   MTLDepthStencilDescriptor *depthStencilDescriptor =
       [MTLDepthStencilDescriptor new];
   depthStencilDescriptor.depthCompareFunction = MTLCompareFunctionLess;
@@ -169,7 +178,7 @@ void GraphicsLayer::onUpdate() {
 
       MTLRenderPassDepthAttachmentDescriptor *depthAttachment =
           passDescriptor.depthAttachment;
-      depthAttachment.texture = m_depthTexture;
+      depthAttachment.texture = m_engine->m_textureManager->getNativeFromHandle(m_depthHandle);
       depthAttachment.clearDepth = 1.0;
       depthAttachment.storeAction = MTLStoreActionDontCare;
       depthAttachment.loadAction = MTLLoadActionClear;

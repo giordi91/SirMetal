@@ -33,7 +33,7 @@ private:
   MTLClearColor color;
   SirMetal::ConstantBufferHandle m_uniformHandle;
   SirMetal::MeshHandle m_mesh;
-  id<MTLTexture> m_depthTexture;
   id<MTLDepthStencilState> m_depthState;
+  SirMetal::TextureHandle m_depthHandle;
 };
 } // namespace Sandbox

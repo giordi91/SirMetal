@@ -1,15 +1,16 @@
 #include "SirMetal/engine.h"
 
-#include <unordered_map>
 #include "nlohmann/json.hpp"
+#include <unordered_map>
 
+#include "SirMetal/core/input.h"
+#include "SirMetal/graphics/constantBufferManager.h"
+#include "SirMetal/graphics/renderingContext.h"
 #include "SirMetal/io/fileUtils.h"
 #include "SirMetal/io/json.h"
-#include "SirMetal/core/input.h"
-#include "SirMetal/graphics/renderingContext.h"
-#include "SirMetal/graphics/constantBufferManager.h"
-#include "SirMetal/resources/shaderManager.h"
 #include "SirMetal/resources/meshes/meshManager.h"
+#include "SirMetal/resources/shaderManager.h"
+#include "SirMetal/resources/textureManager.h"
 
 #import <Metal/Metal.h>
 /*
@@ -19,14 +20,14 @@
 #include "graphics/debugRenderer.h"
  */
 
-namespace SirMetal{
+namespace SirMetal {
 
-static const char* CONFIG_DATA_SOURCE_KEY = "dataSource";
-static const char* CONFIG_START_FULL_SCREEN = "startFullScreen";
-static const char* CONFIG_WINDOW_TITLE = "windowTitle";
-static const char* CONFIG_WINDOW_WIDTH = "windowWidth";
-static const char* CONFIG_WINDOW_HEIGHT = "windowHeight";
-static const char* CONFIG_FRAME_BUFFERING_COUNT = "frameBufferingCount";
+static const char *CONFIG_DATA_SOURCE_KEY = "dataSource";
+static const char *CONFIG_START_FULL_SCREEN = "startFullScreen";
+static const char *CONFIG_WINDOW_TITLE = "windowTitle";
+static const char *CONFIG_WINDOW_WIDTH = "windowWidth";
+static const char *CONFIG_WINDOW_HEIGHT = "windowHeight";
+static const char *CONFIG_FRAME_BUFFERING_COUNT = "frameBufferingCount";
 
 static const std::string DEFAULT_STRING = "";
 
@@ -81,27 +82,27 @@ EngineConfig loadEngineConfigFile(const std::string &path) {
   return initializeConfigDefault();
 }
 
-EngineContext *engineStartUp(const EngineConfig &config,SDL_Window *window) {
+EngineContext *engineStartUp(const EngineConfig &config, SDL_Window *window) {
 
   auto *context = new EngineContext{};
   context->m_config = config;
   context->m_inputManager = new Input();
   context->m_inputManager->initialize();
   context->m_renderingContext = new graphics::RenderingContext();
-  context->m_renderingContext->initialize(config,window);
+  context->m_renderingContext->initialize(config, window);
   id<MTLDevice> device = context->m_renderingContext->getDevice();
   id<MTLCommandQueue> queue = context->m_renderingContext->getQueue();
   context->m_shaderManager = new ShaderManager();
   context->m_shaderManager->initialize(device);
-  context->m_constantBufferManager= new ConstantBufferManager();
-  context->m_constantBufferManager->initialize(device,20*MB_TO_BYTE);
+  context->m_constantBufferManager = new ConstantBufferManager();
+  context->m_constantBufferManager->initialize(device, 20 * MB_TO_BYTE);
   context->m_meshManager = new MeshManager();
-  context->m_meshManager->initialize(device,queue);
+  context->m_meshManager->initialize(device, queue);
+  context->m_textureManager = new TextureManager();
+  context->m_textureManager->initialize();
   /*
   context->m_bufferManager = new graphics::BufferManager();
   context->m_bufferManager->initialize();
-  context->m_textureManager = new graphics::TextureManager();
-  context->m_textureManager->initialize(context->m_renderingContext);
   context->m_debugRenderer = new graphics::DebugRenderer();
   context->m_debugRenderer->initialize(context);
    */
@@ -119,11 +120,11 @@ void engineShutdown(EngineContext *context) {
   delete context->m_inputManager;
   context->m_shaderManager->cleanup();
   delete context->m_shaderManager;
+  context->m_textureManager->cleanup();
+  delete context->m_textureManager;
   /*
   context->m_debugRenderer->cleanup(context);
   delete context->m_debugRenderer;
-  context->m_textureManager->cleanup();
-  delete context->m_textureManager;
   context->m_bufferManager->cleanup();
   delete context->m_bufferManager;
   context->m_meshManager->cleanup();
@@ -132,4 +133,4 @@ void engineShutdown(EngineContext *context) {
   delete context->m_renderingContext;
   */
 }
-}  // namespace BlackHole
+} // namespace SirMetal
