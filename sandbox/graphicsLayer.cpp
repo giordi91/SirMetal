@@ -54,6 +54,19 @@ void GraphicsLayer::onAttach(SirMetal::EngineContext *context) {
       SirMetal::CONSTANT_BUFFER_FLAGS_BITS::CONSTANT_BUFFER_FLAG_BUFFERED);
 
   m_mesh = m_engine->m_meshManager->loadMesh("lucy.obj");
+
+  id<MTLDevice> device = m_engine->m_renderingContext->getDevice();
+
+  MTLTextureDescriptor *descriptor = [MTLTextureDescriptor
+      texture2DDescriptorWithPixelFormat:MTLPixelFormatDepth32Float_Stencil8
+                                   width:1280*2
+                                  height:720*2
+                               mipmapped:NO];
+  descriptor.storageMode = MTLStorageModePrivate;
+  descriptor.usage = MTLTextureUsageRenderTarget;
+  descriptor.pixelFormat = MTLPixelFormatDepth32Float_Stencil8;
+  m_depthTexture = [device newTextureWithDescriptor:descriptor];
+  m_depthTexture.label = @"DepthStencilGUI";
 }
 
 void GraphicsLayer::onDetach() {}
@@ -67,14 +80,24 @@ void GraphicsLayer::makePipeline() {
   id<MTLFunction> fragmentFunc =
       m_engine->m_shaderManager->getFragmentFunction(libHandle);
 
+  id<MTLDevice> device = m_engine->m_renderingContext->getDevice();
+
   MTLRenderPipelineDescriptor *pipelineDescriptor =
       [MTLRenderPipelineDescriptor new];
   pipelineDescriptor.colorAttachments[0].pixelFormat = MTLPixelFormatBGRA8Unorm;
   pipelineDescriptor.vertexFunction = vertexFunc;
   pipelineDescriptor.fragmentFunction = fragmentFunc;
 
+  pipelineDescriptor.depthAttachmentPixelFormat = m_depthTexture.pixelFormat;
+  MTLDepthStencilDescriptor *depthStencilDescriptor =
+      [MTLDepthStencilDescriptor new];
+  depthStencilDescriptor.depthCompareFunction = MTLCompareFunctionLess;
+  depthStencilDescriptor.depthWriteEnabled = YES;
+  m_depthState =
+      [device newDepthStencilStateWithDescriptor:depthStencilDescriptor];
+
   NSError *error = nil;
-  id<MTLDevice> device = m_engine->m_renderingContext->getDevice();
+
   renderPipelineState =
       [device newRenderPipelineStateWithDescriptor:pipelineDescriptor
                                              error:&error];
@@ -135,6 +158,7 @@ void GraphicsLayer::onUpdate() {
     float h = texture.height;
     updateUniformsForView(w, h);
     if (surface) {
+
       MTLRenderPassDescriptor *passDescriptor =
           [MTLRenderPassDescriptor renderPassDescriptor];
       passDescriptor.colorAttachments[0].texture = texture;
@@ -143,12 +167,23 @@ void GraphicsLayer::onUpdate() {
       passDescriptor.colorAttachments[0].storeAction = MTLStoreActionStore;
       passDescriptor.colorAttachments[0].loadAction = MTLLoadActionClear;
 
+      MTLRenderPassDepthAttachmentDescriptor *depthAttachment =
+          passDescriptor.depthAttachment;
+      depthAttachment.texture = m_depthTexture;
+      depthAttachment.clearDepth = 1.0;
+      depthAttachment.storeAction = MTLStoreActionDontCare;
+      depthAttachment.loadAction = MTLLoadActionClear;
+
       id<MTLCommandBuffer> commandBuffer = [queue commandBuffer];
 
       id<MTLRenderCommandEncoder> commandEncoder =
           [commandBuffer renderCommandEncoderWithDescriptor:passDescriptor];
 
       [commandEncoder setRenderPipelineState:renderPipelineState];
+      [commandEncoder setDepthStencilState:m_depthState];
+      [commandEncoder setFrontFacingWinding:MTLWindingCounterClockwise];
+      [commandEncoder setCullMode:MTLCullModeBack];
+
       SirMetal::BindInfo info = m_engine->m_constantBufferManager->getBindInfo(
           m_engine, m_uniformHandle);
       [commandEncoder setVertexBuffer:info.buffer offset:info.offset atIndex:1];
@@ -160,7 +195,6 @@ void GraphicsLayer::onUpdate() {
                                offset:0
                               atIndex:0];
       [commandEncoder drawIndexedPrimitives:MTLPrimitiveTypeTriangle
-                                 indexCount:meshData->primitivesCount
                                  indexCount:meshData->primitivesCount
                                   indexType:MTLIndexTypeUInt32
                                 indexBuffer:meshData->indexBuffer
