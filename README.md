@@ -41,7 +41,7 @@ during the build a config.json file should be copied from the same location of t
 to the side of the executable, that json file will contain (among other things) the relative path (from the exec)
 to the resource folder.
 
-###Sample list:
+### Sample list:
 - [Jump Flooding Selection](#jump)  
 
 ### Jump flooding selection. <a name="jump"/>
