@@ -17,8 +17,6 @@ namespace SirMetal {
     struct Material
     {
         std::string shaderName;
-        AlphaBlendingState state;
+        AlphaBlendingState blendingState;
     };
-
-
 }

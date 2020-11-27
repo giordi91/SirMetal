@@ -11,6 +11,14 @@ struct EngineConfig;
 } // namespace SirMetal
 
 namespace SirMetal::graphics {
+
+struct DrawTracker
+{
+  id renderTargets[8];
+  id depthTarget;
+};
+
+
 class RenderingContext {
 public:
   RenderingContext() = default;
