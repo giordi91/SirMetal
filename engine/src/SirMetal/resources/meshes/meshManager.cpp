@@ -59,15 +59,10 @@ namespace SirMetal {
         loadMeshObj(result, path.c_str());
 
         id<MTLDevice> currDevice = m_device;
-        //id<MTLBuffer> vertexBuffer = [currDevice newBufferWithBytes:result.vertices.data()
-        //                                     length:sizeof(Vertex)*result.vertices.size()
-        //                                    options:MTLResourceOptionCPUCacheModeDefault];
+        //TODO convert to a general buffer manager
         id<MTLBuffer> vertexBuffer = createGPUOnlyBuffer(currDevice, m_queue, result.vertices.data(),sizeof(Vertex)*result.vertices.size());
         [vertexBuffer setLabel:@"Vertices"];
 
-        //id<MTLBuffer> indexBuffer = [currDevice newBufferWithBytes:result.indices.data()
-        //                                    length:result.indices.size()*sizeof(uint32_t)
-        //                                   options:MTLResourceOptionCPUCacheModeDefault];
         id<MTLBuffer> indexBuffer = createGPUOnlyBuffer(currDevice, m_queue, result.indices.data(),result.indices.size()*sizeof(uint32_t));
         [indexBuffer setLabel:@"Indices"];
         uint32_t index = m_meshCounter++;
@@ -80,4 +75,5 @@ namespace SirMetal {
         m_nameToHandle[fileName] = handle.handle;
         return handle;
     }
-}
+    void MeshManager::cleanup() {}
+    }

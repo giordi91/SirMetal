@@ -116,21 +116,21 @@ void Timing::newFrame() {
   m_timeSinceStartInSeconds = m_clock.getDeltaFromOrigin() * NS_TO_SECONDS;
 }
 void engineShutdown(EngineContext *context) {
-  context->m_inputManager->cleanup();
-  delete context->m_inputManager;
-  context->m_shaderManager->cleanup();
-  delete context->m_shaderManager;
   context->m_textureManager->cleanup();
   delete context->m_textureManager;
+  context->m_meshManager->cleanup();
+  delete context->m_meshManager;
+  context->m_constantBufferManager->cleanup();
+  delete context->m_constantBufferManager;
+  context->m_shaderManager->cleanup();
+  delete context->m_shaderManager;
+  context->m_renderingContext->cleanup();
+  delete context->m_renderingContext;
+  context->m_inputManager->cleanup();
+  delete context->m_inputManager;
   /*
   context->m_debugRenderer->cleanup(context);
   delete context->m_debugRenderer;
-  context->m_bufferManager->cleanup();
-  delete context->m_bufferManager;
-  context->m_meshManager->cleanup();
-  delete context->m_meshManager;
-  context->m_renderingContext->cleanup();
-  delete context->m_renderingContext;
   */
 }
 } // namespace SirMetal

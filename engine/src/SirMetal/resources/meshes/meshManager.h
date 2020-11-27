@@ -47,7 +47,9 @@ namespace SirMetal {
             return nullptr;
         }
 
-    private:
+        void cleanup();
+
+      private:
         id m_device;
         id m_queue;
         std::unordered_map<uint32_t, MeshData> m_handleToMesh;
