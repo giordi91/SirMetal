@@ -41,7 +41,10 @@ during the build a config.json file should be copied from the same location of t
 to the side of the executable, that json file will contain (among other things) the relative path (from the exec)
 to the resource folder.
 
-### Jump flooding selection.
+###Sample list:
+- [Jump Flooding Selection](#jump)  
+
+### Jump flooding selection. <a name="jump"/>
 This is an implementation of jump flooding algorithm used to generate a thick outline, 
 similar to the one you might want to use for a selection in game. 
 Inspired by those two great articles:
