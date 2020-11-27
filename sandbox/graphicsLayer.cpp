@@ -69,10 +69,15 @@ void GraphicsLayer::onAttach(SirMetal::EngineContext *context) {
   m_depthTexture.label = @"DepthStencilGUI";
   */
   SirMetal::AllocTextureRequest requestDepth{
-      static_cast<uint32_t>(1280*2), static_cast<uint32_t>(720*2),
-      1, MTLTextureType2D, MTLPixelFormatDepth32Float_Stencil8,
-      MTLTextureUsageRenderTarget | MTLTextureUsageShaderRead, MTLStorageModePrivate, 1, "depthTexture"
-  };
+      static_cast<uint32_t>(1280 * 2),
+      static_cast<uint32_t>(720 * 2),
+      1,
+      MTLTextureType2D,
+      MTLPixelFormatDepth32Float_Stencil8,
+      MTLTextureUsageRenderTarget | MTLTextureUsageShaderRead,
+      MTLStorageModePrivate,
+      1,
+      "depthTexture"};
   m_depthHandle = m_engine->m_textureManager->allocate(device, requestDepth);
   makePipeline();
   makeBuffers();
@@ -97,7 +102,8 @@ void GraphicsLayer::makePipeline() {
   pipelineDescriptor.vertexFunction = vertexFunc;
   pipelineDescriptor.fragmentFunction = fragmentFunc;
 
-  pipelineDescriptor.depthAttachmentPixelFormat = m_engine->m_textureManager->getFormat(m_depthHandle);
+  pipelineDescriptor.depthAttachmentPixelFormat =
+      m_engine->m_textureManager->getFormat(m_depthHandle);
   MTLDepthStencilDescriptor *depthStencilDescriptor =
       [MTLDepthStencilDescriptor new];
   depthStencilDescriptor.depthCompareFunction = MTLCompareFunctionLess;
@@ -178,7 +184,8 @@ void GraphicsLayer::onUpdate() {
 
       MTLRenderPassDepthAttachmentDescriptor *depthAttachment =
           passDescriptor.depthAttachment;
-      depthAttachment.texture = m_engine->m_textureManager->getNativeFromHandle(m_depthHandle);
+      depthAttachment.texture =
+          m_engine->m_textureManager->getNativeFromHandle(m_depthHandle);
       depthAttachment.clearDepth = 1.0;
       depthAttachment.storeAction = MTLStoreActionDontCare;
       depthAttachment.loadAction = MTLLoadActionClear;

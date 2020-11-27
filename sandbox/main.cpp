@@ -7,8 +7,10 @@
 
 #include "SirMetal/application/window.h"
 #import "SirMetal/engine.h"
+#include <iostream>
 
 int main(int argc, char *args[]) {
+  std::cout<<args[0]<<std::endl;
   Sandbox::SandboxApplication sand;
   sand.run();
   /*
