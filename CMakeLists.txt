@@ -9,3 +9,4 @@ set(COMMON_CXX_FLAGS "${COMMON_CXX_FLAGS}  -Wall -pedantic -Wextra -m64  -mfma -
 add_subdirectory(vendors/meshoptimizer)
 add_subdirectory(engine)
 add_subdirectory(sandbox)
+add_subdirectory(samples/01_jumpFlooding)

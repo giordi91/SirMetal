@@ -1,0 +1,9 @@
+{
+
+  "dataSource" : "../../data/01_jumpFlooding/",
+  "startFullScreen" :  false,
+  "windowTitle": "Jump Flooding Selection",
+  "windowWidth":1280,
+  "windowHeight" : 720,
+  "frameBufferingCount" : 3
+}

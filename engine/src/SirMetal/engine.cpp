@@ -12,14 +12,6 @@
 #include "SirMetal/resources/shaderManager.h"
 #include "SirMetal/resources/textureManager.h"
 
-#import <Metal/Metal.h>
-/*
-#include "blackHole/graphics/textureManager.h"
-#include "blackHole/io/fileUtils.h"
-#include "graphics/buffermanager.h"
-#include "graphics/debugRenderer.h"
- */
-
 namespace SirMetal {
 
 static const char *CONFIG_DATA_SOURCE_KEY = "dataSource";
