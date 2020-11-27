@@ -55,6 +55,11 @@ void GraphicsLayer::onAttach(SirMetal::EngineContext *context) {
   m_depthHandle = m_engine->m_textureManager->allocate(device, requestDepth);
 
   m_engine->m_shaderManager->loadShader("Shaders.metal");
+  m_engine->m_shaderManager->loadShader("jumpInit.metal");
+  m_engine->m_shaderManager->loadShader("jumpMask.metal");
+  m_engine->m_shaderManager->loadShader("jumpFlood.metal");
+  m_engine->m_shaderManager->loadShader("jumpOutline.metal");
+  m_selection.initialize(context);
 }
 
 void GraphicsLayer::onDetach() {}
@@ -89,13 +94,10 @@ void GraphicsLayer::onUpdate() {
   CAMetalLayer *swapchain = m_engine->m_renderingContext->getSwapchain();
   id<MTLCommandQueue> queue = m_engine->m_renderingContext->getQueue();
 
-  @autoreleasepool {
+  //@autoreleasepool {
     id<CAMetalDrawable> surface = [swapchain nextDrawable];
     id<MTLTexture> texture = surface.texture;
 
-    if (!surface) {
-      return;
-    }
 
     float w = texture.width;
     float h = texture.height;
@@ -151,9 +153,11 @@ void GraphicsLayer::onUpdate() {
                         indexBufferOffset:0];
     [commandEncoder endEncoding];
 
+    m_selection.render(m_engine,commandBuffer,w,h,m_uniformHandle,texture);
+
     [commandBuffer presentDrawable:surface];
     [commandBuffer commit];
-  }
+  //}
 }
 
 bool GraphicsLayer::onEvent(SirMetal::Event &) {
