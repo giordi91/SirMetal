@@ -11,7 +11,7 @@ include_directories(MyProject
         "${CMAKE_SOURCE_DIR}/vendors/json/include"
         )
 
-file(GLOB_RECURSE SOURCE_FILES "*.cpp" "*.h" "*.mm")
+file(GLOB_RECURSE SOURCE_FILES "*.cpp" "*.h")
 set_source_files_properties(${SOURCE_FILES} PROPERTIES
         COMPILE_FLAGS "-x objective-c++")
 
@@ -25,6 +25,7 @@ foreach (LIB ${MAC_LIBS})
 endforeach ()
 
 add_executable(${PROJECT_NAME} ${SOURCE_FILES})
+
 #set_target_properties(${PROJECT_NAME} PROPERTIES
 #        MACOSX_BUNDLE YES
 #        MACOSX_BUNDLE_INFO_PLIST ${CMAKE_SOURCE_DIR}/Resources/Info.plist
@@ -32,3 +33,5 @@ add_executable(${PROJECT_NAME} ${SOURCE_FILES})
 target_link_libraries(${PROJECT_NAME} ${LINK_LIBS} ${SDL2_LIBRARIES} SirMetalLib)
 
 
+set_property (TARGET ${PROJECT_NAME} APPEND_STRING PROPERTY
+        COMPILE_FLAGS "-fobjc-arc")

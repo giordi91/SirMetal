@@ -22,3 +22,6 @@ include_directories(${PROJECT_NAME}
 #adding the executable
 add_library(${PROJECT_NAME} STATIC ${SOURCE_FILES} ${INCLUDES_FILES} ${SHADER_FILES})
 target_link_libraries(${PROJECT_NAME} ${LINK_LIBS} ${SDL2_LIBRARIES} meshoptimizer)
+
+set_property (TARGET ${PROJECT_NAME} APPEND_STRING PROPERTY
+        COMPILE_FLAGS "-fobjc-arc")

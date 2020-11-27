@@ -14,8 +14,9 @@ bool Window::create(const WindowProps &props) {
 
   SDL_SetHint(SDL_HINT_RENDER_DRIVER, "metal");
   SDL_InitSubSystem(SDL_INIT_VIDEO);
+  //this flags is the one that allows the mac to render twice the size SDL_WINDOW_ALLOW_HIGHDPI
   m_window = SDL_CreateWindow(props.m_title.c_str(), -1, -1, props.m_width,
-                              props.m_height, SDL_WINDOW_ALLOW_HIGHDPI);
+                              props.m_height, 0);
   SDL_SetWindowResizable(m_window, SDL_TRUE);
 
   // Check that the window was successfully created
