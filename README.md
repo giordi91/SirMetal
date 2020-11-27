@@ -1,32 +1,63 @@
 <img style="float: right;" src="docs/images/logo.png">
 
 # SirMetal
-A metal-based game editor 
+A metal-based sandbox 
 
 ## What is this project
-This is a learning project to try to write a game editor. In the past, I wrote a lot of engines. For the last two years (on and off) I have been working on SirEngine, my Vulkan and DirectX 12 game engine. That engine is focused on playing pre-baked content, not creating it, is only the runtime of an engine. 
+This is a learning sandbox made in C++ and Metal. I try to leverage as much 
+as possible the work done in my previous engines to facilitate the work.
+The goal should be to achieve a framework easy enough to use to quickly prototype 
+and hack techniques together. 
 
-In this project,  I want to focus on the other side of the spectrum, creating an editor. 
-
-I wanted to learn Metal, and did not want to deal with all the sophisticated features of SirEngine; it sounded like a perfect opportunity to create a separate project.
-Not having two years worth of code will allow me to easily prototype and trying new things in a much more agile way.
+As such one of the goals is to try to create a series of tools you can pick and 
+match to do what you want, instead a big heavy "engine", all interconnected where you either 
+pick the whole thing or nothing. 
 
 ## What this project is not
-This is not, and never will be a final product, as mentioned above, is a learning project, a sandbox where I try stuff, often in a quick hacky way which I might never clean up. Don't take this code as an example of production quality code, with the limited time at my disposal I have to pick my battles. That does not mean I will partake in bad practices on purpose, but at the same time, I won't be striving for cleanness and tidiness as I would in production. There will be sharp edges and dark corners, beware.
+This is not, and never will be a final product, as mentioned above, is a learning project, 
+a sandbox where I try stuff, often in a quick hacky way which I might never clean up. 
+Don't take this code as an example of production quality code, 
+with the limited time at my disposal I have to pick my battles. 
+That does not mean I will partake in bad practices on purpose, 
+but at the same time, I won't be striving for cleanness and tidiness as 
+I would in production. There will be sharp edges and dark corners, beware.
 
-As such, I won't go to the same great lengths as I did for SirEngine, for example, rolling all my own containers and data structure and avoid STL. I will be doing whatever makes me work faster. If using std::string and std::unordered_map gets me there quicker, so be it. If will start to be a speed limitation (I doubt, given the size of the project), I will deal with that at the time).
+As such, I won't go to the same great lengths as I did for SirEngine, for example, 
+rolling all my own containers and data structure and avoid STL. 
+I will be doing whatever makes me work faster. 
+If using std::string and std::unordered_map gets me there quicker, so be it. 
+If will start to be a speed limitation (I doubt, given the size of the project), 
+I will deal with that at the time).
 
 If you find something you don't understand how it works, or think it is bad/wrong/ugly, please feel free to open an issue.
 **In particular, help/guidance would be excellent when it comes to Cocoa or objective-c/c++ that is all new stuff for me.**
 
+## Samples
+Most samples controls are the common WASD for the camera movement, Q/E for up and down,
+finally, left mouse click and drag to pan the camera.
 
-Here I will keep a chronological list of the progress, click on the image to play a video (if an associated one exists):
+To run, each sample will need to find the necessary data (meshes, shaders ...),
+during the build a config.json file should be copied from the same location of the source
+to the side of the executable, that json file will contain (among other things) the relative path (from the exec)
+to the resource folder.
 
-##### History  
+### Jump flooding selection.
+This is an implementation of jump flooding algorithm used to generate a thick outline, 
+similar to the one you might want to use for a selection in game. 
+Inspired by those two great articles:
+- https://medium.com/@bgolus/the-quest-for-very-wide-outlines-ba82ed442cd9
+- https://blog.demofox.org/2016/02/29/fast-voronoi-diagrams-and-distance-dield-textures-on-the-gpu-with-the-jump-flooding-algorithm/
+
+![basic](./docs/images/samples01.png "flood")
+
+## What this project used to be!
+This project used to be a start of a game editor, but then due to reasons I decided
+to pivot and rewrite around a more sample based architecture, the old work is still available
+in the branch eidtor if you want to check it out. Here below the old log:
+
 [0.1.0: basic drawing](#v010)  
 [0.1.2: basic editor layout](#v012)  
 [0.1.4: engine structure and selction shader](#v014)
-
 
 ## 0.1.0 <a name="v010"/>
 This version is the hello world.
