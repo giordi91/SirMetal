@@ -42,8 +42,8 @@ void GraphicsLayer::onAttach(SirMetal::EngineContext *context) {
   id<MTLDevice> device = m_engine->m_renderingContext->getDevice();
 
   SirMetal::AllocTextureRequest requestDepth{
-      static_cast<uint32_t>(1280 * 2),
-      static_cast<uint32_t>(720 * 2),
+      m_engine->m_config.m_windowConfig.m_width,
+      m_engine->m_config.m_windowConfig.m_height,
       1,
       MTLTextureType2D,
       MTLPixelFormatDepth32Float_Stencil8,

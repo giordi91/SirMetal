@@ -16,7 +16,6 @@
 #include "SirMetal/resources/meshes/meshManager.h"
 #include "SirMetal/resources/shaderManager.h"
 
-
 typedef struct {
   matrix_float4x4 modelViewProjectionMatrix;
 } MBEUniforms;
@@ -31,20 +30,24 @@ void GraphicsLayer::onAttach(SirMetal::EngineContext *context) {
   m_camera.nearPlane = 1;
   m_camera.farPlane = 100;
   m_cameraController.setCamera(&m_camera);
-  m_cameraController.setPosition(0, 0, 5);
+  m_cameraController.setPosition(3, 10, 15);
   m_camConfig = {1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 0.2, 0.002};
 
   m_uniformHandle = m_engine->m_constantBufferManager->allocate(
       m_engine, sizeof(MBEUniforms),
       SirMetal::CONSTANT_BUFFER_FLAGS_BITS::CONSTANT_BUFFER_FLAG_BUFFERED);
 
-  m_mesh = m_engine->m_meshManager->loadMesh("lucy.obj");
+  const char *names[5] = {"plane.obj", "cube.obj", "lucy.obj", "cone.obj",
+                          "cilinder.obj"};
+  for (int i = 0; i < 5; ++i) {
+    m_meshes[i] = m_engine->m_meshManager->loadMesh(names[i]);
+  }
 
   id<MTLDevice> device = m_engine->m_renderingContext->getDevice();
 
   SirMetal::AllocTextureRequest requestDepth{
-      static_cast<uint32_t>(1280 * 2),
-      static_cast<uint32_t>(720 * 2),
+      m_engine->m_config.m_windowConfig.m_width,
+      m_engine->m_config.m_windowConfig.m_height,
       1,
       MTLTextureType2D,
       MTLPixelFormatDepth32Float_Stencil8,
@@ -59,7 +62,6 @@ void GraphicsLayer::onAttach(SirMetal::EngineContext *context) {
   m_engine->m_shaderManager->loadShader("jumpMask.metal");
   m_engine->m_shaderManager->loadShader("jumpFlood.metal");
   m_engine->m_shaderManager->loadShader("jumpOutline.metal");
-  m_selection.initialize(context);
 }
 
 void GraphicsLayer::onDetach() {}
@@ -95,55 +97,55 @@ void GraphicsLayer::onUpdate() {
   id<MTLCommandQueue> queue = m_engine->m_renderingContext->getQueue();
 
   //@autoreleasepool {
-    id<CAMetalDrawable> surface = [swapchain nextDrawable];
-    id<MTLTexture> texture = surface.texture;
+  id<CAMetalDrawable> surface = [swapchain nextDrawable];
+  id<MTLTexture> texture = surface.texture;
 
+  float w = texture.width;
+  float h = texture.height;
+  updateUniformsForView(w, h);
 
-    float w = texture.width;
-    float h = texture.height;
-    updateUniformsForView(w, h);
+  SirMetal::graphics::DrawTracker tracker{};
 
-    SirMetal::graphics::DrawTracker tracker{};
+  id<MTLDevice> device = m_engine->m_renderingContext->getDevice();
+  tracker.renderTargets[0] = texture;
+  tracker.depthTarget =
+      m_engine->m_textureManager->getNativeFromHandle(m_depthHandle);
+  SirMetal::PSOCache cache =
+      SirMetal::getPSO(m_engine, tracker, SirMetal::Material{"Shaders", false});
 
-    id<MTLDevice> device = m_engine->m_renderingContext->getDevice();
-    tracker.renderTargets[0] = texture;
-    tracker.depthTarget =
-        m_engine->m_textureManager->getNativeFromHandle(m_depthHandle);
-    SirMetal::PSOCache cache = SirMetal::getPSO(
-        m_engine, tracker, SirMetal::Material{"Shaders", false});
+  MTLRenderPassDescriptor *passDescriptor =
+      [MTLRenderPassDescriptor renderPassDescriptor];
+  passDescriptor.colorAttachments[0].texture = texture;
+  passDescriptor.colorAttachments[0].clearColor =
+      MTLClearColorMake(0.85, 0.85, 0.85, 1);
+  passDescriptor.colorAttachments[0].storeAction = MTLStoreActionStore;
+  passDescriptor.colorAttachments[0].loadAction = MTLLoadActionClear;
 
-    MTLRenderPassDescriptor *passDescriptor =
-        [MTLRenderPassDescriptor renderPassDescriptor];
-    passDescriptor.colorAttachments[0].texture = texture;
-    passDescriptor.colorAttachments[0].clearColor =
-        MTLClearColorMake(0.85, 0.85, 0.85, 1);
-    passDescriptor.colorAttachments[0].storeAction = MTLStoreActionStore;
-    passDescriptor.colorAttachments[0].loadAction = MTLLoadActionClear;
+  MTLRenderPassDepthAttachmentDescriptor *depthAttachment =
+      passDescriptor.depthAttachment;
+  depthAttachment.texture =
+      m_engine->m_textureManager->getNativeFromHandle(m_depthHandle);
+  depthAttachment.clearDepth = 1.0;
+  depthAttachment.storeAction = MTLStoreActionDontCare;
+  depthAttachment.loadAction = MTLLoadActionClear;
 
-    MTLRenderPassDepthAttachmentDescriptor *depthAttachment =
-        passDescriptor.depthAttachment;
-    depthAttachment.texture =
-        m_engine->m_textureManager->getNativeFromHandle(m_depthHandle);
-    depthAttachment.clearDepth = 1.0;
-    depthAttachment.storeAction = MTLStoreActionDontCare;
-    depthAttachment.loadAction = MTLLoadActionClear;
+  id<MTLCommandBuffer> commandBuffer = [queue commandBuffer];
 
-    id<MTLCommandBuffer> commandBuffer = [queue commandBuffer];
+  id<MTLRenderCommandEncoder> commandEncoder =
+      [commandBuffer renderCommandEncoderWithDescriptor:passDescriptor];
 
-    id<MTLRenderCommandEncoder> commandEncoder =
-        [commandBuffer renderCommandEncoderWithDescriptor:passDescriptor];
+  [commandEncoder setRenderPipelineState:cache.color];
+  [commandEncoder setDepthStencilState:cache.depth];
+  [commandEncoder setFrontFacingWinding:MTLWindingCounterClockwise];
+  [commandEncoder setCullMode:MTLCullModeBack];
 
-    [commandEncoder setRenderPipelineState:cache.color];
-    [commandEncoder setDepthStencilState:cache.depth];
-    [commandEncoder setFrontFacingWinding:MTLWindingCounterClockwise];
-    [commandEncoder setCullMode:MTLCullModeBack];
+  SirMetal::BindInfo info =
+      m_engine->m_constantBufferManager->getBindInfo(m_engine, m_uniformHandle);
+  [commandEncoder setVertexBuffer:info.buffer offset:info.offset atIndex:1];
 
-    SirMetal::BindInfo info = m_engine->m_constantBufferManager->getBindInfo(
-        m_engine, m_uniformHandle);
-    [commandEncoder setVertexBuffer:info.buffer offset:info.offset atIndex:1];
-
+  for (auto &mesh : m_meshes) {
     const SirMetal::MeshData *meshData =
-        m_engine->m_meshManager->getMeshData(m_mesh);
+        m_engine->m_meshManager->getMeshData(mesh);
 
     [commandEncoder setVertexBuffer:meshData->vertexBuffer offset:0 atIndex:0];
     [commandEncoder drawIndexedPrimitives:MTLPrimitiveTypeTriangle
@@ -151,12 +153,11 @@ void GraphicsLayer::onUpdate() {
                                 indexType:MTLIndexTypeUInt32
                               indexBuffer:meshData->indexBuffer
                         indexBufferOffset:0];
-    [commandEncoder endEncoding];
+  }
+  [commandEncoder endEncoding];
 
-    m_selection.render(m_engine,commandBuffer,w,h,m_uniformHandle,texture);
-
-    [commandBuffer presentDrawable:surface];
-    [commandBuffer commit];
+  [commandBuffer presentDrawable:surface];
+  [commandBuffer commit];
   //}
 }
 

@@ -4,7 +4,6 @@
 #include "SirMetal/graphics/camera.h"
 #include "SirMetal/graphics/renderingContext.h"
 #include "SirMetal/resources/handle.h"
-#include "selectionRendering.h"
 #import <Metal/Metal.h>
 
 namespace SirMetal {
@@ -31,9 +30,8 @@ private:
   SirMetal::CameraManipulationConfig m_camConfig{};
   SirMetal::EngineContext *m_engine{};
   SirMetal::ConstantBufferHandle m_uniformHandle;
-  SirMetal::MeshHandle m_mesh;
+  SirMetal::MeshHandle m_meshes[5];
   SirMetal::TextureHandle m_depthHandle;
-  SirMetal::Selection m_selection;
 
 };
 } // namespace Sandbox
