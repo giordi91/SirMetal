@@ -36,11 +36,12 @@ void GraphicsLayer::onAttach(SirMetal::EngineContext *context) {
   m_uniformHandle = m_engine->m_constantBufferManager->allocate(
       m_engine, sizeof(MBEUniforms),
       SirMetal::CONSTANT_BUFFER_FLAGS_BITS::CONSTANT_BUFFER_FLAG_BUFFERED);
+  const std::string base = m_engine->m_config.m_dataSourcePath + "/sandbox";
 
-  const char *names[5] = {"plane.obj", "cube.obj", "lucy.obj", "cone.obj",
-                          "cilinder.obj"};
+  const char *names[5] = {"/plane.obj", "/cube.obj", "/lucy.obj", "/cone.obj",
+                          "/cilinder.obj"};
   for (int i = 0; i < 5; ++i) {
-    m_meshes[i] = m_engine->m_meshManager->loadMesh(names[i]);
+    m_meshes[i] = m_engine->m_meshManager->loadMesh(base + names[i]);
   }
 
   id<MTLDevice> device = m_engine->m_renderingContext->getDevice();
@@ -56,12 +57,13 @@ void GraphicsLayer::onAttach(SirMetal::EngineContext *context) {
       1,
       "depthTexture"};
   m_depthHandle = m_engine->m_textureManager->allocate(device, requestDepth);
+  requestDepth.width = 2048;
+  requestDepth.height = 2048;
+  requestDepth.format = MTLPixelFormatDepth24Unorm_Stencil8;
+  requestDepth.name = "shadowMap";
+  m_shadowHandle = m_engine->m_textureManager->allocate(device, requestDepth);
 
-  m_engine->m_shaderManager->loadShader("Shaders.metal");
-  m_engine->m_shaderManager->loadShader("jumpInit.metal");
-  m_engine->m_shaderManager->loadShader("jumpMask.metal");
-  m_engine->m_shaderManager->loadShader("jumpFlood.metal");
-  m_engine->m_shaderManager->loadShader("jumpOutline.metal");
+  m_engine->m_shaderManager->loadShader((base + "/Shaders.metal").c_str());
 }
 
 void GraphicsLayer::onDetach() {}
@@ -113,6 +115,7 @@ void GraphicsLayer::onUpdate() {
   SirMetal::PSOCache cache =
       SirMetal::getPSO(m_engine, tracker, SirMetal::Material{"Shaders", false});
 
+  // shadows
   MTLRenderPassDescriptor *passDescriptor =
       [MTLRenderPassDescriptor renderPassDescriptor];
   passDescriptor.colorAttachments[0].texture = texture;
@@ -141,13 +144,16 @@ void GraphicsLayer::onUpdate() {
 
   SirMetal::BindInfo info =
       m_engine->m_constantBufferManager->getBindInfo(m_engine, m_uniformHandle);
-  [commandEncoder setVertexBuffer:info.buffer offset:info.offset atIndex:1];
+  [commandEncoder setVertexBuffer:info.buffer offset:info.offset atIndex:4];
 
   for (auto &mesh : m_meshes) {
     const SirMetal::MeshData *meshData =
         m_engine->m_meshManager->getMeshData(mesh);
 
-    [commandEncoder setVertexBuffer:meshData->vertexBuffer offset:0 atIndex:0];
+    [commandEncoder setVertexBuffer:meshData->vertexBuffer offset:meshData->ranges[0].m_offset atIndex:0];
+    [commandEncoder setVertexBuffer:meshData->vertexBuffer offset:meshData->ranges[1].m_offset atIndex:1];
+    [commandEncoder setVertexBuffer:meshData->vertexBuffer offset:meshData->ranges[2].m_offset atIndex:2];
+    [commandEncoder setVertexBuffer:meshData->vertexBuffer offset:meshData->ranges[3].m_offset atIndex:3];
     [commandEncoder drawIndexedPrimitives:MTLPrimitiveTypeTriangle
                                indexCount:meshData->primitivesCount
                                 indexType:MTLIndexTypeUInt32

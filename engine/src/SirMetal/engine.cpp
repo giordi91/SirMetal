@@ -58,7 +58,7 @@ EngineConfig initializeConfigDefault() {
   // start to process the config file
   EngineConfig config;
 
-  config.m_dataSourcePath = "../data/";
+  config.m_dataSourcePath = "../../data/";
   config.m_windowConfig.m_title = "SirMetal";
   config.m_windowConfig.m_width = 1280;
   config.m_windowConfig.m_height = 720;

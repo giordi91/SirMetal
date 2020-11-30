@@ -32,6 +32,7 @@ private:
   SirMetal::ConstantBufferHandle m_uniformHandle;
   SirMetal::MeshHandle m_meshes[5];
   SirMetal::TextureHandle m_depthHandle;
+  SirMetal::TextureHandle m_shadowHandle;
 
 };
 } // namespace Sandbox

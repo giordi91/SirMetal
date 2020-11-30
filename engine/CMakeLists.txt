@@ -16,6 +16,7 @@ include_directories(${PROJECT_NAME}
         )
 
 
+file(GLOB_RECURSE SHADER_FILES "../data/sandbox/*.metal")
 #set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${COMMON_CXX_FLAGS}")
 
 
@@ -25,3 +26,5 @@ target_link_libraries(${PROJECT_NAME} ${LINK_LIBS} ${SDL2_LIBRARIES} meshoptimiz
 
 set_property (TARGET ${PROJECT_NAME} APPEND_STRING PROPERTY
         COMPILE_FLAGS "-fobjc-arc")
+
+

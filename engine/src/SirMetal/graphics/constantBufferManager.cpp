@@ -43,6 +43,7 @@ namespace SirMetal {
         allocateBufferPool();
     }
 
+
     void ConstantBufferManager::allocateBufferPool() {
         uint32_t index = static_cast<uint32_t>(m_bufferPools.size());
         char printBuffer[64];

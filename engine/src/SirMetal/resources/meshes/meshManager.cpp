@@ -51,11 +51,15 @@ MeshHandle MeshManager::processObjMesh(const std::string &path) {
 
   std::string meshName = getFileName(path);
   MeshData data{
-      vertexBuffer, indexBuffer, static_cast<uint32_t>(result.indices.size()),
-      std::move(meshName), matrix_float4x4_translation(vector_float3{0, 0, 0})};
+      vertexBuffer,
+      indexBuffer,
+      {result.ranges[0], result.ranges[1], result.ranges[2], result.ranges[3]},
+      static_cast<uint32_t>(result.indices.size()),
+      std::move(meshName),
+      matrix_float4x4_translation(vector_float3{0, 0, 0})};
   m_handleToMesh[index] = data;
   const std::string fileName = getFileName(path);
-  MeshHandle handle = getHandle<MeshHandle>(index);
+  auto handle = getHandle<MeshHandle>(index);
   m_nameToHandle[fileName] = handle.handle;
   return handle;
 }
