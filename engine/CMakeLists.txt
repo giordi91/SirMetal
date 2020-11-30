@@ -3,6 +3,7 @@ cmake_minimum_required(VERSION 3.13.0)
 project(SirMetalLib)
 
 find_package(SDL2 REQUIRED)
+#find_package(OpenMP)
 #looking for  files
 file(GLOB_RECURSE SOURCE_FILES "src/*.cpp" "src/*.h")
 set_source_files_properties(${SOURCE_FILES} PROPERTIES
@@ -17,14 +18,15 @@ include_directories(${PROJECT_NAME}
 
 
 file(GLOB_RECURSE SHADER_FILES "../data/sandbox/*.metal")
-#set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${COMMON_CXX_FLAGS}")
-
+#set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Xpreprocessor -fopenmp")
 
 #adding the executable
 add_library(${PROJECT_NAME} STATIC ${SOURCE_FILES} ${INCLUDES_FILES} ${SHADER_FILES})
-target_link_libraries(${PROJECT_NAME} ${LINK_LIBS} ${SDL2_LIBRARIES} meshoptimizer)
+target_link_libraries(${PROJECT_NAME} ${LINK_LIBS} ${SDL2_LIBRARIES} meshoptimizer )
+#OpenMP::OpenMP_CXX
+
+
 
 set_property (TARGET ${PROJECT_NAME} APPEND_STRING PROPERTY
         COMPILE_FLAGS "-fobjc-arc")
-
 

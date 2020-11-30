@@ -12,7 +12,7 @@ struct Vertex
 
 struct MeshObj
 {
-    std::vector<Vertex> vertices;
+    std::vector<float> vertices;
     std::vector<uint32_t> indices;
     MemoryRange ranges[4];
     uint32_t rangeCount;

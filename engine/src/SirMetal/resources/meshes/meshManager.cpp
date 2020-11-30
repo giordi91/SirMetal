@@ -40,7 +40,7 @@ MeshHandle MeshManager::processObjMesh(const std::string &path) {
   // TODO convert to a general buffer manager
   id<MTLBuffer> vertexBuffer =
       createGPUOnlyBuffer(currDevice, m_queue, result.vertices.data(),
-                          sizeof(Vertex) * result.vertices.size());
+                          sizeof(float) * result.vertices.size());
   [vertexBuffer setLabel:@"Vertices"];
 
   id<MTLBuffer> indexBuffer =
