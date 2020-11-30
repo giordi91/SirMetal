@@ -23,13 +23,13 @@ bool loadMeshObj(MeshObj &result, const char *path) {
   std::vector<Vertex> vertices(index_count);
   std::vector<float> positions(index_count * 4);
   std::vector<float> normals(index_count * 4);
-  std::vector<float> uvs(index_count * 4);
+  std::vector<float> uvs(index_count * 2);
   std::vector<float> tangents(index_count * 4);
 
   for (int i = 0; i < index_count * 4; ++i) {
     tangents[i] = 0.0f;
     normals[i] = 0.0f;
-    uvs[i] = 0.0f;
+    //uvs[i] = 0.0f;
   }
 
   for (size_t i = 0; i < index_count; ++i) {
@@ -63,19 +63,17 @@ bool loadMeshObj(MeshObj &result, const char *path) {
       normals[i * 4 + 3] = 0.0f;
     }
 
-    if (vti >= 0) {
-      assert((vti * 4 + 3) < (index_count * 4));
-      uvs[i * 4 + 0] = file.vt[vti * 3 + 0];
-      uvs[i * 4 + 1] = file.vt[vti * 3 + 1];
-      uvs[i * 4 + 2] = 0.0f;
-      uvs[i * 4 + 3] = 0.0f;
+      if ((vti >= 0) & (file.vt != nullptr)) {
+      assert((i * 2 + 1) < (index_count * 2));
+      uvs[i * 2 + 0] = file.vt[vti * 3 + 0];
+      uvs[i * 2 + 1] = file.vt[vti * 3 + 1];
     }
   }
 
   meshopt_Stream streams[] = {
       {&positions[0], sizeof(float) * 4, sizeof(float) * 4},
       {&normals[0], sizeof(float) * 4, sizeof(float) * 4},
-      {&uvs[0], sizeof(float) * 4, sizeof(float) * 4},
+      {&uvs[0], sizeof(float) * 2, sizeof(float) * 2},
       {&tangents[0], sizeof(float) * 4, sizeof(float) * 4},
   };
 
@@ -85,7 +83,7 @@ bool loadMeshObj(MeshObj &result, const char *path) {
 
   std::vector<float> posOut(vertex_count * 4);
   std::vector<float> nOut(vertex_count * 4);
-  std::vector<float> uvOut(vertex_count * 4);
+  std::vector<float> uvOut(vertex_count * 2);
   std::vector<float> tOut(vertex_count * 4);
 
   result.vertices.resize(vertex_count);
@@ -96,11 +94,11 @@ bool loadMeshObj(MeshObj &result, const char *path) {
   meshopt_remapVertexBuffer(nOut.data(), normals.data(), index_count,
                             sizeof(float) * 4, remap.data());
   meshopt_remapVertexBuffer(uvOut.data(), uvs.data(), index_count,
-                            sizeof(float) * 4, remap.data());
+                            sizeof(float) * 2, remap.data());
   meshopt_remapVertexBuffer(tOut.data(), tangents.data(), index_count,
                             sizeof(float) * 4, remap.data());
 
-  meshopt_remapIndexBuffer(result.indices.data(), 0, index_count, remap.data());
+  meshopt_remapIndexBuffer(result.indices.data(), nullptr, index_count, remap.data());
 
   meshopt_optimizeVertexCache(result.indices.data(), result.indices.data(),
                               index_count, vertex_count);
@@ -117,7 +115,7 @@ bool loadMeshObj(MeshObj &result, const char *path) {
   uint64_t uvOffsetByte = alignSize(normalsOffsetByte + normalsSize,
                                     alignRequirement, uvPointerOffset);
 
-  uint64_t uvSize = uvOut.size() * sizeof(float) * 4;
+  uint64_t uvSize = uvOut.size() * sizeof(float) * 2;
   uint64_t tangentsPointerOffset = 0;
   uint64_t tangentsOffsetByte =
       alignSize(uvOffsetByte + uvSize, alignRequirement, tangentsPointerOffset);
@@ -143,9 +141,9 @@ bool loadMeshObj(MeshObj &result, const char *path) {
   // lets do the memcopies
   // positions : vec4
   // normals : vec4
-  // uvs : vec4
+  // uvs : vec2
   // tangents vec4
-  uint64_t floatsPerVertex = 4 + 4 + 4 + 4;
+  uint64_t floatsPerVertex = 4 + 4 + 2 + 4;
   uint64_t totalRequiredMemoryInFloats =
       vertex_count * floatsPerVertex + totalRequiredAligmentFloats;
 
