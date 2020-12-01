@@ -117,7 +117,7 @@ bool ShaderManager::generateLibraryMetadata(
     // lib is compute
     metadata.type = SHADER_TYPE::COMPUTE;
   } else {
-    if ((metadata.fragFn != nullptr) & (metadata.vertexFn != nullptr)) {
+    if ( metadata.vertexFn != nullptr) {
       metadata.type = SHADER_TYPE::RASTER;
     } else {
       printf("[ERROR] The library at path %s\ndoes not provided a complete "

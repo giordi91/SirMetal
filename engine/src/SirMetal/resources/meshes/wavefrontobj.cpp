@@ -28,7 +28,7 @@ bool loadMeshObj(MeshObj &result, const char *path) {
   std::vector<float> uvs(index_count * 2);
   std::vector<float> tangents(index_count * 4);
 
-  for (int i = 0; i < index_count * 4; ++i) {
+  for (int i = 0; i < index_count * 2; ++i) {
     uvs[i] = 0.0f;
   }
   for (int i = 0; i < index_count * 4; ++i) {
@@ -98,15 +98,17 @@ bool loadMeshObj(MeshObj &result, const char *path) {
   meshopt_remapVertexBuffer(tOut.data(), tangents.data(), index_count,
                             sizeof(float) * 4, remap.data());
 
+  std::vector<uint32_t> tmp(index_count);
   //remapping index buffer and optimize for vertex cache reuse
-  meshopt_remapIndexBuffer(result.indices.data(), nullptr, index_count,
+  meshopt_remapIndexBuffer(tmp.data(), nullptr, index_count,
                            remap.data());
-  meshopt_optimizeVertexCache(result.indices.data(), result.indices.data(),
+
+  meshopt_optimizeVertexCache(result.indices.data(), tmp.data(),
                               index_count, vertex_count);
 
   // now I need to merge the data and generate the memory ranges
   // lets compute all the alignement offsets
-  constexpr uint32_t alignRequirement = 256; //in bytes
+  constexpr uint32_t alignRequirement = 256; // in bytes
   uint64_t pointSizeInByte = posOut.size() * sizeof(float);
   uint64_t normalPointerOffset = 0;
   uint64_t normalsOffsetByte =
@@ -126,7 +128,7 @@ bool loadMeshObj(MeshObj &result, const char *path) {
       normalPointerOffset + uvPointerOffset + tangentsPointerOffset;
   uint64_t totalRequiredAlignmentFloats = totalRequiredAlignmentBytes / 4;
 
-  //generating the memory ranges
+  // generating the memory ranges
   // pos
   result.ranges[0].m_offset = 0;
   result.ranges[0].m_size = static_cast<uint32_t>(pointSizeInByte);

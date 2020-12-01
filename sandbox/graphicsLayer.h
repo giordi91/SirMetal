@@ -33,6 +33,7 @@ private:
   SirMetal::MeshHandle m_meshes[5];
   SirMetal::TextureHandle m_depthHandle;
   SirMetal::TextureHandle m_shadowHandle;
-
+  SirMetal::LibraryHandle m_shadowShaderHandle;
+  SirMetal::LibraryHandle m_shaderHandle;
 };
 } // namespace Sandbox

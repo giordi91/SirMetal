@@ -1,6 +1,6 @@
 {
 
-  "dataSource" : "../../data/01_jumpFlooding/",
+  "dataSource" : "../../../data/01_jumpFlooding/",
   "startFullScreen" :  false,
   "windowTitle": "Jump Flooding Selection",
   "windowWidth":1280,

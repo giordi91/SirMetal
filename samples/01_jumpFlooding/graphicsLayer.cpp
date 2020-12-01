@@ -16,6 +16,8 @@
 #include "SirMetal/resources/meshes/meshManager.h"
 #include "SirMetal/resources/shaderManager.h"
 
+#include <iostream>
+
 typedef struct {
   matrix_float4x4 modelViewProjectionMatrix;
 } MBEUniforms;
@@ -37,6 +39,7 @@ void GraphicsLayer::onAttach(SirMetal::EngineContext *context) {
       SirMetal::CONSTANT_BUFFER_FLAGS_BITS::CONSTANT_BUFFER_FLAG_BUFFERED);
 
   auto sourcePath = m_engine->m_config.m_dataSourcePath;
+  std::cout<<"loading mesh"<< (sourcePath + "lucy.obj")<<std::endl;
   m_mesh = m_engine->m_meshManager->loadMesh(sourcePath + "lucy.obj");
 
   id<MTLDevice> device = m_engine->m_renderingContext->getDevice();
@@ -142,12 +145,23 @@ void GraphicsLayer::onUpdate() {
 
   SirMetal::BindInfo info =
       m_engine->m_constantBufferManager->getBindInfo(m_engine, m_uniformHandle);
-  [commandEncoder setVertexBuffer:info.buffer offset:info.offset atIndex:1];
+  [commandEncoder setVertexBuffer:info.buffer offset:info.offset atIndex:4];
 
   const SirMetal::MeshData *meshData =
       m_engine->m_meshManager->getMeshData(m_mesh);
 
-  [commandEncoder setVertexBuffer:meshData->vertexBuffer offset:0 atIndex:0];
+  [commandEncoder setVertexBuffer:meshData->vertexBuffer
+                           offset:meshData->ranges[0].m_offset
+                          atIndex:0];
+  [commandEncoder setVertexBuffer:meshData->vertexBuffer
+                           offset:meshData->ranges[1].m_offset
+                          atIndex:1];
+  [commandEncoder setVertexBuffer:meshData->vertexBuffer
+                           offset:meshData->ranges[2].m_offset
+                          atIndex:2];
+  [commandEncoder setVertexBuffer:meshData->vertexBuffer
+                           offset:meshData->ranges[3].m_offset
+                          atIndex:3];
   [commandEncoder drawIndexedPrimitives:MTLPrimitiveTypeTriangle
                              indexCount:meshData->primitivesCount
                               indexType:MTLIndexTypeUInt32

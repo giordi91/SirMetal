@@ -25,7 +25,6 @@ foreach (LIB ${MAC_LIBS})
 endforeach ()
 
 add_executable(${PROJECT_NAME} ${SOURCE_FILES})
-
 #set_target_properties(${PROJECT_NAME} PROPERTIES
 #        MACOSX_BUNDLE YES
 #        MACOSX_BUNDLE_INFO_PLIST ${CMAKE_SOURCE_DIR}/Resources/Info.plist

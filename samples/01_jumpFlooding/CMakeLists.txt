@@ -26,10 +26,6 @@ endforeach ()
 
 add_executable(${PROJECT_NAME} ${SOURCE_FILES})
 
-#set_target_properties(${PROJECT_NAME} PROPERTIES
-#        MACOSX_BUNDLE YES
-#        MACOSX_BUNDLE_INFO_PLIST ${CMAKE_SOURCE_DIR}/Resources/Info.plist
-#        )
 target_link_libraries(${PROJECT_NAME} ${LINK_LIBS} ${SDL2_LIBRARIES} SirMetalLib)
 
 

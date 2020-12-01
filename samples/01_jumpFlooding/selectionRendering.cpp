@@ -132,7 +132,9 @@ void Selection::render(EngineContext* context,
   //TODO need to get not only the mesh but corresponding uniform buffer
   const SirMetal::MeshData *meshData = context->m_meshManager->getMeshData(mesh);
 
-  [renderPass setVertexBuffer:meshData->vertexBuffer offset:0 atIndex:0];
+  [renderPass setVertexBuffer:meshData->vertexBuffer
+  offset:meshData->ranges[0].m_offset
+  atIndex:0];
   [renderPass drawIndexedPrimitives:MTLPrimitiveTypeTriangle
                          indexCount:meshData->primitivesCount
                           indexType:MTLIndexTypeUInt32

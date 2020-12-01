@@ -63,7 +63,11 @@ void GraphicsLayer::onAttach(SirMetal::EngineContext *context) {
   requestDepth.name = "shadowMap";
   m_shadowHandle = m_engine->m_textureManager->allocate(device, requestDepth);
 
-  m_engine->m_shaderManager->loadShader((base + "/Shaders.metal").c_str());
+  m_shaderHandle =
+      m_engine->m_shaderManager->loadShader((base + "/Shaders.metal").c_str());
+
+  m_shadowShaderHandle =
+      m_engine->m_shaderManager->loadShader((base + "/shadows.metal").c_str());
 }
 
 void GraphicsLayer::onDetach() {}
@@ -106,34 +110,83 @@ void GraphicsLayer::onUpdate() {
   float h = texture.height;
   updateUniformsForView(w, h);
 
-  SirMetal::graphics::DrawTracker tracker{};
-
   id<MTLDevice> device = m_engine->m_renderingContext->getDevice();
+  SirMetal::graphics::DrawTracker shadowTracker{};
+  shadowTracker.renderTargets[0] = nil;
+  shadowTracker.depthTarget =
+      m_engine->m_textureManager->getNativeFromHandle(m_shadowHandle);
+  SirMetal::PSOCache cache = SirMetal::getPSO(
+      m_engine, shadowTracker, SirMetal::Material{"shadows", false});
+
+  id<MTLCommandBuffer> commandBuffer = [queue commandBuffer];
+  // shadows
+  MTLRenderPassDescriptor *shadowPassDescriptor =
+      [MTLRenderPassDescriptor renderPassDescriptor];
+  shadowPassDescriptor.colorAttachments[0].texture = nil;
+  shadowPassDescriptor.colorAttachments[0].clearColor = {};
+  shadowPassDescriptor.colorAttachments[0].storeAction = MTLStoreActionDontCare;
+  shadowPassDescriptor.colorAttachments[0].loadAction = MTLLoadActionDontCare;
+
+  MTLRenderPassDepthAttachmentDescriptor *depthAttachment =
+      shadowPassDescriptor.depthAttachment;
+  depthAttachment.texture =
+      m_engine->m_textureManager->getNativeFromHandle(m_shadowHandle);
+  depthAttachment.clearDepth = 1.0;
+  depthAttachment.storeAction = MTLStoreActionDontCare;
+  depthAttachment.loadAction = MTLLoadActionClear;
+
+
+  // shadow pass
+  id<MTLRenderCommandEncoder> shadowEncoder =
+      [commandBuffer renderCommandEncoderWithDescriptor:shadowPassDescriptor];
+
+  [shadowEncoder setRenderPipelineState:cache.color];
+  [shadowEncoder setDepthStencilState:cache.depth];
+  [shadowEncoder setFrontFacingWinding:MTLWindingCounterClockwise];
+  [shadowEncoder setCullMode:MTLCullModeBack];
+
+  SirMetal::BindInfo info =
+      m_engine->m_constantBufferManager->getBindInfo(m_engine, m_uniformHandle);
+  [shadowEncoder setVertexBuffer:info.buffer offset:info.offset atIndex:4];
+
+  for (auto &mesh : m_meshes) {
+    const SirMetal::MeshData *meshData =
+        m_engine->m_meshManager->getMeshData(mesh);
+
+    [shadowEncoder setVertexBuffer:meshData->vertexBuffer
+                            offset:meshData->ranges[0].m_offset
+                           atIndex:0];
+    [shadowEncoder drawIndexedPrimitives:MTLPrimitiveTypeTriangle
+                              indexCount:meshData->primitivesCount
+                               indexType:MTLIndexTypeUInt32
+                             indexBuffer:meshData->indexBuffer
+                       indexBufferOffset:0];
+  }
+  [shadowEncoder endEncoding];
+
+  // render
+  SirMetal::graphics::DrawTracker tracker{};
   tracker.renderTargets[0] = texture;
   tracker.depthTarget =
       m_engine->m_textureManager->getNativeFromHandle(m_depthHandle);
-  SirMetal::PSOCache cache =
+  cache =
       SirMetal::getPSO(m_engine, tracker, SirMetal::Material{"Shaders", false});
 
-  // shadows
   MTLRenderPassDescriptor *passDescriptor =
       [MTLRenderPassDescriptor renderPassDescriptor];
+
   passDescriptor.colorAttachments[0].texture = texture;
-  passDescriptor.colorAttachments[0].clearColor =
-      MTLClearColorMake(0.85, 0.85, 0.85, 1);
+  passDescriptor.colorAttachments[0].clearColor = {1.0,1.0,1.0,1.0};
   passDescriptor.colorAttachments[0].storeAction = MTLStoreActionStore;
   passDescriptor.colorAttachments[0].loadAction = MTLLoadActionClear;
 
-  MTLRenderPassDepthAttachmentDescriptor *depthAttachment =
+  depthAttachment =
       passDescriptor.depthAttachment;
   depthAttachment.texture =
       m_engine->m_textureManager->getNativeFromHandle(m_depthHandle);
   depthAttachment.clearDepth = 1.0;
   depthAttachment.storeAction = MTLStoreActionDontCare;
   depthAttachment.loadAction = MTLLoadActionClear;
-
-  id<MTLCommandBuffer> commandBuffer = [queue commandBuffer];
-
   id<MTLRenderCommandEncoder> commandEncoder =
       [commandBuffer renderCommandEncoderWithDescriptor:passDescriptor];
 
@@ -142,18 +195,24 @@ void GraphicsLayer::onUpdate() {
   [commandEncoder setFrontFacingWinding:MTLWindingCounterClockwise];
   [commandEncoder setCullMode:MTLCullModeBack];
 
-  SirMetal::BindInfo info =
-      m_engine->m_constantBufferManager->getBindInfo(m_engine, m_uniformHandle);
   [commandEncoder setVertexBuffer:info.buffer offset:info.offset atIndex:4];
 
   for (auto &mesh : m_meshes) {
     const SirMetal::MeshData *meshData =
         m_engine->m_meshManager->getMeshData(mesh);
 
-    [commandEncoder setVertexBuffer:meshData->vertexBuffer offset:meshData->ranges[0].m_offset atIndex:0];
-    [commandEncoder setVertexBuffer:meshData->vertexBuffer offset:meshData->ranges[1].m_offset atIndex:1];
-    [commandEncoder setVertexBuffer:meshData->vertexBuffer offset:meshData->ranges[2].m_offset atIndex:2];
-    [commandEncoder setVertexBuffer:meshData->vertexBuffer offset:meshData->ranges[3].m_offset atIndex:3];
+    [commandEncoder setVertexBuffer:meshData->vertexBuffer
+                             offset:meshData->ranges[0].m_offset
+                            atIndex:0];
+    [commandEncoder setVertexBuffer:meshData->vertexBuffer
+                             offset:meshData->ranges[1].m_offset
+                            atIndex:1];
+    [commandEncoder setVertexBuffer:meshData->vertexBuffer
+                             offset:meshData->ranges[2].m_offset
+                            atIndex:2];
+    [commandEncoder setVertexBuffer:meshData->vertexBuffer
+                             offset:meshData->ranges[3].m_offset
+                            atIndex:3];
     [commandEncoder drawIndexedPrimitives:MTLPrimitiveTypeTriangle
                                indexCount:meshData->primitivesCount
                                 indexType:MTLIndexTypeUInt32

@@ -21,15 +21,38 @@ MeshHandle MeshManager::loadMesh(const std::string &path) {
   return MeshHandle{};
 }
 
-id<MTLBuffer> createGPUOnlyBuffer(id<MTLDevice> currDevice,
-                                  id<MTLCommandQueue> queue, void *data,
-                                  size_t sizeInByte) {
-  id<MTLBuffer> buffer =
-      [currDevice newBufferWithBytes:data
-                              length:sizeInByte
-                             options:MTLResourceStorageModePrivate];
-  return buffer;
+id<MTLBuffer> createGPUOnlyBuffer(id<MTLDevice> currDevice,id<MTLCommandQueue> queue, void*data, size_t sizeInByte)
+{
+  id<MTLBuffer> sharedBuffer = [currDevice newBufferWithBytes: data
+  length: sizeInByte
+  options:MTLResourceOptionCPUCacheModeDefault];
+
+  id <MTLBuffer> _privateBuffer;
+  _privateBuffer = [currDevice newBufferWithLength:sizeInByte
+  options:MTLResourceStorageModePrivate];
+  //need to perform the copy
+
+  // Create a command buffer for GPU work.
+  id <MTLCommandBuffer> commandBuffer = [queue commandBuffer];
+
+
+// Encode a blit pass to copy data from the source buffer to the private buffer.
+  id <MTLBlitCommandEncoder> blitCommandEncoder = [commandBuffer blitCommandEncoder];
+  [blitCommandEncoder copyFromBuffer:sharedBuffer
+  sourceOffset:0
+  toBuffer:_privateBuffer
+  destinationOffset:0 size:sizeInByte];
+  [blitCommandEncoder endEncoding];
+
+
+// Add a completion handler and commit the command buffer.
+  [commandBuffer addCompletedHandler:^(id<MTLCommandBuffer> cb) {
+  // Private buffer is populated.
+}];
+  [commandBuffer commit];
+  return _privateBuffer;
 }
+
 
 MeshHandle MeshManager::processObjMesh(const std::string &path) {
 
