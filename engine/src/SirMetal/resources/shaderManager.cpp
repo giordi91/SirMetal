@@ -24,6 +24,8 @@ LibraryHandle ShaderManager::loadShader(const char *path) {
   id<MTLDevice> currDevice = m_device;
   id<MTLLibrary> libraryRaw =
       [currDevice newLibraryWithSource:content options:nil error:&errorLib];
+  //[currDevice newLibraryWithSource:content options:nil error:&errorLib];
+
   if (libraryRaw == nil) {
     NSString *errorStr = [errorLib localizedDescription];
     printf("[ERROR] Error in compiling shader %s:\n %s", fileName.c_str(),

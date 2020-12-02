@@ -18,9 +18,12 @@
 #include "SirMetal/resources/meshes/meshManager.h"
 #include "SirMetal/resources/shaderManager.h"
 
-typedef struct {
-  matrix_float4x4 modelViewProjectionMatrix;
-} MBEUniforms;
+struct DirLight {
+
+  matrix_float4x4 V;
+  matrix_float4x4 P;
+  matrix_float4x4 VP;
+};
 
 namespace Sandbox {
 void GraphicsLayer::onAttach(SirMetal::EngineContext *context) {
@@ -36,8 +39,13 @@ void GraphicsLayer::onAttach(SirMetal::EngineContext *context) {
   m_camConfig = {1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 0.2, 0.002};
 
   m_uniformHandle = m_engine->m_constantBufferManager->allocate(
-      m_engine, sizeof(MBEUniforms),
+      m_engine, sizeof(SirMetal::Camera),
       SirMetal::CONSTANT_BUFFER_FLAGS_BITS::CONSTANT_BUFFER_FLAG_BUFFERED);
+  m_lightHandle = m_engine->m_constantBufferManager->allocate(
+      m_engine, sizeof(DirLight),
+      SirMetal::CONSTANT_BUFFER_FLAGS_BITS::CONSTANT_BUFFER_FLAG_BUFFERED);
+  updateLightData();
+
   const std::string base = m_engine->m_config.m_dataSourcePath + "/sandbox";
 
   const char *names[5] = {"/plane.obj", "/cube.obj", "/lucy.obj", "/cone.obj",
@@ -79,19 +87,18 @@ void GraphicsLayer::onDetach() {}
 void GraphicsLayer::updateUniformsForView(float screenWidth,
                                           float screenHeight) {
 
-  const matrix_float4x4 modelMatrix =
-      matrix_float4x4_translation(vector_float3{0, 0, 0});
-  MBEUniforms uniforms;
-  uniforms.modelViewProjectionMatrix =
-      matrix_multiply(m_camera.VP, modelMatrix);
+  // const matrix_float4x4 modelMatrix =
+  //    matrix_float4x4_translation(vector_float3{0, 0, 0});
+  // uniforms.modelViewProjectionMatrix =
+  //    matrix_multiply(m_camera.VP, modelMatrix);
   SirMetal::Input *input = m_engine->m_inputManager;
   m_cameraController.update(m_camConfig, input);
-  uniforms.modelViewProjectionMatrix =
-      matrix_multiply(m_camera.VP, modelMatrix);
+  // uniforms.modelViewProjectionMatrix =
+  //    matrix_multiply(m_camera.VP, modelMatrix);
 
   m_cameraController.updateProjection(screenWidth, screenHeight);
   m_engine->m_constantBufferManager->update(m_engine, m_uniformHandle,
-                                            &uniforms);
+                                            &m_camera);
 }
 
 void GraphicsLayer::onUpdate() {
@@ -240,7 +247,22 @@ bool GraphicsLayer::onEvent(SirMetal::Event &) {
   return false;
 }
 
-void GraphicsLayer::clear() {
-  SirMetal::graphics::shutdownImgui();
+void GraphicsLayer::clear() { SirMetal::graphics::shutdownImgui(); }
+void GraphicsLayer::updateLightData() {
+  DirLight light{};
+  simd_float3 view{1, -1, -1};
+  simd_float3 up{0, 1, 0};
+  simd_float3 cross = simd_normalize(simd_cross(view, up));
+  up = simd_normalize(simd_cross(cross, view));
+  simd_float4 pos4{-15, 15, -15, 1};
+
+  simd_float4 view4{view.x, view.y, view.z, 0};
+  simd_float4 up4{up.x, up.y, up.z, 0};
+  simd_float4 cross4{cross.x, cross.y, cross.z, 0};
+  light.V = {cross4, up4, view4, pos4};
+  light.P = matrix_float4x4_perspective(1, M_PI / 4, 0.1f, 20.0f);
+  light.VP = simd_mul(light.P, simd_inverse(light.V));
+
+  m_engine->m_constantBufferManager->update(m_engine, m_lightHandle, &light);
 }
 } // namespace Sandbox

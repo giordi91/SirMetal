@@ -94,5 +94,7 @@ void FPSCameraController::updateProjection(float screenWidth,
   const float far = m_camera->farPlane;
   m_camera->projection = matrix_float4x4_perspective(aspect, fov, near, far);
   m_camera->VP = simd_mul(m_camera->projection, m_camera->viewInverse);
+  m_camera->viewInverse = simd_inverse(m_camera->viewMatrix);
+  m_camera->VPInverse = simd_inverse(m_camera->VP);
 }
 } // namespace SirMetal

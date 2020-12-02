@@ -14,6 +14,7 @@ MeshHandle MeshManager::loadMesh(const std::string &path) {
   }
   default: {
     printf("Unsupported mesh extension %s", extString.c_str());
+    assert(0);
   }
   }
 

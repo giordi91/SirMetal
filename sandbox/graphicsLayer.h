@@ -30,10 +30,12 @@ private:
   SirMetal::CameraManipulationConfig m_camConfig{};
   SirMetal::EngineContext *m_engine{};
   SirMetal::ConstantBufferHandle m_uniformHandle;
+  SirMetal::ConstantBufferHandle m_lightHandle;
   SirMetal::MeshHandle m_meshes[5];
   SirMetal::TextureHandle m_depthHandle;
   SirMetal::TextureHandle m_shadowHandle;
   SirMetal::LibraryHandle m_shadowShaderHandle;
   SirMetal::LibraryHandle m_shaderHandle;
+  void updateLightData();
 };
 } // namespace Sandbox
