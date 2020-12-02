@@ -2,10 +2,10 @@
 
 #include "SirMetal/engine.h"
 #include "SirMetal/graphics/camera.h"
+#include "SirMetal/graphics/renderingContext.h"
+#include "SirMetal/resources/shaderManager.h"
 
 namespace SirMetal::graphics {
-
-static char const *BUFFER_NAME = "DebugRenderBuffer";
 
 inline int push3ToVec(float *data, const vector_float4 v, int counter) {
   data[counter++] = v.x;
@@ -126,27 +126,17 @@ int drawSquareBetweenFourPoints(float *data, const vector_float3 &bottomLeft,
 }
 
 void DebugRenderer::initialize(EngineContext *context) {
-  /*
   m_allocator.initialize(SIZE_IN_BYTES);
   m_scratch.initialize(SCRATCH_SIZE_IN_BYTES);
 
-  m_bufferHandle = context->m_bufferManager->allocate(
-      context->m_renderingContext, SIZE_IN_BYTES, nullptr, sizeof(float) * 8, 0,
-      BUFFER_ALLOCATION_BITS::STRUCTURED_BUFFER |
-          BUFFER_ALLOCATION_BITS::DYNAMIC_BUFFER,
-      BUFFER_NAME);
+  m_gpuAllocator.initialize(context->m_renderingContext->getDevice(),
+                            context->m_renderingContext->getQueue());
+  m_bufferHandle = m_gpuAllocator.allocate(SIZE_IN_BYTES, "DebugLinesBuffer",
+                                           BUFFER_FLAG_NONE, nullptr);
   ShaderManager *shaderManager = context->m_shaderManager;
-  RenderingContext *renderingCtx = context->m_renderingContext;
-  m_linesVS = shaderManager->loadShader(
-      renderingCtx->getDevice(),
-      "../../../engine/src/blackHole/graphics/shaders/colorVS.hlsl",
-      SirMetal::SHADER_TYPE::VERTEX);
-
-  m_linesPS = shaderManager->loadShader(
-      renderingCtx->getDevice(),
-      "../../../engine/src/blackHole/graphics/shaders/colorPS.hlsl",
-      SirMetal::SHADER_TYPE::FRAGMENT);
-  */
+  const std::string base = context->m_config.m_dataSourcePath;
+  m_linesShader = shaderManager->loadShader(
+      (base + "builtinShaders/solidColor.metal").c_str());
 }
 
 void DebugRenderer::cleanup(EngineContext *context) {
@@ -251,4 +241,4 @@ void DebugRenderer::newFrame() {
   m_scratch.reset();
   m_linesCount = 0;
 }
-}  // namespace SirMetal::graphics
+} // namespace SirMetal::graphics

@@ -15,7 +15,6 @@ class MeshManager;
 class TextureManager;
 
 namespace graphics {
-class BufferManager;
 class DebugRenderer;
 class RenderingContext;
 } // namespace graphics
@@ -56,13 +55,10 @@ struct EngineContext {
   // Graphics
   graphics::RenderingContext *m_renderingContext{};
   ShaderManager *m_shaderManager{};
-  //TODO convert this to a generic buffer manager
   ConstantBufferManager *m_constantBufferManager{};
   MeshManager *m_meshManager{};
   TextureManager *m_textureManager{};
-  /*
   graphics::DebugRenderer *m_debugRenderer{};
-  */
   // Input
   Input *m_inputManager{};
 };

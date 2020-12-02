@@ -6,6 +6,7 @@
 #include "SirMetal/core/input.h"
 #include "SirMetal/graphics/constantBufferManager.h"
 #include "SirMetal/graphics/renderingContext.h"
+#include "SirMetal/graphics/debug/debugRenderer.h"
 #include "SirMetal/io/fileUtils.h"
 #include "SirMetal/io/json.h"
 #include "SirMetal/resources/meshes/meshManager.h"
@@ -92,11 +93,11 @@ EngineContext *engineStartUp(const EngineConfig &config, SDL_Window *window) {
   context->m_meshManager->initialize(device, queue);
   context->m_textureManager = new TextureManager();
   context->m_textureManager->initialize();
+  context->m_debugRenderer = new graphics::DebugRenderer();
+  context->m_debugRenderer->initialize(context);
   /*
   context->m_bufferManager = new graphics::BufferManager();
   context->m_bufferManager->initialize();
-  context->m_debugRenderer = new graphics::DebugRenderer();
-  context->m_debugRenderer->initialize(context);
    */
   return context;
 }
@@ -108,6 +109,8 @@ void Timing::newFrame() {
   m_timeSinceStartInSeconds = m_clock.getDeltaFromOrigin() * NS_TO_SECONDS;
 }
 void engineShutdown(EngineContext *context) {
+  context->m_debugRenderer->cleanup(context);
+  delete context->m_debugRenderer;
   context->m_textureManager->cleanup();
   delete context->m_textureManager;
   context->m_meshManager->cleanup();
@@ -120,9 +123,5 @@ void engineShutdown(EngineContext *context) {
   delete context->m_renderingContext;
   context->m_inputManager->cleanup();
   delete context->m_inputManager;
-  /*
-  context->m_debugRenderer->cleanup(context);
-  delete context->m_debugRenderer;
-  */
 }
 } // namespace SirMetal
