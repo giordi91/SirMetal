@@ -87,7 +87,7 @@ EngineContext *engineStartUp(const EngineConfig &config, SDL_Window *window) {
   context->m_shaderManager = new ShaderManager();
   context->m_shaderManager->initialize(device);
   context->m_constantBufferManager = new ConstantBufferManager();
-  context->m_constantBufferManager->initialize(device, 20 * MB_TO_BYTE);
+  context->m_constantBufferManager->initialize(device, queue,20 * MB_TO_BYTE);
   context->m_meshManager = new MeshManager();
   context->m_meshManager->initialize(device, queue);
   context->m_textureManager = new TextureManager();

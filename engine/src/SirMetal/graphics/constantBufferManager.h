@@ -24,7 +24,7 @@ namespace SirMetal {
     class ConstantBufferManager {
     public:
         ConstantBufferManager()=default;
-        void initialize(id device, uint32_t poolSize);
+        void initialize(id device, id queue, uint32_t poolSize);
         ConstantBufferHandle allocate(EngineContext* context, uint32_t size, CONSTANT_BUFFER_FLAGS flags);
         void update(EngineContext* context,ConstantBufferHandle handle, void *data);
         void cleanup(){};

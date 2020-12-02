@@ -132,7 +132,7 @@ void DebugRenderer::initialize(EngineContext *context) {
 
   m_bufferHandle = context->m_bufferManager->allocate(
       context->m_renderingContext, SIZE_IN_BYTES, nullptr, sizeof(float) * 8, 0,
-      BUFFER_ALLOCATION_BITS::STRUCUTED_BUFFER |
+      BUFFER_ALLOCATION_BITS::STRUCTURED_BUFFER |
           BUFFER_ALLOCATION_BITS::DYNAMIC_BUFFER,
       BUFFER_NAME);
   ShaderManager *shaderManager = context->m_shaderManager;

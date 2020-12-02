@@ -37,8 +37,8 @@ namespace SirMetal {
 
     }
 
-    void ConstantBufferManager::initialize(id device, uint32_t poolSize) {
-        m_allocator.initialize(device);
+    void ConstantBufferManager::initialize(id device, id queue, uint32_t poolSize) {
+        m_allocator.initialize(device,queue);
         m_poolSize = poolSize;
         allocateBufferPool();
     }

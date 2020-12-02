@@ -6,7 +6,9 @@
 #import <unordered_map>
 
 #import "SirMetal/core/core.h"
+#import "SirMetal/core/core.h"
 #include "SirMetal/MBEMathUtilities.h"
+#include "SirMetal/core/memory/gpu/GPUMemoryAllocator.h"
 namespace SirMetal {
 // TODO: temp public, we will need to build abstraction to render
 // this data potentially without the need to extract it from here
@@ -14,11 +16,13 @@ namespace SirMetal {
 struct MeshData {
   id vertexBuffer;
   id indexBuffer;
-  MemoryRange ranges[4];
-  uint32_t primitivesCount;
   std::string name;
   // Temp model matrix to allow manipulation
   matrix_float4x4 modelMatrix;
+  MemoryRange ranges[4];
+  uint32_t primitivesCount;
+  BufferHandle m_vertexHandle;
+  BufferHandle m_indexHandle;
 };
 
 class MeshManager {
@@ -26,6 +30,7 @@ public:
   MeshHandle loadMesh(const std::string &path);
 
   void initialize(id device, id queue) {
+    m_allocator.initialize(device,queue);
     m_device = device;
     m_queue = queue;
   };
@@ -58,6 +63,7 @@ private:
   SirMetal::MeshHandle processObjMesh(const std::string &path);
 
   uint32_t m_meshCounter = 1;
+  GPUMemoryAllocator m_allocator;
 };
 
 } // namespace SirMetal
