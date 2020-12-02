@@ -21,7 +21,7 @@ void FPSCameraController::update(const CameraManipulationConfig &camConfig,
   bool yMoved = input->mouse.position.y != input->mouse.positionPrev.y;
   bool moved = xMoved | yMoved;
   if (input->mouse.buttons[SDL_BUTTON_LEFT] & moved) {
-    simd_float4 up = simd_float4{0, 1, 0, 0};
+    auto up = simd_float4{0, 1, 0, 0};
     const float rotationYFactor = input->mouse.position.xRel *
                                   camConfig.leftRightLookDirection *
                                   camConfig.lookSpeed;

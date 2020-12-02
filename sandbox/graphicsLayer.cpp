@@ -11,6 +11,8 @@
 #include "SirMetal/engine.h"
 #include "SirMetal/graphics/PSOGenerator.h"
 #include "SirMetal/graphics/constantBufferManager.h"
+#include "SirMetal/graphics/debug/imgui/imgui.h"
+#include "SirMetal/graphics/debug/imguiRenderer.h"
 #include "SirMetal/graphics/materialManager.h"
 #include "SirMetal/graphics/renderingContext.h"
 #include "SirMetal/resources/meshes/meshManager.h"
@@ -68,6 +70,8 @@ void GraphicsLayer::onAttach(SirMetal::EngineContext *context) {
 
   m_shadowShaderHandle =
       m_engine->m_shaderManager->loadShader((base + "/shadows.metal").c_str());
+
+  SirMetal::graphics::initImgui(m_engine);
 }
 
 void GraphicsLayer::onDetach() {}
@@ -135,7 +139,6 @@ void GraphicsLayer::onUpdate() {
   depthAttachment.storeAction = MTLStoreActionDontCare;
   depthAttachment.loadAction = MTLLoadActionClear;
 
-
   // shadow pass
   id<MTLRenderCommandEncoder> shadowEncoder =
       [commandBuffer renderCommandEncoderWithDescriptor:shadowPassDescriptor];
@@ -176,12 +179,11 @@ void GraphicsLayer::onUpdate() {
       [MTLRenderPassDescriptor renderPassDescriptor];
 
   passDescriptor.colorAttachments[0].texture = texture;
-  passDescriptor.colorAttachments[0].clearColor = {1.0,1.0,1.0,1.0};
+  passDescriptor.colorAttachments[0].clearColor = {1.0, 1.0, 1.0, 1.0};
   passDescriptor.colorAttachments[0].storeAction = MTLStoreActionStore;
   passDescriptor.colorAttachments[0].loadAction = MTLLoadActionClear;
 
-  depthAttachment =
-      passDescriptor.depthAttachment;
+  depthAttachment = passDescriptor.depthAttachment;
   depthAttachment.texture =
       m_engine->m_textureManager->getNativeFromHandle(m_depthHandle);
   depthAttachment.clearDepth = 1.0;
@@ -219,6 +221,12 @@ void GraphicsLayer::onUpdate() {
                               indexBuffer:meshData->indexBuffer
                         indexBufferOffset:0];
   }
+
+  // ui
+  SirMetal::graphics::imguiNewFrame(m_engine, passDescriptor);
+  ImGui::ShowDemoWindow((bool *)0);
+  SirMetal::graphics::imguiEndFrame(commandBuffer, commandEncoder);
+
   [commandEncoder endEncoding];
 
   [commandBuffer presentDrawable:surface];
@@ -232,5 +240,7 @@ bool GraphicsLayer::onEvent(SirMetal::Event &) {
   return false;
 }
 
-void GraphicsLayer::clear() {}
+void GraphicsLayer::clear() {
+  SirMetal::graphics::shutdownImgui();
+}
 } // namespace Sandbox
