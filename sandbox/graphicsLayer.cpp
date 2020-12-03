@@ -13,6 +13,7 @@
 #include "SirMetal/graphics/constantBufferManager.h"
 #include "SirMetal/graphics/debug/imgui/imgui.h"
 #include "SirMetal/graphics/debug/imguiRenderer.h"
+#include "SirMetal/graphics/debug/debugRenderer.h"
 #include "SirMetal/graphics/materialManager.h"
 #include "SirMetal/graphics/renderingContext.h"
 #include "SirMetal/resources/meshes/meshManager.h"
@@ -35,7 +36,7 @@ void GraphicsLayer::onAttach(SirMetal::EngineContext *context) {
   m_camera.nearPlane = 1;
   m_camera.farPlane = 100;
   m_cameraController.setCamera(&m_camera);
-  m_cameraController.setPosition(3, 10, 15);
+  m_cameraController.setPosition(3, 5, 15);
   m_camConfig = {1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 0.2, 0.002};
 
   m_uniformHandle = m_engine->m_constantBufferManager->allocate(
@@ -43,7 +44,7 @@ void GraphicsLayer::onAttach(SirMetal::EngineContext *context) {
       SirMetal::CONSTANT_BUFFER_FLAGS_BITS::CONSTANT_BUFFER_FLAG_BUFFERED);
   m_lightHandle = m_engine->m_constantBufferManager->allocate(
       m_engine, sizeof(DirLight),
-      SirMetal::CONSTANT_BUFFER_FLAGS_BITS::CONSTANT_BUFFER_FLAG_BUFFERED);
+      SirMetal::CONSTANT_BUFFER_FLAGS_BITS::CONSTANT_BUFFER_FLAG_NONE);
   updateLightData();
 
   const std::string base = m_engine->m_config.m_dataSourcePath + "/sandbox";
@@ -156,7 +157,7 @@ void GraphicsLayer::onUpdate() {
   [shadowEncoder setCullMode:MTLCullModeBack];
 
   SirMetal::BindInfo info =
-      m_engine->m_constantBufferManager->getBindInfo(m_engine, m_uniformHandle);
+      m_engine->m_constantBufferManager->getBindInfo(m_engine, m_lightHandle);
   [shadowEncoder setVertexBuffer:info.buffer offset:info.offset atIndex:4];
 
   for (auto &mesh : m_meshes) {
@@ -204,6 +205,8 @@ void GraphicsLayer::onUpdate() {
   [commandEncoder setFrontFacingWinding:MTLWindingCounterClockwise];
   [commandEncoder setCullMode:MTLCullModeBack];
 
+  info =
+      m_engine->m_constantBufferManager->getBindInfo(m_engine, m_uniformHandle);
   [commandEncoder setVertexBuffer:info.buffer offset:info.offset atIndex:4];
 
   for (auto &mesh : m_meshes) {
@@ -228,6 +231,11 @@ void GraphicsLayer::onUpdate() {
                               indexBuffer:meshData->indexBuffer
                         indexBufferOffset:0];
   }
+  //render debug
+  m_engine->m_debugRenderer->newFrame();
+  float data[6]{0,0,0,0,100,0};
+  m_engine->m_debugRenderer->drawLines(data,sizeof(float)*6,vector_float4{1,0,0,1});
+  m_engine->m_debugRenderer->render(m_engine,commandEncoder,tracker,m_uniformHandle,300,300);
 
   // ui
   SirMetal::graphics::imguiNewFrame(m_engine, passDescriptor);
@@ -250,17 +258,17 @@ bool GraphicsLayer::onEvent(SirMetal::Event &) {
 void GraphicsLayer::clear() { SirMetal::graphics::shutdownImgui(); }
 void GraphicsLayer::updateLightData() {
   DirLight light{};
-  simd_float3 view{1, -1, -1};
+  simd_float3 view{0, 1, 1};
   simd_float3 up{0, 1, 0};
-  simd_float3 cross = simd_normalize(simd_cross(view, up));
-  up = simd_normalize(simd_cross(cross, view));
-  simd_float4 pos4{-15, 15, -15, 1};
+  simd_float3 cross = simd_normalize(simd_cross(up,view));
+  up = simd_normalize(simd_cross(view,cross ));
+  simd_float4 pos4{0, 15, 15, 1};
 
   simd_float4 view4{view.x, view.y, view.z, 0};
   simd_float4 up4{up.x, up.y, up.z, 0};
   simd_float4 cross4{cross.x, cross.y, cross.z, 0};
   light.V = {cross4, up4, view4, pos4};
-  light.P = matrix_float4x4_perspective(1, M_PI / 4, 0.1f, 20.0f);
+  light.P = matrix_float4x4_perspective(1, M_PI / 2, 0.01f, 50.0f);
   light.VP = simd_mul(light.P, simd_inverse(light.V));
 
   m_engine->m_constantBufferManager->update(m_engine, m_lightHandle, &light);

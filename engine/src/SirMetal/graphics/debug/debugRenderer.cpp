@@ -1,7 +1,11 @@
 #include "SirMetal/graphics/debug/debugRenderer.h"
 
+#import <Metal/Metal.h>
+#include <SirMetal/graphics/materialManager.h>
+
 #include "SirMetal/engine.h"
 #include "SirMetal/graphics/camera.h"
+#include "SirMetal/graphics/constantBufferManager.h"
 #include "SirMetal/graphics/renderingContext.h"
 #include "SirMetal/resources/shaderManager.h"
 
@@ -149,14 +153,16 @@ void DebugRenderer::cleanup(EngineContext *context) {
 }
 
 void DebugRenderer::render(EngineContext *context,
-                           SirMetal::BufferHandle cameraBuffer,
+                           id commandEncoder,
+                           SirMetal::graphics::DrawTracker& tracker,
+                           SirMetal::ConstantBufferHandle cameraBuffer,
                            uint32_t renderWidth, uint32_t renderHeight) const {
-  /*
-  if (m_linesCount == 0) return;
+  if (m_linesCount == 0)
+    return;
   auto *renderingCtx = context->m_renderingContext;
-  context->m_bufferManager->update(renderingCtx, m_bufferHandle,
-                                   m_allocator.getStartPtr(),
-                                   m_linesCount * sizeof(float) * 8);
+  m_gpuAllocator.update(m_bufferHandle, m_allocator.getStartPtr(), 0,
+                        m_linesCount * sizeof(float) * 8);
+  /*
   ID3D11DeviceContext *deviceContext = renderingCtx->getDeviceContext();
   context->m_shaderManager->bindShader(deviceContext, m_linesVS);
   context->m_shaderManager->bindShader(deviceContext, m_linesPS);
@@ -168,6 +174,25 @@ void DebugRenderer::render(EngineContext *context,
   deviceContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_LINELIST);
   deviceContext->Draw(m_linesCount, 0);
   */
+
+  id<MTLRenderCommandEncoder> encoder = commandEncoder;
+  auto cache =
+      SirMetal::getPSO(context, tracker, SirMetal::Material{"solidColor", false});
+  [encoder setRenderPipelineState:cache.color];
+  [encoder setDepthStencilState:cache.depth];
+  [encoder setFrontFacingWinding:MTLWindingCounterClockwise];
+  [encoder setCullMode:MTLCullModeBack];
+
+  SirMetal::BindInfo info =
+      context->m_constantBufferManager->getBindInfo(context, cameraBuffer);
+  [encoder setVertexBuffer:info.buffer offset:info.offset atIndex:4];
+  id<MTLBuffer> buffer = m_gpuAllocator.getBuffer(m_bufferHandle);
+  [encoder setVertexBuffer:buffer offset:0 atIndex:0];
+  [encoder drawPrimitives:MTLPrimitiveTypeLine vertexStart:0 vertexCount: m_linesCount];
+
+  [encoder setVertexBuffer:buffer
+  offset: 0
+  atIndex:0];
 }
 
 void DebugRenderer::drawAABBs3D(const BoundingBox *data, const int count,

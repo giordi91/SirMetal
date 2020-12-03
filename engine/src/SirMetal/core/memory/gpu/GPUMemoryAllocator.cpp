@@ -114,7 +114,7 @@ void GPUMemoryAllocator::update(BufferHandle handle, void *data,
   }
 }
 
-id GPUMemoryAllocator::getBuffer(BufferHandle handle) {
+id GPUMemoryAllocator::getBuffer(BufferHandle handle) const {
   assert(getTypeFromHandle(handle) == HANDLE_TYPE::BUFFER);
   uint32_t index = getIndexFromHandle(handle);
   auto found = m_bufferStorage.find(index);
@@ -124,6 +124,6 @@ id GPUMemoryAllocator::getBuffer(BufferHandle handle) {
            index);
     return nil;
   }
-  return m_bufferStorage[index].buffer;
+  return found->second.buffer;
 }
 } // namespace SirMetal

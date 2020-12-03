@@ -48,7 +48,7 @@ public:
       return m_bufferStorage.getConstRef(idx);
   }
    */
-  id getBuffer(BufferHandle handle);
+  id getBuffer(BufferHandle handle) const;
 
 private:
   struct Buffer {
