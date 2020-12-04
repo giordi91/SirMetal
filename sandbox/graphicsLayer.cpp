@@ -131,6 +131,7 @@ void GraphicsLayer::onUpdate() {
       m_engine, shadowTracker, SirMetal::Material{"shadows", false});
 
   id<MTLCommandBuffer> commandBuffer = [queue commandBuffer];
+  [commandBuffer setLabel:@"testName"];
   // shadows
   MTLRenderPassDescriptor *shadowPassDescriptor =
       [MTLRenderPassDescriptor renderPassDescriptor];
@@ -187,7 +188,7 @@ void GraphicsLayer::onUpdate() {
       [MTLRenderPassDescriptor renderPassDescriptor];
 
   passDescriptor.colorAttachments[0].texture = texture;
-  passDescriptor.colorAttachments[0].clearColor = {1.0, 1.0, 1.0, 1.0};
+  passDescriptor.colorAttachments[0].clearColor = {0.2, 0.2, 0.2, 1.0};
   passDescriptor.colorAttachments[0].storeAction = MTLStoreActionStore;
   passDescriptor.colorAttachments[0].loadAction = MTLLoadActionClear;
 

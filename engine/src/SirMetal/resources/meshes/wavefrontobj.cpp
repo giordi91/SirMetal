@@ -1,6 +1,7 @@
 
 #include "SirMetal/resources/meshes/wavefrontobj.h"
 #include "SirMetal/resources/meshes/objparser.h"
+#include <math.h>
 
 #define FAST_OBJ_IMPLEMENTATION
 #include "SirMetal/resources/meshes/fast_obj.h"
