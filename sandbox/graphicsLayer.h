@@ -3,6 +3,7 @@
 #include "SirMetal//application/layer.h"
 #include "SirMetal/graphics/camera.h"
 #include "SirMetal/graphics/renderingContext.h"
+#include "SirMetal/graphics/debug/frameTimingsWidget.h"
 #include "SirMetal/resources/handle.h"
 #import <Metal/Metal.h>
 
@@ -23,6 +24,8 @@ public:
 
 private:
   void updateUniformsForView(float screenWidth, float screenHeight);
+  void updateLightData();
+  void renderDebugWindow();
 
 private:
   SirMetal::Camera m_camera;
@@ -36,6 +39,8 @@ private:
   SirMetal::TextureHandle m_shadowHandle;
   SirMetal::LibraryHandle m_shadowShaderHandle;
   SirMetal::LibraryHandle m_shaderHandle;
-  void updateLightData();
+  dispatch_semaphore_t frameBoundarySemaphore;
+
+  SirMetal::graphics::FrameTimingsWidget m_timingsWidget;
 };
 } // namespace Sandbox

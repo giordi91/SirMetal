@@ -11,9 +11,9 @@
 #include "SirMetal/engine.h"
 #include "SirMetal/graphics/PSOGenerator.h"
 #include "SirMetal/graphics/constantBufferManager.h"
+#include "SirMetal/graphics/debug/debugRenderer.h"
 #include "SirMetal/graphics/debug/imgui/imgui.h"
 #include "SirMetal/graphics/debug/imguiRenderer.h"
-#include "SirMetal/graphics/debug/debugRenderer.h"
 #include "SirMetal/graphics/materialManager.h"
 #include "SirMetal/graphics/renderingContext.h"
 #include "SirMetal/resources/meshes/meshManager.h"
@@ -27,6 +27,8 @@ struct DirLight {
   simd_float4 lightDir;
 };
 
+static const NSUInteger kMaxInflightBuffers = 3;
+
 namespace Sandbox {
 void GraphicsLayer::onAttach(SirMetal::EngineContext *context) {
 
@@ -38,7 +40,7 @@ void GraphicsLayer::onAttach(SirMetal::EngineContext *context) {
   m_camera.farPlane = 60;
   m_cameraController.setCamera(&m_camera);
   m_cameraController.setPosition(3, 5, 15);
-  m_camConfig = {1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 0.2, 0.002};
+  m_camConfig = {1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 0.2, 0.008};
 
   m_uniformHandle = m_engine->m_constantBufferManager->allocate(
       m_engine, sizeof(SirMetal::Camera),
@@ -82,6 +84,8 @@ void GraphicsLayer::onAttach(SirMetal::EngineContext *context) {
       m_engine->m_shaderManager->loadShader((base + "/shadows.metal").c_str());
 
   SirMetal::graphics::initImgui(m_engine);
+
+  frameBoundarySemaphore = dispatch_semaphore_create(kMaxInflightBuffers);
 }
 
 void GraphicsLayer::onDetach() {}
@@ -114,6 +118,9 @@ void GraphicsLayer::onUpdate() {
 
   CAMetalLayer *swapchain = m_engine->m_renderingContext->getSwapchain();
   id<MTLCommandQueue> queue = m_engine->m_renderingContext->getQueue();
+
+  // waiting for resource
+  dispatch_semaphore_wait(frameBoundarySemaphore, DISPATCH_TIME_FOREVER);
 
   //@autoreleasepool {
   id<CAMetalDrawable> surface = [swapchain nextDrawable];
@@ -213,7 +220,8 @@ void GraphicsLayer::onUpdate() {
   info =
       m_engine->m_constantBufferManager->getBindInfo(m_engine, m_lightHandle);
   [commandEncoder setFragmentBuffer:info.buffer offset:info.offset atIndex:5];
-  id<MTLTexture> shadow = m_engine->m_textureManager->getNativeFromHandle(m_shadowHandle);
+  id<MTLTexture> shadow =
+      m_engine->m_textureManager->getNativeFromHandle(m_shadowHandle);
   [commandEncoder setFragmentTexture:shadow atIndex:0];
 
   for (auto &mesh : m_meshes) {
@@ -238,21 +246,29 @@ void GraphicsLayer::onUpdate() {
                               indexBuffer:meshData->indexBuffer
                         indexBufferOffset:0];
   }
-  //render debug
+  // render debug
   m_engine->m_debugRenderer->newFrame();
-  float data[6]{0,0,0,0,100,0};
-  m_engine->m_debugRenderer->drawLines(data,sizeof(float)*6,vector_float4{1,0,0,1});
-  m_engine->m_debugRenderer->render(m_engine,commandEncoder,tracker,m_uniformHandle,300,300);
+  float data[6]{0, 0, 0, 0, 100, 0};
+  m_engine->m_debugRenderer->drawLines(data, sizeof(float) * 6,
+                                       vector_float4{1, 0, 0, 1});
+  m_engine->m_debugRenderer->render(m_engine, commandEncoder, tracker,
+                                    m_uniformHandle, 300, 300);
 
   // ui
   SirMetal::graphics::imguiNewFrame(m_engine, passDescriptor);
-  //ImGui::ShowDemoWindow((bool *)0);
+  renderDebugWindow();
   SirMetal::graphics::imguiEndFrame(commandBuffer, commandEncoder);
 
   [commandEncoder endEncoding];
 
+  [commandBuffer addCompletedHandler:^(id<MTLCommandBuffer> commandBuffer) {
+    // GPU work is complete
+    // Signal the semaphore to start the CPU work
+    dispatch_semaphore_signal(frameBoundarySemaphore);
+  }];
   [commandBuffer presentDrawable:surface];
   [commandBuffer commit];
+
   //}
 }
 
@@ -267,8 +283,8 @@ void GraphicsLayer::updateLightData() {
   DirLight light{};
   simd_float3 view{0, 1, 1};
   simd_float3 up{0, 1, 0};
-  simd_float3 cross = simd_normalize(simd_cross(up,view));
-  up = simd_normalize(simd_cross(view,cross ));
+  simd_float3 cross = simd_normalize(simd_cross(up, view));
+  up = simd_normalize(simd_cross(view, cross));
   simd_float4 pos4{0, 15, 15, 1};
 
   simd_float4 view4{view.x, view.y, view.z, 0};
@@ -280,5 +296,24 @@ void GraphicsLayer::updateLightData() {
   light.lightDir = view4;
 
   m_engine->m_constantBufferManager->update(m_engine, m_lightHandle, &light);
+}
+void GraphicsLayer::renderDebugWindow() {
+
+  static bool p_open = false;
+  if(m_engine->m_inputManager->isKeyReleased(SDL_SCANCODE_GRAVE))
+  {
+    p_open = !p_open;
+  }
+  if(!p_open)
+  {
+    return;
+  }
+  ImGui::SetNextWindowPos(ImVec2(0,0),ImGuiCond_Once);
+  if (ImGui::Begin("Debug", &p_open, 0)) {
+    m_timingsWidget.render(m_engine);
+    // Main body of the Demo window starts here.
+    // Early out if the window is collapsed, as an optimization.
+  }
+  ImGui::End();
 }
 } // namespace Sandbox

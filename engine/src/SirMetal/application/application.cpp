@@ -3,8 +3,8 @@
 #include "SirMetal/application/layer.h"
 #include "SirMetal/application/window.h"
 #include "SirMetal/core/event.h"
-#include "SirMetal/engine.h"
 #include "SirMetal/core/input.h"
+#include "SirMetal/engine.h"
 
 /*
 #include "blackHole/application/layer.h"
@@ -26,7 +26,7 @@ Application::Application(const std::string &configFile) {
 
   // TODO add parse config file again
   SirMetal::WindowProps props{"SirMetal", 1280, 720, false, false};
-  //EngineConfig engineConfig{"", props, 3};
+  // EngineConfig engineConfig{"", props, 3};
   EngineConfig engineConfig = loadEngineConfigFile(configFile);
 
   // create the window with requested config
@@ -38,7 +38,7 @@ Application::Application(const std::string &configFile) {
   // to handle the events.
   m_window->setEventCallback([this](Event &e) -> void { this->onEvent(e); });
 
-  m_engine = engineStartUp(engineConfig,m_window->getWindow());
+  m_engine = engineStartUp(engineConfig, m_window->getWindow());
   m_engine->m_window = m_window;
 
   m_window->setInputManagersInWindow(m_engine->m_inputManager);
@@ -72,8 +72,10 @@ void Application::run() {
     */
     const int count = m_layerStack.count();
     Layer **layers = m_layerStack.begin();
-    for (int i = 0; i < count; ++i) {
-      layers[i]->onUpdate();
+    @autoreleasepool {
+      for (int i = 0; i < count; ++i) {
+        layers[i]->onUpdate();
+      }
     }
     // m_engine->m_renderingContext->endScene();
     // update input and actions to cache current input for next frame

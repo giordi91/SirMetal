@@ -21,8 +21,16 @@ void FPSCameraController::update(const CameraManipulationConfig &camConfig,
   bool yMoved = input->mouse.position.y != input->mouse.positionPrev.y;
   bool moved = xMoved | yMoved;
   if (input->mouse.buttons[SDL_BUTTON_LEFT] & moved) {
+
     auto up = simd_float4{0, 1, 0, 0};
-    const float rotationYFactor = input->mouse.position.xRel *
+    auto xRel= input->mouse.position.xRel;
+    float maxV = 5;
+    xRel = xRel> maxV ? maxV  : xRel;
+    xRel = xRel < -maxV ? -maxV :xRel;
+    auto yRel= input->mouse.position.yRel;
+    yRel = yRel> maxV ? maxV  : yRel;
+    yRel = yRel < -maxV ? -maxV :yRel;
+    const float rotationYFactor = xRel *
                                   camConfig.leftRightLookDirection *
                                   camConfig.lookSpeed;
     const matrix_float4x4 camRotY = matrix_float4x4_rotation(
@@ -30,7 +38,7 @@ void FPSCameraController::update(const CameraManipulationConfig &camConfig,
     m_camera->viewMatrix = matrix_multiply(camRotY, m_camera->viewMatrix);
 
     simd_float4 side = m_camera->viewMatrix.columns[0];
-    const float rotationXFactor = input->mouse.position.yRel *
+    const float rotationXFactor = yRel*
                                   camConfig.upDownLookDirection *
                                   camConfig.lookSpeed;
     const matrix_float4x4 camRotX = matrix_float4x4_rotation(
