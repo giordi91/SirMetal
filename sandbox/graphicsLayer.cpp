@@ -24,6 +24,7 @@ struct DirLight {
   matrix_float4x4 V;
   matrix_float4x4 P;
   matrix_float4x4 VP;
+  simd_float4 lightDir;
 };
 
 namespace Sandbox {
@@ -33,8 +34,8 @@ void GraphicsLayer::onAttach(SirMetal::EngineContext *context) {
   // initializing the camera to the identity
   m_camera.viewMatrix = matrix_float4x4_translation(vector_float3{0, 0, 0});
   m_camera.fov = M_PI / 4;
-  m_camera.nearPlane = 1;
-  m_camera.farPlane = 100;
+  m_camera.nearPlane = 0.01;
+  m_camera.farPlane = 60;
   m_cameraController.setCamera(&m_camera);
   m_cameraController.setPosition(3, 5, 15);
   m_camConfig = {1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 0.2, 0.002};
@@ -70,7 +71,7 @@ void GraphicsLayer::onAttach(SirMetal::EngineContext *context) {
   m_depthHandle = m_engine->m_textureManager->allocate(device, requestDepth);
   requestDepth.width = 2048;
   requestDepth.height = 2048;
-  requestDepth.format = MTLPixelFormatDepth24Unorm_Stencil8;
+  requestDepth.format = MTLPixelFormatDepth32Float;
   requestDepth.name = "shadowMap";
   m_shadowHandle = m_engine->m_textureManager->allocate(device, requestDepth);
 
@@ -209,6 +210,11 @@ void GraphicsLayer::onUpdate() {
   info =
       m_engine->m_constantBufferManager->getBindInfo(m_engine, m_uniformHandle);
   [commandEncoder setVertexBuffer:info.buffer offset:info.offset atIndex:4];
+  info =
+      m_engine->m_constantBufferManager->getBindInfo(m_engine, m_lightHandle);
+  [commandEncoder setFragmentBuffer:info.buffer offset:info.offset atIndex:5];
+  id<MTLTexture> shadow = m_engine->m_textureManager->getNativeFromHandle(m_shadowHandle);
+  [commandEncoder setFragmentTexture:shadow atIndex:0];
 
   for (auto &mesh : m_meshes) {
     const SirMetal::MeshData *meshData =
@@ -240,7 +246,7 @@ void GraphicsLayer::onUpdate() {
 
   // ui
   SirMetal::graphics::imguiNewFrame(m_engine, passDescriptor);
-  ImGui::ShowDemoWindow((bool *)0);
+  //ImGui::ShowDemoWindow((bool *)0);
   SirMetal::graphics::imguiEndFrame(commandBuffer, commandEncoder);
 
   [commandEncoder endEncoding];
@@ -269,8 +275,9 @@ void GraphicsLayer::updateLightData() {
   simd_float4 up4{up.x, up.y, up.z, 0};
   simd_float4 cross4{cross.x, cross.y, cross.z, 0};
   light.V = {cross4, up4, view4, pos4};
-  light.P = matrix_float4x4_perspective(1, M_PI / 2, 0.01f, 50.0f);
+  light.P = matrix_float4x4_perspective(1, M_PI / 2, 0.01f, 40.0f);
   light.VP = simd_mul(light.P, simd_inverse(light.V));
+  light.lightDir = view4;
 
   m_engine->m_constantBufferManager->update(m_engine, m_lightHandle, &light);
 }
