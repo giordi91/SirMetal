@@ -62,7 +62,7 @@ vertex OutVertex vertex_project(const device float4 *positions [[buffer(0)]],
 //#define LIGHT_SIZE_UV (LIGHT_WORLD_SIZE / LIGHT_FRUSTUM_WIDTH)
 #define LIGHT_SIZE_UV 0.5f
 
-float2 FindBlocker(float2 uv, float zReceiver, depth2d<float> shadowMap) {
+float2 FindBlocker(float2 uv, float lightSizeUV ,float zReceiver, depth2d<float> shadowMap) {
 
   constexpr sampler s(coord::normalized, filter::nearest,
                       address::clamp_to_edge, compare_func::less,
@@ -70,7 +70,7 @@ float2 FindBlocker(float2 uv, float zReceiver, depth2d<float> shadowMap) {
   float2 result;
   // This uses similar triangles to compute what
   // area of the shadow map we should search
-  float searchWidth = LIGHT_SIZE_UV * saturate(zReceiver - 0.02) / zReceiver;
+  float searchWidth = LIGHT_SIZE_UV * saturate(zReceiver - 0.01) / zReceiver;
   float blockerSum = 0;
   result.y = 0;
   for (int i = 0; i < BLOCKER_SEARCH_NUM_SAMPLES; ++i) {
@@ -106,6 +106,31 @@ float PCF_Filter(float2 uv, float zReceiver, float filterRadiusUV,
   return sum / PCF_NUM_SAMPLES;
 }
 
+float SearchWidth(float uvLightSize, float receiverDistance) {
+  return uvLightSize * saturate(receiverDistance - 0.01) / receiverDistance;
+}
+float FindBlockerDistance(float3 shadowCoords, depth2d<float> shadowMap,
+                          float uvLightSize) {
+  constexpr sampler s(coord::normalized, filter::nearest,
+                      address::clamp_to_edge, compare_func::less,
+                      lod_clamp(0.0f, 0.0f));
+  int blockers = 0;
+  float avgBlockerDistance = 0;
+  float searchWidth = SearchWidth(uvLightSize, shadowCoords.z);
+  for (int i = 0; i < 16; i++) {
+    float z =
+        shadowMap.sample(s, shadowCoords.xy + poissonDisk[i] * searchWidth);
+    if (z < (shadowCoords.z - 0.00005f)) {
+      blockers++;
+      avgBlockerDistance += z;
+    }
+  }
+  if (blockers > 0)
+    return avgBlockerDistance / blockers;
+  else
+    return -1;
+}
+
 fragment half4 fragment_flatcolor(OutVertex vertexIn [[stage_in]],
                                   constant DirLight *light [[buffer(5)]],
                                   depth2d<float> shadowMap [[texture(0)]]) {
@@ -117,31 +142,37 @@ fragment half4 fragment_flatcolor(OutVertex vertexIn [[stage_in]],
   xy = xy * 0.5 + 0.5;
   xy.y = 1 - xy.y;
 
-  // find blockers
-  // float2  q = FindBlocker(xy, shadowPos.z, shadowMap);
-
-  constexpr sampler s(coord::normalized, filter::linear, address::clamp_to_edge,
-                      compare_func::less, lod_clamp(0.0f, 0.0f));
-  float shadowMapDepth = shadowMap.sample(s, xy);
-  float w = (shadowPos.z - shadowMapDepth) / shadowMapDepth;
-  const int neighborWidth = 3;
-  const float neighbors =
-      (neighborWidth * 2.0 + 1.0) * (neighborWidth * 2.0 + 1.0);
-  float mapSize = 2048;
-  float texelSize = 1.0 / mapSize;
-  float total = 0.0;
-  for (int x = -neighborWidth; x <= neighborWidth; x++) {
-    for (int y = -neighborWidth; y <= neighborWidth; y++) {
-      float shadow_sample = shadowMap.sample_compare(
-          s, xy + float2(x, y) * texelSize, shadowPos.z - 0.00005f);
-      // float current_sample = shadowPos.z - 0.00005f;
-      // if (current_sample > shadow_sample) {
-      total += shadow_sample;
-      //}
+// find blockers
+  float2  q = FindBlocker(xy,216.0f, shadowPos.z, shadowMap);
+  //float distance = FindBlockerDistance(shadowPos.xyz, shadowMap, 2.0f);
+  float distance = q.y > 1 ? q.x : -1;
+  float lightFactor= 1.0f;
+  if (distance > 0) {
+    constexpr sampler s(coord::normalized, filter::linear,
+                        address::clamp_to_edge, compare_func::less,
+                        lod_clamp(0.0f, 0.0f));
+    //    float shadowMapDepth = shadowMap.sample(s, xy);
+    float shadowMapDepth = distance;
+    float w = (shadowPos.z - shadowMapDepth) / shadowMapDepth;
+    const int neighborWidth = 6;
+    const float neighbors =
+        (neighborWidth * 2.0 + 1.0) * (neighborWidth * 2.0 + 1.0);
+    float mapSize = 2048;
+    float texelSize = 1.0 / mapSize;
+    float total = 0.0;
+    for (int x = -neighborWidth; x <= neighborWidth; x++) {
+      for (int y = -neighborWidth; y <= neighborWidth; y++) {
+        float shadow_sample = shadowMap.sample_compare(
+            s, xy + float2(x, y) * w*2, shadowPos.z - 0.00005f);
+        // float current_sample = shadowPos.z - 0.00005f;
+        // if (current_sample > shadow_sample) {
+        total += shadow_sample;
+        //}
+      }
     }
+    total /= neighbors;
+    lightFactor = (total);
   }
-  total /= neighbors;
-  float lightFactor = (total);
   // return half4(1,0,0,1);
 
   /*
