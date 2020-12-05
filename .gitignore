@@ -2,4 +2,5 @@ build
 .idea
 cmake-build-debug
 cmake-build-release
-data
+*.obj
+*.mtl
