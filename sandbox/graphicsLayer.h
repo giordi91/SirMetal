@@ -18,6 +18,7 @@ struct DirLight {
   float near;
   float pcfsize;
   int pcfsamples;
+  int showBlocker;
 };
 namespace SirMetal {
 struct EngineContext;

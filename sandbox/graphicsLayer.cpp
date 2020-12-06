@@ -19,6 +19,7 @@
 #include "SirMetal/resources/meshes/meshManager.h"
 #include "SirMetal/resources/shaderManager.h"
 
+#include <iostream>
 static const NSUInteger kMaxInflightBuffers = 3;
 
 namespace Sandbox {
@@ -41,10 +42,10 @@ void GraphicsLayer::onAttach(SirMetal::EngineContext *context) {
       m_engine, sizeof(DirLight),
       SirMetal::CONSTANT_BUFFER_FLAGS_BITS::CONSTANT_BUFFER_FLAG_NONE);
 
-  light.lightSize = 0.005f;
-  light.near = 0.01f;
-  light.pcfsize = 0.001f;
-  light.pcfsamples= 16;
+  light.lightSize = 0.012f;
+  light.near = 0.068f;
+  light.pcfsize = 6.8f;
+  light.pcfsamples= 32;
   updateLightData();
 
   const std::string base = m_engine->m_config.m_dataSourcePath + "/sandbox";
@@ -314,10 +315,11 @@ void GraphicsLayer::renderDebugWindow() {
     // Main body of the Demo window starts here.
     // Early out if the window is collapsed, as an optimization.
 
-    ImGui::SliderFloat("lightSize", &light.lightSize,  0.0f, 0.2f);
-    ImGui::SliderFloat("near", &light.near,  0.0f, 0.2f);
-    ImGui::SliderFloat("pcf-size", &light.pcfsize,  0.0f, 0.2f);
+    ImGui::SliderFloat("lightSize", &light.lightSize,  0.0f, 0.05f);
+    ImGui::SliderFloat("near", &light.near,  0.0f, 1.0f);
+    ImGui::SliderFloat("pcf-size", &light.pcfsize,  0.0f, 10.2f);
     ImGui::SliderInt("pcfsamples", &light.pcfsamples,  1, 64);
+    ImGui::Checkbox("blocker", (bool*)&light.showBlocker);
   }
   ImGui::End();
 }
