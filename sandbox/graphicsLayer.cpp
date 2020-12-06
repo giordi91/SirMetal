@@ -19,14 +19,6 @@
 #include "SirMetal/resources/meshes/meshManager.h"
 #include "SirMetal/resources/shaderManager.h"
 
-struct DirLight {
-
-  matrix_float4x4 V;
-  matrix_float4x4 P;
-  matrix_float4x4 VP;
-  simd_float4 lightDir;
-};
-
 static const NSUInteger kMaxInflightBuffers = 3;
 
 namespace Sandbox {
@@ -48,6 +40,11 @@ void GraphicsLayer::onAttach(SirMetal::EngineContext *context) {
   m_lightHandle = m_engine->m_constantBufferManager->allocate(
       m_engine, sizeof(DirLight),
       SirMetal::CONSTANT_BUFFER_FLAGS_BITS::CONSTANT_BUFFER_FLAG_NONE);
+
+  light.lightSize = 0.005f;
+  light.near = 0.01f;
+  light.pcfsize = 0.001f;
+  light.pcfsamples= 16;
   updateLightData();
 
   const std::string base = m_engine->m_config.m_dataSourcePath + "/sandbox";
@@ -93,12 +90,16 @@ void GraphicsLayer::onDetach() {}
 void GraphicsLayer::updateUniformsForView(float screenWidth,
                                           float screenHeight) {
 
+
   // const matrix_float4x4 modelMatrix =
   //    matrix_float4x4_translation(vector_float3{0, 0, 0});
   // uniforms.modelViewProjectionMatrix =
   //    matrix_multiply(m_camera.VP, modelMatrix);
   SirMetal::Input *input = m_engine->m_inputManager;
-  m_cameraController.update(m_camConfig, input);
+
+  if(!ImGui::GetIO().WantCaptureMouse) {
+    m_cameraController.update(m_camConfig, input);
+  }
   // uniforms.modelViewProjectionMatrix =
   //    matrix_multiply(m_camera.VP, modelMatrix);
 
@@ -129,6 +130,7 @@ void GraphicsLayer::onUpdate() {
   float w = texture.width;
   float h = texture.height;
   updateUniformsForView(w, h);
+  updateLightData();
 
   id<MTLDevice> device = m_engine->m_renderingContext->getDevice();
   SirMetal::graphics::DrawTracker shadowTracker{};
@@ -280,7 +282,6 @@ bool GraphicsLayer::onEvent(SirMetal::Event &) {
 
 void GraphicsLayer::clear() { SirMetal::graphics::shutdownImgui(); }
 void GraphicsLayer::updateLightData() {
-  DirLight light{};
   simd_float3 view{0, 1, 1};
   simd_float3 up{0, 1, 0};
   simd_float3 cross = simd_normalize(simd_cross(up, view));
@@ -292,6 +293,7 @@ void GraphicsLayer::updateLightData() {
   simd_float4 cross4{cross.x, cross.y, cross.z, 0};
   light.V = {cross4, up4, view4, pos4};
   light.P = matrix_float4x4_perspective(1, M_PI / 2, 0.01f, 40.0f);
+  //light.VInverse = simd_inverse(light.V);
   light.VP = simd_mul(light.P, simd_inverse(light.V));
   light.lightDir = view4;
 
@@ -300,19 +302,22 @@ void GraphicsLayer::updateLightData() {
 void GraphicsLayer::renderDebugWindow() {
 
   static bool p_open = false;
-  if(m_engine->m_inputManager->isKeyReleased(SDL_SCANCODE_GRAVE))
-  {
+  if (m_engine->m_inputManager->isKeyReleased(SDL_SCANCODE_GRAVE)) {
     p_open = !p_open;
   }
-  if(!p_open)
-  {
+  if (!p_open) {
     return;
   }
-  ImGui::SetNextWindowPos(ImVec2(0,0),ImGuiCond_Once);
+  ImGui::SetNextWindowPos(ImVec2(0, 0), ImGuiCond_Once);
   if (ImGui::Begin("Debug", &p_open, 0)) {
     m_timingsWidget.render(m_engine);
     // Main body of the Demo window starts here.
     // Early out if the window is collapsed, as an optimization.
+
+    ImGui::SliderFloat("lightSize", &light.lightSize,  0.0f, 0.2f);
+    ImGui::SliderFloat("near", &light.near,  0.0f, 0.2f);
+    ImGui::SliderFloat("pcf-size", &light.pcfsize,  0.0f, 0.2f);
+    ImGui::SliderInt("pcfsamples", &light.pcfsamples,  1, 64);
   }
   ImGui::End();
 }

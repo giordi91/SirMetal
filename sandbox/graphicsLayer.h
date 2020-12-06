@@ -2,11 +2,23 @@
 
 #include "SirMetal//application/layer.h"
 #include "SirMetal/graphics/camera.h"
-#include "SirMetal/graphics/renderingContext.h"
 #include "SirMetal/graphics/debug/frameTimingsWidget.h"
+#include "SirMetal/graphics/renderingContext.h"
 #include "SirMetal/resources/handle.h"
 #import <Metal/Metal.h>
 
+struct DirLight {
+
+  matrix_float4x4 V;
+  matrix_float4x4 P;
+  //matrix_float4x4 VInverse;
+  matrix_float4x4 VP;
+  simd_float4 lightDir;
+  float lightSize;
+  float near;
+  float pcfsize;
+  int pcfsamples;
+};
 namespace SirMetal {
 struct EngineContext;
 
@@ -42,5 +54,6 @@ private:
   dispatch_semaphore_t frameBoundarySemaphore;
 
   SirMetal::graphics::FrameTimingsWidget m_timingsWidget;
+  DirLight light{};
 };
 } // namespace Sandbox
