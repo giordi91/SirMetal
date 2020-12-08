@@ -69,6 +69,8 @@ public:
      */
   }
 
+  void flush();
+
 private:
   id m_gpu;
   id m_queue;

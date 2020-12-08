@@ -11,13 +11,13 @@ struct DirLight {
 
   matrix_float4x4 V;
   matrix_float4x4 P;
-  //matrix_float4x4 VInverse;
   matrix_float4x4 VP;
   simd_float4 lightDir;
   float lightSize;
   float near;
   float pcfsize;
   int pcfsamples;
+  int blockerCount;
   int showBlocker;
 };
 namespace SirMetal {

@@ -19,4 +19,20 @@ bool RenderingContext::initialize(const EngineConfig &config,
 }
 
 void RenderingContext::cleanup() const { SDL_DestroyRenderer(m_renderer); }
+void RenderingContext::flush() {
+
+
+  id frameBoundarySemaphore = dispatch_semaphore_create(0);
+  id<MTLCommandBuffer> commandBuffer = [m_queue commandBuffer];
+  __block dispatch_semaphore_t block_semaphore = frameBoundarySemaphore;
+  [commandBuffer addCompletedHandler:^(id<MTLCommandBuffer> commandBuffer) {
+    // GPU work is complete
+    // Signal the semaphore to start the CPU work
+    dispatch_semaphore_signal(block_semaphore);
+  }];
+  [commandBuffer commit];
+
+  //wait semaphore
+  dispatch_semaphore_wait(block_semaphore, DISPATCH_TIME_FOREVER);
+}
 } // namespace SirMetal::graphics

@@ -31,6 +31,7 @@ struct DirLight {
   float near;
   float pcfsize;
   int pcfsamples;
+  int blockerCount;
   int showBlocker;
 };
 
@@ -69,7 +70,6 @@ constant float2 poissonDisk[64] = {
     float2(-0.1154335, 0.8248222),  float2(-0.4230408, -0.7129914),
 };
 
-
 vertex OutVertex vertex_project(const device float4 *positions [[buffer(0)]],
                                 const device float4 *normals [[buffer(1)]],
                                 const device float2 *uvs [[buffer(2)]],
@@ -84,17 +84,12 @@ vertex OutVertex vertex_project(const device float4 *positions [[buffer(0)]],
   return vertexOut;
 }
 
-#define BLOCKER_SEARCH_NUM_SAMPLES 16
 #define PCF_NUM_SAMPLES 16
 #define NEAR_PLANE 0.02
 #define LIGHT_WORLD_SIZE .5
-#define LIGHT_FRUSTUM_WIDTH 3.75
-// Assuming that LIGHT_FRUSTUM_WIDTH == LIGHT_FRUSTUM_HEIGHT
-//#define LIGHT_SIZE_UV (LIGHT_WORLD_SIZE / LIGHT_FRUSTUM_WIDTH)
-#define LIGHT_SIZE_UV 0.5f
 
 float2 FindBlocker(float2 uv, float lightSizeUV, float zReceiver, float zVS,
-                   depth2d<float> shadowMap, float near) {
+                   depth2d<float> shadowMap, float near, int blockerCount) {
 
   constexpr sampler s(coord::normalized, filter::nearest,
                       address::clamp_to_edge, compare_func::less,
@@ -102,11 +97,10 @@ float2 FindBlocker(float2 uv, float lightSizeUV, float zReceiver, float zVS,
   float2 result;
   // This uses similar triangles to compute what
   // area of the shadow map we should search
-   float searchWidth = lightSizeUV * saturate(zReceiver - near) / zReceiver;
-  //float searchWidth = lightSizeUV * saturate(zVS - near) / zVS;
+  float searchWidth = lightSizeUV * saturate(zReceiver - near) / zReceiver;
   float blockerSum = 0;
   result.y = 0;
-  for (int i = 0; i < BLOCKER_SEARCH_NUM_SAMPLES; ++i) {
+  for (int i = 0; i < blockerCount; ++i) {
 
     float shadowMapDepth =
         shadowMap.sample(s, uv + poissonDisk[i] * searchWidth);
@@ -117,25 +111,6 @@ float2 FindBlocker(float2 uv, float lightSizeUV, float zReceiver, float zVS,
   }
   result.x = blockerSum / result.y;
   return result;
-}
-
-float z_clip_to_eye(float z, float u_LightNear) {
-  float u_LightFar = 40.0f;
-  return u_LightFar * u_LightNear /
-         (u_LightFar - z * (u_LightFar - u_LightNear));
-}
-// Using similar triangles between the area light, the blocking plane and the
-// surface point
-float penumbra_radius_uv(float zReceiver, float zBlocker) {
-  return abs(zReceiver - zBlocker) / zBlocker;
-}
-
-// ------------------------------------------------------------------
-
-// Project UV size to the near plane of the light
-float project_to_light_uv(float penumbra_radius, float z, float u_LightSize,
-                          float u_LightNear) {
-  return penumbra_radius * u_LightSize * u_LightNear / z;
 }
 
 float PCF_Filter(float2 uv, float zReceiver, float filterRadiusUV,
@@ -172,11 +147,12 @@ fragment half4 fragment_flatcolor(OutVertex vertexIn [[stage_in]],
   // find blockers
   //  float size = 0.005f;
   float size = light->lightSize;
-  float2 q = FindBlocker(xy, size, shadowPos.z, zVS, shadowMap, light->near);
-  if(light->showBlocker) {
-    float v = q.y / 64;
-    return half4(v,v,v,1.0f);
+  float2 q = FindBlocker(xy, size, shadowPos.z, zVS, shadowMap, light->near,light->blockerCount);
+  if (light->showBlocker) {
+    float v = q.y / light->blockerCount;
+    return half4(v, v, v, 1.0f);
   }
+
   float distance = q.y > 1 ? q.x : -1;
   float lightFactor = 1.0f;
   if (distance > 0) {
@@ -184,12 +160,12 @@ fragment half4 fragment_flatcolor(OutVertex vertexIn [[stage_in]],
                         address::clamp_to_edge, compare_func::less,
                         lod_clamp(0.0f, 0.0f));
 
-    float penWidth = (shadowPos.z - distance) / distance;
-    float w = penWidth * light->lightSize * light->near / shadowPos.z;
+    float w = light->lightSize * (shadowPos.z - distance) / distance;
 
     lightFactor =
-        PCF_Filter(xy, shadowPos.z - 0.00005f, w*1000.0f* light->pcfsize,
+        PCF_Filter(xy, shadowPos.z - 0.00005f, w * 80 * light->pcfsize,
                    shadowMap, light->pcfsamples);
+  }
 
   // Working pcf
   // float lightFactor =
@@ -202,4 +178,3 @@ fragment half4 fragment_flatcolor(OutVertex vertexIn [[stage_in]],
 
   return half4(d, d, d, 1.0f);
 }
-
