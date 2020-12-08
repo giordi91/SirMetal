@@ -130,6 +130,7 @@ fragment half4 fragment_flatcolor(OutVertex vertexIn [[stage_in]],
                                   constant DirLight *light [[buffer(5)]],
                                   depth2d<float> shadowMap [[texture(0)]]) {
 
+  //computing world pos in shadow space
   float4 wp = vertexIn.worldPos;
   wp.w = 1.0f;
   float4 shadowPos = light->VP * wp;
@@ -152,29 +153,34 @@ fragment half4 fragment_flatcolor(OutVertex vertexIn [[stage_in]],
     // find blockers
     float2 q = FindBlocker(xy, light->lightSize, shadowPos.z, zVS, shadowMap,
                            light->near, light->blockerCount);
+
+    //debug show of the blockers
     if (light->showBlocker) {
       float v = q.y / light->blockerCount;
       return half4(v, v, v, 1.0f);
     }
 
+    //if we get a valid distance we are in shadow and proceed with the sampling
     float distance = q.y > 1 ? q.x : -1;
     if (distance > 0) {
       constexpr sampler s(coord::normalized, filter::linear,
                           address::clamp_to_edge, compare_func::less,
                           lod_clamp(0.0f, 0.0f));
 
+      //computing penumbra width
+      //we scale the width by an arbitrary amount and also use the pcfsize to scale
       float w = light->lightSize * (shadowPos.z - distance) / distance;
-
       lightFactor =
           PCF_Filter(xy, shadowPos.z - 0.00005f, w * 80 * light->pcfsize,
                      shadowMap, light->pcfsamples);
     }
   } else {
-    // Working pcf
+    //standard simple pcf
     lightFactor = PCF_Filter(xy, shadowPos.z - 0.00005f, light->pcfsize,
                              shadowMap, light->pcfsamples);
   }
 
+  //simple lighting calculation
   float d = saturate(
       dot(normalize(light->lightDir.xyz), normalize(vertexIn.normal.xyz)));
   d *= lightFactor;

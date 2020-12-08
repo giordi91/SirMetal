@@ -97,17 +97,11 @@ void GraphicsLayer::onDetach() {}
 void GraphicsLayer::updateUniformsForView(float screenWidth,
                                           float screenHeight) {
 
-  // const matrix_float4x4 modelMatrix =
-  //    matrix_float4x4_translation(vector_float3{0, 0, 0});
-  // uniforms.modelViewProjectionMatrix =
-  //    matrix_multiply(m_camera.VP, modelMatrix);
   SirMetal::Input *input = m_engine->m_inputManager;
 
   if (!ImGui::GetIO().WantCaptureMouse) {
     m_cameraController.update(m_camConfig, input);
   }
-  // uniforms.modelViewProjectionMatrix =
-  //    matrix_multiply(m_camera.VP, modelMatrix);
 
   m_cameraController.updateProjection(screenWidth, screenHeight);
   m_engine->m_constantBufferManager->update(m_engine, m_uniformHandle,
@@ -129,7 +123,6 @@ void GraphicsLayer::onUpdate() {
   // waiting for resource
   dispatch_semaphore_wait(frameBoundarySemaphore, DISPATCH_TIME_FOREVER);
 
-  //@autoreleasepool {
   id<CAMetalDrawable> surface = [swapchain nextDrawable];
   id<MTLTexture> texture = surface.texture;
 
