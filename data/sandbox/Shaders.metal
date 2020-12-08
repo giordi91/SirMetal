@@ -33,6 +33,7 @@ struct DirLight {
   int pcfsamples;
   int blockerCount;
   int showBlocker;
+  int algType;
 };
 
 constant float2 poissonDisk[64] = {
@@ -129,48 +130,50 @@ fragment half4 fragment_flatcolor(OutVertex vertexIn [[stage_in]],
                                   constant DirLight *light [[buffer(5)]],
                                   depth2d<float> shadowMap [[texture(0)]]) {
 
-  // convert to light projected space
   float4 wp = vertexIn.worldPos;
   wp.w = 1.0f;
   float4 shadowPos = light->VP * wp;
   shadowPos /= shadowPos.w;
+
+  // convert to light projected space
   // we only remap xy coords to range [0,1] from [-1,1] since the z is already
   // in that range
   float2 xy = shadowPos.xy;
   xy = xy * 0.5 + 0.5;
   xy.y = 1 - xy.y;
 
-  // now we get also the position in light space, no projection
-  float4 shadowVS = light->V * wp;
-  float zVS = (shadowVS.z / shadowVS.w);
-
-  // find blockers
-  //  float size = 0.005f;
-  float size = light->lightSize;
-  float2 q = FindBlocker(xy, size, shadowPos.z, zVS, shadowMap, light->near,light->blockerCount);
-  if (light->showBlocker) {
-    float v = q.y / light->blockerCount;
-    return half4(v, v, v, 1.0f);
-  }
-
-  float distance = q.y > 1 ? q.x : -1;
   float lightFactor = 1.0f;
-  if (distance > 0) {
-    constexpr sampler s(coord::normalized, filter::linear,
-                        address::clamp_to_edge, compare_func::less,
-                        lod_clamp(0.0f, 0.0f));
+  if (light->algType == 1) {
 
-    float w = light->lightSize * (shadowPos.z - distance) / distance;
+    // now we get also the position in light space, no projection
+    float4 shadowVS = light->V * wp;
+    float zVS = (shadowVS.z / shadowVS.w);
 
-    lightFactor =
-        PCF_Filter(xy, shadowPos.z - 0.00005f, w * 80 * light->pcfsize,
-                   shadowMap, light->pcfsamples);
+    // find blockers
+    float2 q = FindBlocker(xy, light->lightSize, shadowPos.z, zVS, shadowMap,
+                           light->near, light->blockerCount);
+    if (light->showBlocker) {
+      float v = q.y / light->blockerCount;
+      return half4(v, v, v, 1.0f);
+    }
+
+    float distance = q.y > 1 ? q.x : -1;
+    if (distance > 0) {
+      constexpr sampler s(coord::normalized, filter::linear,
+                          address::clamp_to_edge, compare_func::less,
+                          lod_clamp(0.0f, 0.0f));
+
+      float w = light->lightSize * (shadowPos.z - distance) / distance;
+
+      lightFactor =
+          PCF_Filter(xy, shadowPos.z - 0.00005f, w * 80 * light->pcfsize,
+                     shadowMap, light->pcfsamples);
+    }
+  } else {
+    // Working pcf
+    lightFactor = PCF_Filter(xy, shadowPos.z - 0.00005f, light->pcfsize,
+                             shadowMap, light->pcfsamples);
   }
-
-  // Working pcf
-  // float lightFactor =
-  //    PCF_Filter(xy, shadowPos.z - 0.00005f, light->pcfsize, shadowMap,
-  //    light->pcfsamples);
 
   float d = saturate(
       dot(normalize(light->lightDir.xyz), normalize(vertexIn.normal.xyz)));

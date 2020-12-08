@@ -21,6 +21,10 @@
 
 #include <iostream>
 static const NSUInteger kMaxInflightBuffers = 3;
+static constexpr int shadowAlgorithmsCount = 2;
+static const char *shadowAlgorithms[] = {"PCF", "PCSS"};
+static constexpr float pcssPcfSizeDefault = 6.5f;
+static constexpr float pcfSizeDefault = 0.005f;
 
 namespace Sandbox {
 void GraphicsLayer::onAttach(SirMetal::EngineContext *context) {
@@ -42,11 +46,12 @@ void GraphicsLayer::onAttach(SirMetal::EngineContext *context) {
       m_engine, sizeof(DirLight),
       SirMetal::CONSTANT_BUFFER_FLAGS_BITS::CONSTANT_BUFFER_FLAG_NONE);
 
-  light.lightSize = 0.039f;
+  light.lightSize = 0.025f;
   light.near = 0.2f;
-  light.pcfsize = 5.5f;
-  light.pcfsamples= 64;
+  light.pcfsize = 0.005;
+  light.pcfsamples = 64;
   light.blockerCount = 64;
+  light.algType = 0;
   updateLightData();
 
   const std::string base = m_engine->m_config.m_dataSourcePath + "/sandbox";
@@ -92,14 +97,13 @@ void GraphicsLayer::onDetach() {}
 void GraphicsLayer::updateUniformsForView(float screenWidth,
                                           float screenHeight) {
 
-
   // const matrix_float4x4 modelMatrix =
   //    matrix_float4x4_translation(vector_float3{0, 0, 0});
   // uniforms.modelViewProjectionMatrix =
   //    matrix_multiply(m_camera.VP, modelMatrix);
   SirMetal::Input *input = m_engine->m_inputManager;
 
-  if(!ImGui::GetIO().WantCaptureMouse) {
+  if (!ImGui::GetIO().WantCaptureMouse) {
     m_cameraController.update(m_camConfig, input);
   }
   // uniforms.modelViewProjectionMatrix =
@@ -298,7 +302,7 @@ void GraphicsLayer::updateLightData() {
   simd_float4 cross4{cross.x, cross.y, cross.z, 0};
   light.V = {cross4, up4, view4, pos4};
   light.P = matrix_float4x4_perspective(1, M_PI / 2, 0.01f, 40.0f);
-  //light.VInverse = simd_inverse(light.V);
+  // light.VInverse = simd_inverse(light.V);
   light.VP = simd_mul(light.P, simd_inverse(light.V));
   light.lightDir = view4;
 
@@ -315,17 +319,36 @@ void GraphicsLayer::renderDebugWindow() {
   }
   ImGui::SetNextWindowPos(ImVec2(0, 0), ImGuiCond_Once);
   if (ImGui::Begin("Debug", &p_open, 0)) {
+    if(m_shadowAlgorithmsLast != light.algType)
+    {
+      light.pcfsize = pcfSizeDefault;
+    }
     m_timingsWidget.render(m_engine);
     // Main body of the Demo window starts here.
     // Early out if the window is collapsed, as an optimization.
-
-    ImGui::SliderFloat("lightSize", &light.lightSize,  0.0f, 0.2f);
-    ImGui::SliderFloat("near", &light.near,  0.0f, 1.0f);
-    ImGui::SliderFloat("pcf-size", &light.pcfsize,  0.0f, 10.2f);
-    ImGui::SliderInt("pcfsamples", &light.pcfsamples,  1, 64);
-    ImGui::SliderInt("blockerCOunt", &light.blockerCount,  1, 64);
-    ImGui::Checkbox("showblocker", (bool*)&light.showBlocker);
+    ImGui::Combo("Algorithm", &light.algType, shadowAlgorithms,
+                 shadowAlgorithmsCount);
+    if (light.algType == 0) {
+      if(m_shadowAlgorithmsLast != light.algType)
+      {
+        light.pcfsize = pcfSizeDefault;
+      }
+      ImGui::SliderFloat("pcfSize", &light.pcfsize, 0.0f, 0.1f);
+      ImGui::SliderInt("pcfSamples", &light.pcfsamples, 1, 64);
+    } else {
+      if(m_shadowAlgorithmsLast != light.algType)
+      {
+        light.pcfsize = pcssPcfSizeDefault;
+      }
+      ImGui::SliderFloat("lightSize", &light.lightSize, 0.0f, 0.2f);
+      ImGui::SliderFloat("near", &light.near, 0.0f, 1.0f);
+      ImGui::SliderFloat("penumbraMultiplier", &light.pcfsize, 0.0f, 10.2f);
+      ImGui::SliderInt("pcfsamples", &light.pcfsamples, 1, 64);
+      ImGui::SliderInt("blockerCount", &light.blockerCount, 1, 64);
+      ImGui::Checkbox("showBlocker", (bool *)&light.showBlocker);
+    }
   }
+  m_shadowAlgorithmsLast = light.algType;
   ImGui::End();
 }
 } // namespace Sandbox

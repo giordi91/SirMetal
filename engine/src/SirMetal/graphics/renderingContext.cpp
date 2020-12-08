@@ -11,6 +11,7 @@ bool RenderingContext::initialize(const EngineConfig &config,
 
   m_renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_PRESENTVSYNC);
   m_swapchain = (__bridge CAMetalLayer *)SDL_RenderGetMetalLayer(m_renderer);
+  //m_swapchain.displaySyncEnabled = false;
   m_swapchain.device = MTLCreateSystemDefaultDevice();
   m_queue = [m_swapchain.device newCommandQueue];
   m_gpu = m_swapchain.device;

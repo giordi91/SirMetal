@@ -19,6 +19,7 @@ struct DirLight {
   int pcfsamples;
   int blockerCount;
   int showBlocker;
+  int algType;
 };
 namespace SirMetal {
 struct EngineContext;
@@ -56,5 +57,6 @@ private:
 
   SirMetal::graphics::FrameTimingsWidget m_timingsWidget;
   DirLight light{};
+  int m_shadowAlgorithmsLast = 0;
 };
 } // namespace Sandbox
