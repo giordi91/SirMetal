@@ -43,6 +43,7 @@ to the resource folder.
 
 ### Samples list:
 - [Jump Flooding Selection](#jump)  
+- [Shadows PCF and PCSS](#shadow)
 
 ### Jump flooding selection. <a name="jump"/>
 This is an implementation of jump flooding algorithm used to generate a thick outline, 
@@ -52,6 +53,15 @@ Inspired by those two great articles:
 - https://blog.demofox.org/2016/02/29/fast-voronoi-diagrams-and-distance-dield-textures-on-the-gpu-with-the-jump-flooding-algorithm/
 
 ![basic](./docs/images/samples01.png "flood")
+
+### Shadows PCF and PCSS. <a name="shadow"/>
+A simple implementaion of PCF shadows and PCSS.,
+The PCSS shadow is not 100% physically accurate but is good enough for 
+the test.
+You can press '`' on the keyboard (the button on the left of the 1, or the button tha maps to SDL_SCANCODE_GRAVE) 
+to open the debug widget
+
+![basic](./docs/images/samples02.png "flood")
 
 ## What this project used to be!
 This project used to be a start of a game editor, but then due to reasons I decided

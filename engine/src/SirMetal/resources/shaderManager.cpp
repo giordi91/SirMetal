@@ -12,6 +12,7 @@ LibraryHandle ShaderManager::loadShader(const char *path) {
     return LibraryHandle{found->second};
   }
 
+  assert(fileExists(path));
   // loading the actual shader library
   NSString *shaderPath =
       [NSString stringWithCString:path

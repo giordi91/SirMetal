@@ -2,7 +2,7 @@
 
   "dataSource" : "../../../data/",
   "startFullScreen" :  false,
-  "windowTitle": "Jump Flooding Selection",
+  "windowTitle": "Shadow PCF and PCSS",
   "windowWidth":1280,
   "windowHeight" : 720,
   "frameBufferingCount" : 3

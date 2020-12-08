@@ -23,6 +23,7 @@ MeshHandle MeshManager::loadMesh(const std::string &path) {
 
 MeshHandle MeshManager::processObjMesh(const std::string &path) {
 
+  assert(fileExists(path));
   MeshObj result;
   loadMeshObj(result, path.c_str());
 

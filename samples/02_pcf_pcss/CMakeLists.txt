@@ -1,11 +1,11 @@
 
 cmake_minimum_required(VERSION 3.13.0)
 
-project(01_jumpFlooding)
+project(02_pcf_pcss)
 
 find_package(SDL2 REQUIRED)
 
-include_directories(
+include_directories(MyProject
         ${SDL2_INCLUDE_DIRS}
         "${CMAKE_SOURCE_DIR}/engine/src"
         "${CMAKE_SOURCE_DIR}/vendors/json/include"
@@ -25,7 +25,10 @@ foreach (LIB ${MAC_LIBS})
 endforeach ()
 
 add_executable(${PROJECT_NAME} ${SOURCE_FILES})
-
+#set_target_properties(${PROJECT_NAME} PROPERTIES
+#        MACOSX_BUNDLE YES
+#        MACOSX_BUNDLE_INFO_PLIST ${CMAKE_SOURCE_DIR}/Resources/Info.plist
+#        )
 target_link_libraries(${PROJECT_NAME} ${LINK_LIBS} ${SDL2_LIBRARIES} SirMetalLib)
 
 
@@ -36,3 +39,4 @@ set_property (TARGET ${PROJECT_NAME} APPEND_STRING PROPERTY
 file(COPY ${CMAKE_CURRENT_SOURCE_DIR}/config.json
         DESTINATION ${CMAKE_CURRENT_BINARY_DIR}
         )
+

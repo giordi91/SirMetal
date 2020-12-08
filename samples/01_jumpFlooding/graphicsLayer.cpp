@@ -39,8 +39,8 @@ void GraphicsLayer::onAttach(SirMetal::EngineContext *context) {
       SirMetal::CONSTANT_BUFFER_FLAGS_BITS::CONSTANT_BUFFER_FLAG_BUFFERED);
 
   auto sourcePath = m_engine->m_config.m_dataSourcePath;
-  std::cout<<"loading mesh"<< (sourcePath + "lucy.obj")<<std::endl;
-  m_mesh = m_engine->m_meshManager->loadMesh(sourcePath + "lucy.obj");
+  auto baseSample = sourcePath + "/01_jumpFlooding";
+  m_mesh = m_engine->m_meshManager->loadMesh(baseSample + "/lucy.obj");
 
   id<MTLDevice> device = m_engine->m_renderingContext->getDevice();
 
@@ -56,15 +56,15 @@ void GraphicsLayer::onAttach(SirMetal::EngineContext *context) {
       "depthTexture"};
   m_depthHandle = m_engine->m_textureManager->allocate(device, requestDepth);
 
-  m_engine->m_shaderManager->loadShader((sourcePath + "Shaders.metal").c_str());
+  m_engine->m_shaderManager->loadShader((baseSample + "/Shaders.metal").c_str());
   m_engine->m_shaderManager->loadShader(
-      (sourcePath + "jumpInit.metal").c_str());
+      (baseSample + "/jumpInit.metal").c_str());
   m_engine->m_shaderManager->loadShader(
-      (sourcePath + "jumpMask.metal").c_str());
+      (baseSample + "/jumpMask.metal").c_str());
   m_engine->m_shaderManager->loadShader(
-      (sourcePath + "jumpFlood.metal").c_str());
+      (baseSample + "/jumpFlood.metal").c_str());
   m_engine->m_shaderManager->loadShader(
-      (sourcePath + "jumpOutline.metal").c_str());
+      (baseSample + "/jumpOutline.metal").c_str());
   m_selection.initialize(context);
 }
 
