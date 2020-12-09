@@ -72,9 +72,9 @@ public:
   void flush();
 
 private:
-  id m_gpu;
-  id m_queue;
-  CAMetalLayer *m_swapchain;
-  SDL_Renderer *m_renderer;
+  id m_gpu{};
+  id m_queue{};
+  CAMetalLayer *m_swapchain{};
+  SDL_Renderer *m_renderer{};
 };
 } // namespace SirMetal::graphics
