@@ -7,19 +7,14 @@
 #include "SirMetal/resources/handle.h"
 #import <Metal/Metal.h>
 
+#import <MetalPerformanceShaders/MetalPerformanceShaders.h>
+
 struct DirLight {
 
   matrix_float4x4 V;
   matrix_float4x4 P;
   matrix_float4x4 VP;
   simd_float4 lightDir;
-  float lightSize;
-  float near;
-  float pcfsize;
-  int pcfsamples;
-  int blockerCount;
-  int showBlocker;
-  int algType;
 };
 namespace SirMetal {
 struct EngineContext;
@@ -49,14 +44,14 @@ private:
   SirMetal::ConstantBufferHandle m_uniformHandle;
   SirMetal::ConstantBufferHandle m_lightHandle;
   SirMetal::MeshHandle m_meshes[5];
-  SirMetal::TextureHandle m_depthHandle;
-  SirMetal::TextureHandle m_shadowHandle;
-  SirMetal::LibraryHandle m_shadowShaderHandle;
   SirMetal::LibraryHandle m_shaderHandle;
+  SirMetal::TextureHandle m_color;
   dispatch_semaphore_t frameBoundarySemaphore;
 
   SirMetal::graphics::FrameTimingsWidget m_timingsWidget;
   DirLight light{};
-  int m_shadowAlgorithmsLast = 0;
+  MPSTriangleAccelerationStructure* m_accelerationStructure;
+  MPSRayIntersector* m_intersector;
+
 };
 } // namespace Sandbox

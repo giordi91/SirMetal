@@ -17,7 +17,7 @@ set_source_files_properties(${SOURCE_FILES} PROPERTIES
 
 # Project Libs
 set(LINK_LIBS)
-set(MAC_LIBS Metal MetalKit Foundation Cocoa)
+set(MAC_LIBS Metal MetalKit Foundation Cocoa MetalPerformanceShaders)
 foreach (LIB ${MAC_LIBS})
     find_library(${LIB}_LIBRARY ${LIB})
     list(APPEND LINK_LIBS ${${LIB}_LIBRARY})

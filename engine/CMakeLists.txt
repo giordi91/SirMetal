@@ -20,6 +20,15 @@ include_directories(${PROJECT_NAME}
 file(GLOB_RECURSE SHADER_FILES "../data/sandbox/*.metal")
 #set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Xpreprocessor -fopenmp")
 
+# Project Libs
+set(LINK_LIBS)
+set(MAC_LIBS Metal MetalKit Foundation Cocoa MetalPerformanceShaders)
+foreach (LIB ${MAC_LIBS})
+    find_library(${LIB}_LIBRARY ${LIB})
+    list(APPEND LINK_LIBS ${${LIB}_LIBRARY})
+    mark_as_advanced(${${LIB}_LIBRARY})
+endforeach ()
+
 #adding the executable
 add_library(${PROJECT_NAME} STATIC ${SOURCE_FILES} ${INCLUDES_FILES} ${SHADER_FILES})
 target_link_libraries(${PROJECT_NAME} ${LINK_LIBS} ${SDL2_LIBRARIES} meshoptimizer )

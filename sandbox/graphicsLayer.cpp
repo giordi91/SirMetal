@@ -19,12 +19,12 @@
 #include "SirMetal/resources/meshes/meshManager.h"
 #include "SirMetal/resources/shaderManager.h"
 
-#include <iostream>
-static const NSUInteger kMaxInflightBuffers = 3;
-static constexpr int shadowAlgorithmsCount = 2;
-static const char *shadowAlgorithms[] = {"PCF", "PCSS"};
-static constexpr float pcssPcfSizeDefault = 6.5f;
-static constexpr float pcfSizeDefault = 0.005f;
+#import <MetalPerformanceShaders/MetalPerformanceShaders.h>
+
+static const size_t rayStride = 48;
+static const size_t intersectionStride =
+    sizeof(MPSIntersectionDistancePrimitiveIndexCoordinates);
+constexpr int kMaxInflightBuffers =3;
 
 namespace Sandbox {
 void GraphicsLayer::onAttach(SirMetal::EngineContext *context) {
@@ -46,49 +46,55 @@ void GraphicsLayer::onAttach(SirMetal::EngineContext *context) {
       m_engine, sizeof(DirLight),
       SirMetal::CONSTANT_BUFFER_FLAGS_BITS::CONSTANT_BUFFER_FLAG_NONE);
 
-  light.lightSize = 0.025f;
-  light.near = 0.2f;
-  light.pcfsize = 0.005;
-  light.pcfsamples = 64;
-  light.blockerCount = 64;
-  light.algType = 0;
   updateLightData();
 
   const std::string base = m_engine->m_config.m_dataSourcePath + "/sandbox";
 
-  const char *names[5] = {"/plane.obj", "/cube.obj", "/lucy.obj", "/cone.obj",
-                          "/cilinder.obj"};
-  for (int i = 0; i < 5; ++i) {
+  const char *names[1] = {"/rt.obj"};
+  for (int i = 0; i < 1; ++i) {
     m_meshes[i] = m_engine->m_meshManager->loadMesh(base + names[i]);
   }
 
   id<MTLDevice> device = m_engine->m_renderingContext->getDevice();
 
-  SirMetal::AllocTextureRequest requestDepth{
+  SirMetal::AllocTextureRequest request{
       m_engine->m_config.m_windowConfig.m_width,
       m_engine->m_config.m_windowConfig.m_height,
       1,
       MTLTextureType2D,
-      MTLPixelFormatDepth32Float_Stencil8,
-      MTLTextureUsageRenderTarget | MTLTextureUsageShaderRead,
+      MTLPixelFormatRGBA16Float,
+      MTLTextureUsageRenderTarget | MTLTextureUsageShaderRead |
+          MTLTextureUsageShaderWrite,
       MTLStorageModePrivate,
       1,
-      "depthTexture"};
-  m_depthHandle = m_engine->m_textureManager->allocate(device, requestDepth);
-  requestDepth.width = 2048;
-  requestDepth.height = 2048;
-  requestDepth.format = MTLPixelFormatDepth32Float;
-  requestDepth.name = "shadowMap";
-  m_shadowHandle = m_engine->m_textureManager->allocate(device, requestDepth);
+      "colorRayTracing"};
+  m_color = m_engine->m_textureManager->allocate(device, request);
 
   m_shaderHandle =
       m_engine->m_shaderManager->loadShader((base + "/Shaders.metal").c_str());
 
-  m_shadowShaderHandle =
-      m_engine->m_shaderManager->loadShader((base + "/shadows.metal").c_str());
+  // let us start building the raytracing stuff
+  // Create a raytracer for our Metal device
+  m_intersector = [[MPSRayIntersector alloc] initWithDevice:device];
+
+  m_intersector.rayDataType = MPSRayDataTypeOriginMaskDirectionMaxDistance;
+  m_intersector.rayStride = rayStride;
+  m_intersector.rayMaskOptions = MPSRayMaskOptionPrimitive;
+
+  // Create an acceleration structure from our vertex position data
+  m_accelerationStructure =
+      [[MPSTriangleAccelerationStructure alloc] initWithDevice:device];
+
+  const SirMetal::MeshData *meshData =
+      m_engine->m_meshManager->getMeshData(m_meshes[0]);
+  m_accelerationStructure.vertexBuffer = meshData->vertexBuffer;
+  m_accelerationStructure.indexBuffer = meshData->indexBuffer;
+  m_accelerationStructure.maskBuffer = nil;
+  m_accelerationStructure.triangleCount = meshData->primitivesCount / 3;
+
+  [m_accelerationStructure rebuild];
 
   SirMetal::graphics::initImgui(m_engine);
-
   frameBoundarySemaphore = dispatch_semaphore_create(kMaxInflightBuffers);
 }
 
@@ -131,66 +137,12 @@ void GraphicsLayer::onUpdate() {
   updateUniformsForView(w, h);
   updateLightData();
 
-  id<MTLDevice> device = m_engine->m_renderingContext->getDevice();
-  SirMetal::graphics::DrawTracker shadowTracker{};
-  shadowTracker.renderTargets[0] = nil;
-  shadowTracker.depthTarget =
-      m_engine->m_textureManager->getNativeFromHandle(m_shadowHandle);
-  SirMetal::PSOCache cache = SirMetal::getPSO(
-      m_engine, shadowTracker, SirMetal::Material{"shadows", false});
-
-  id<MTLCommandBuffer> commandBuffer = [queue commandBuffer];
-  [commandBuffer setLabel:@"testName"];
-  // shadows
-  MTLRenderPassDescriptor *shadowPassDescriptor =
-      [MTLRenderPassDescriptor renderPassDescriptor];
-  shadowPassDescriptor.colorAttachments[0].texture = nil;
-  shadowPassDescriptor.colorAttachments[0].clearColor = {};
-  shadowPassDescriptor.colorAttachments[0].storeAction = MTLStoreActionDontCare;
-  shadowPassDescriptor.colorAttachments[0].loadAction = MTLLoadActionDontCare;
-
-  MTLRenderPassDepthAttachmentDescriptor *depthAttachment =
-      shadowPassDescriptor.depthAttachment;
-  depthAttachment.texture =
-      m_engine->m_textureManager->getNativeFromHandle(m_shadowHandle);
-  depthAttachment.clearDepth = 1.0;
-  depthAttachment.storeAction = MTLStoreActionDontCare;
-  depthAttachment.loadAction = MTLLoadActionClear;
-
-  // shadow pass
-  id<MTLRenderCommandEncoder> shadowEncoder =
-      [commandBuffer renderCommandEncoderWithDescriptor:shadowPassDescriptor];
-
-  [shadowEncoder setRenderPipelineState:cache.color];
-  [shadowEncoder setDepthStencilState:cache.depth];
-  [shadowEncoder setFrontFacingWinding:MTLWindingCounterClockwise];
-  [shadowEncoder setCullMode:MTLCullModeBack];
-
-  SirMetal::BindInfo info =
-      m_engine->m_constantBufferManager->getBindInfo(m_engine, m_lightHandle);
-  [shadowEncoder setVertexBuffer:info.buffer offset:info.offset atIndex:4];
-
-  for (auto &mesh : m_meshes) {
-    const SirMetal::MeshData *meshData =
-        m_engine->m_meshManager->getMeshData(mesh);
-
-    [shadowEncoder setVertexBuffer:meshData->vertexBuffer
-                            offset:meshData->ranges[0].m_offset
-                           atIndex:0];
-    [shadowEncoder drawIndexedPrimitives:MTLPrimitiveTypeTriangle
-                              indexCount:meshData->primitivesCount
-                               indexType:MTLIndexTypeUInt32
-                             indexBuffer:meshData->indexBuffer
-                       indexBufferOffset:0];
-  }
-  [shadowEncoder endEncoding];
-
   // render
   SirMetal::graphics::DrawTracker tracker{};
   tracker.renderTargets[0] = texture;
-  tracker.depthTarget =
-      m_engine->m_textureManager->getNativeFromHandle(m_depthHandle);
-  cache =
+  tracker.depthTarget = nullptr;
+
+  SirMetal::PSOCache cache =
       SirMetal::getPSO(m_engine, tracker, SirMetal::Material{"Shaders", false});
 
   MTLRenderPassDescriptor *passDescriptor =
@@ -201,29 +153,22 @@ void GraphicsLayer::onUpdate() {
   passDescriptor.colorAttachments[0].storeAction = MTLStoreActionStore;
   passDescriptor.colorAttachments[0].loadAction = MTLLoadActionClear;
 
-  depthAttachment = passDescriptor.depthAttachment;
-  depthAttachment.texture =
-      m_engine->m_textureManager->getNativeFromHandle(m_depthHandle);
-  depthAttachment.clearDepth = 1.0;
-  depthAttachment.storeAction = MTLStoreActionDontCare;
-  depthAttachment.loadAction = MTLLoadActionClear;
+  id<MTLCommandBuffer> commandBuffer = [queue commandBuffer];
   id<MTLRenderCommandEncoder> commandEncoder =
       [commandBuffer renderCommandEncoderWithDescriptor:passDescriptor];
 
+  /*
   [commandEncoder setRenderPipelineState:cache.color];
   [commandEncoder setDepthStencilState:cache.depth];
   [commandEncoder setFrontFacingWinding:MTLWindingCounterClockwise];
   [commandEncoder setCullMode:MTLCullModeBack];
 
-  info =
+  SirMetal::BindInfo info =
       m_engine->m_constantBufferManager->getBindInfo(m_engine, m_uniformHandle);
   [commandEncoder setVertexBuffer:info.buffer offset:info.offset atIndex:4];
   info =
       m_engine->m_constantBufferManager->getBindInfo(m_engine, m_lightHandle);
   [commandEncoder setFragmentBuffer:info.buffer offset:info.offset atIndex:5];
-  id<MTLTexture> shadow =
-      m_engine->m_textureManager->getNativeFromHandle(m_shadowHandle);
-  [commandEncoder setFragmentTexture:shadow atIndex:0];
 
   for (auto &mesh : m_meshes) {
     const SirMetal::MeshData *meshData =
@@ -260,6 +205,7 @@ void GraphicsLayer::onUpdate() {
   renderDebugWindow();
   SirMetal::graphics::imguiEndFrame(commandBuffer, commandEncoder);
 
+   */
   [commandEncoder endEncoding];
 
   [commandBuffer addCompletedHandler:^(id<MTLCommandBuffer> commandBuffer) {
@@ -312,36 +258,7 @@ void GraphicsLayer::renderDebugWindow() {
   }
   ImGui::SetNextWindowPos(ImVec2(0, 0), ImGuiCond_Once);
   if (ImGui::Begin("Debug", &p_open, 0)) {
-    if(m_shadowAlgorithmsLast != light.algType)
-    {
-      light.pcfsize = pcfSizeDefault;
-    }
-    m_timingsWidget.render(m_engine);
-    // Main body of the Demo window starts here.
-    // Early out if the window is collapsed, as an optimization.
-    ImGui::Combo("Algorithm", &light.algType, shadowAlgorithms,
-                 shadowAlgorithmsCount);
-    if (light.algType == 0) {
-      if(m_shadowAlgorithmsLast != light.algType)
-      {
-        light.pcfsize = pcfSizeDefault;
-      }
-      ImGui::SliderFloat("pcfSize", &light.pcfsize, 0.0f, 0.1f);
-      ImGui::SliderInt("pcfSamples", &light.pcfsamples, 1, 64);
-    } else {
-      if(m_shadowAlgorithmsLast != light.algType)
-      {
-        light.pcfsize = pcssPcfSizeDefault;
-      }
-      ImGui::SliderFloat("lightSize", &light.lightSize, 0.0f, 0.2f);
-      ImGui::SliderFloat("near", &light.near, 0.0f, 1.0f);
-      ImGui::SliderFloat("penumbraMultiplier", &light.pcfsize, 0.0f, 10.2f);
-      ImGui::SliderInt("pcfsamples", &light.pcfsamples, 1, 64);
-      ImGui::SliderInt("blockerCount", &light.blockerCount, 1, 64);
-      ImGui::Checkbox("showBlocker", (bool *)&light.showBlocker);
-    }
   }
-  m_shadowAlgorithmsLast = light.algType;
   ImGui::End();
 }
 } // namespace Sandbox
