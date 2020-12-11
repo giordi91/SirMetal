@@ -44,6 +44,7 @@ private:
   SirMetal::EngineContext *m_engine{};
   SirMetal::ConstantBufferHandle m_uniformHandle;
   SirMetal::ConstantBufferHandle m_lightHandle;
+  SirMetal::ConstantBufferHandle m_uniforms;
   SirMetal::MeshHandle m_meshes[5];
   SirMetal::LibraryHandle m_shaderHandle;
   SirMetal::LibraryHandle m_rtGenShaderHandle;

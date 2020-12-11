@@ -21,6 +21,29 @@
 
 #import <MetalPerformanceShaders/MetalPerformanceShaders.h>
 
+struct RtCamera {
+  vector_float3 position;
+  vector_float3 right;
+  vector_float3 up;
+  vector_float3 forward;
+};
+
+struct AreaLight {
+  vector_float3 position;
+  vector_float3 forward;
+  vector_float3 right;
+  vector_float3 up;
+  vector_float3 color;
+};
+
+struct Uniforms {
+  unsigned int width;
+  unsigned int height;
+  unsigned int frameIndex;
+  RtCamera camera;
+  AreaLight light;
+};
+
 static const size_t rayStride = 48;
 static const size_t intersectionStride =
     sizeof(MPSIntersectionDistancePrimitiveIndexCoordinates);
@@ -48,6 +71,9 @@ void GraphicsLayer::onAttach(SirMetal::EngineContext *context) {
   m_lightHandle = m_engine->m_constantBufferManager->allocate(
       m_engine, sizeof(DirLight),
       SirMetal::CONSTANT_BUFFER_FLAGS_BITS::CONSTANT_BUFFER_FLAG_NONE);
+  m_uniforms = m_engine->m_constantBufferManager->allocate(
+      m_engine, sizeof(Uniforms),
+      SirMetal::CONSTANT_BUFFER_FLAGS_BITS::CONSTANT_BUFFER_FLAG_BUFFERED);
 
   updateLightData();
 
@@ -111,23 +137,23 @@ void GraphicsLayer::onAttach(SirMetal::EngineContext *context) {
   SirMetal::graphics::initImgui(m_engine);
   frameBoundarySemaphore = dispatch_semaphore_create(kMaxInflightBuffers);
 
-
-
   // Create compute pipelines will will execute code on the GPU
-  MTLComputePipelineDescriptor *computeDescriptor = [[MTLComputePipelineDescriptor alloc] init];
+  MTLComputePipelineDescriptor *computeDescriptor =
+      [[MTLComputePipelineDescriptor alloc] init];
 
   // Set to YES to allow compiler to make certain optimizations
   computeDescriptor.threadGroupSizeIsMultipleOfThreadExecutionWidth = YES;
 
   // Generates rays according to view/projection matrices
-  computeDescriptor.computeFunction = m_engine->m_shaderManager->getKernelFunction(m_rtGenShaderHandle);
+  computeDescriptor.computeFunction =
+      m_engine->m_shaderManager->getKernelFunction(m_rtGenShaderHandle);
 
-  //ray pipeline
+  // ray pipeline
   NSError *error = NULL;
   rayPipeline = [device newComputePipelineStateWithDescriptor:computeDescriptor
-  options:0
-  reflection:nil
-  error:&error];
+                                                      options:0
+                                                   reflection:nil
+                                                        error:&error];
 
   if (!rayPipeline)
     NSLog(@"Failed to create pipeline state: %@", error);
@@ -147,7 +173,46 @@ void GraphicsLayer::updateUniformsForView(float screenWidth,
   m_cameraController.updateProjection(screenWidth, screenHeight);
   m_engine->m_constantBufferManager->update(m_engine, m_uniformHandle,
                                             &m_camera);
+
+  // update rt uniform
+  Uniforms u{};
+
+  simd_float4 pos = m_camera.viewMatrix.columns[3];
+  u.camera.position = simd_float3{pos.x, pos.y, pos.z};
+  simd_float4 f = -m_camera.viewMatrix.columns[2];
+  u.camera.forward = simd_float3{f.x, f.y, f.z};
+  simd_float4 up = -m_camera.viewMatrix.columns[1];
+  u.camera.up = simd_float3{up.x, up.y, up.z};
+
+  u.frameIndex = m_engine->m_timings.m_totalNumberOfFrames;
+  u.height = m_engine->m_config.m_windowConfig.m_height;
+  u.width = m_engine->m_config.m_windowConfig.m_width;
+  // TODO add light data
+  // u.light ...
+  m_engine->m_constantBufferManager->update(m_engine,m_uniforms,&u);
 }
+struct RtCamera {
+  vector_float3 position;
+  vector_float3 right;
+  vector_float3 up;
+  vector_float3 forward;
+};
+
+struct AreaLight {
+  vector_float3 position;
+  vector_float3 forward;
+  vector_float3 right;
+  vector_float3 up;
+  vector_float3 color;
+};
+
+struct Uniforms {
+  unsigned int width;
+  unsigned int height;
+  unsigned int frameIndex;
+  RtCamera camera;
+  AreaLight light;
+};
 
 void GraphicsLayer::onUpdate() {
 
@@ -181,7 +246,7 @@ void GraphicsLayer::onUpdate() {
       SirMetal::getPSO(m_engine, tracker, SirMetal::Material{"Shaders", false});
 
   MTLRenderPassDescriptor *passDescriptor =
-  [MTLRenderPassDescriptor renderPassDescriptor];
+      [MTLRenderPassDescriptor renderPassDescriptor];
 
   passDescriptor.colorAttachments[0].texture = texture;
   passDescriptor.colorAttachments[0].clearColor = {0.2, 0.2, 0.2, 1.0};
@@ -189,10 +254,7 @@ void GraphicsLayer::onUpdate() {
   passDescriptor.colorAttachments[0].loadAction = MTLLoadActionClear;
 
   id<MTLCommandBuffer> commandBuffer = [queue commandBuffer];
-  id<MTLRenderCommandEncoder> commandEncoder =
-  [commandBuffer renderCommandEncoderWithDescriptor:passDescriptor];
 
-  /*
   // We will launch a rectangular grid of threads on the GPU to generate the
   // rays. Threads are launched in groups called "threadgroups". We need to
   // align the number of threads to be a multiple of the threadgroup size. We
@@ -211,25 +273,23 @@ void GraphicsLayer::onUpdate() {
   id<MTLComputeCommandEncoder> computeEncoder =
       [commandBuffer computeCommandEncoder];
 
+  SirMetal::BindInfo rtinfo = m_engine->m_constantBufferManager->getBindInfo(m_engine,m_uniforms);
   // Bind buffers needed by the compute pipeline
-  [computeEncoder setBuffer:_uniformBuffer
-                     offset:_uniformBufferOffset
+  [computeEncoder setBuffer: rtinfo.buffer
+                     offset: rtinfo.offset
                     atIndex:0];
-  [computeEncoder setBuffer:_rayBuffer offset:0 atIndex:1];
+
+  id rayBuffer = m_gpuAllocator.getBuffer(m_rayBuffer);
+  [computeEncoder setBuffer:rayBuffer offset:0 atIndex:1];
 
   // Bind the ray generation compute pipeline
-  [computeEncoder setComputePipelineState:_rayPipeline];
+  [computeEncoder setComputePipelineState:rayPipeline];
 
   // Launch threads
   [computeEncoder dispatchThreadgroups:threadgroups
                  threadsPerThreadgroup:threadsPerThreadgroup];
-  */
 
-
-
-
-
-
+  [computeEncoder endEncoding];
   /*
 
 
@@ -282,6 +342,8 @@ void GraphicsLayer::onUpdate() {
   SirMetal::graphics::imguiEndFrame(commandBuffer, commandEncoder);
 
    */
+  id<MTLRenderCommandEncoder> commandEncoder =
+  [commandBuffer renderCommandEncoderWithDescriptor:passDescriptor];
   [commandEncoder endEncoding];
 
   [commandBuffer addCompletedHandler:^(id<MTLCommandBuffer> commandBuffer) {

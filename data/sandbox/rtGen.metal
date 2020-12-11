@@ -62,8 +62,8 @@ kernel void rayKernel(uint2 tid [[thread_position_in_grid]],
                       // Buffers bound on the CPU. Note that 'constant' should be used for small
                       // read-only data which will be reused across threads. 'device' should be
                       // used for writable data or data which will only be used by a single thread.
-                      constant Uniforms & uniforms,
-                      device Ray *rays)
+                      constant Uniforms & uniforms [[buffer(0)]],
+                      device Ray *rays [[buffer(1)]])
 {
     // Since we aligned the thread count to the threadgroup size, the thread index may be out of bounds
     // of the render target size.
