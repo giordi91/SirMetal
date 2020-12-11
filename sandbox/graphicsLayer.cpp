@@ -24,12 +24,15 @@
 static const size_t rayStride = 48;
 static const size_t intersectionStride =
     sizeof(MPSIntersectionDistancePrimitiveIndexCoordinates);
-constexpr int kMaxInflightBuffers =3;
+constexpr int kMaxInflightBuffers = 3;
 
 namespace Sandbox {
 void GraphicsLayer::onAttach(SirMetal::EngineContext *context) {
 
   m_engine = context;
+  m_gpuAllocator.initialize(m_engine->m_renderingContext->getDevice(),
+                            m_engine->m_renderingContext->getQueue());
+
   // initializing the camera to the identity
   m_camera.viewMatrix = matrix_float4x4_translation(vector_float3{0, 0, 0});
   m_camera.fov = M_PI / 4;
@@ -72,12 +75,14 @@ void GraphicsLayer::onAttach(SirMetal::EngineContext *context) {
 
   m_shaderHandle =
       m_engine->m_shaderManager->loadShader((base + "/Shaders.metal").c_str());
+  m_rtGenShaderHandle =
+      m_engine->m_shaderManager->loadShader((base + "/rtGen.metal").c_str());
 
   // let us start building the raytracing stuff
   // Create a raytracer for our Metal device
   m_intersector = [[MPSRayIntersector alloc] initWithDevice:device];
 
-  m_intersector.rayDataType = MPSRayDataTypeOriginMaskDirectionMaxDistance;
+  m_intersector.rayDataType = MPSRayDataTypeOriginDirection;
   m_intersector.rayStride = rayStride;
   m_intersector.rayMaskOptions = MPSRayMaskOptionPrimitive;
 
@@ -91,11 +96,41 @@ void GraphicsLayer::onAttach(SirMetal::EngineContext *context) {
   m_accelerationStructure.indexBuffer = meshData->indexBuffer;
   m_accelerationStructure.maskBuffer = nil;
   m_accelerationStructure.triangleCount = meshData->primitivesCount / 3;
+  m_accelerationStructure.vertexStride = sizeof(float) * 4;
 
   [m_accelerationStructure rebuild];
 
+  uint32_t w = m_engine->m_config.m_windowConfig.m_width;
+  uint32_t h = m_engine->m_config.m_windowConfig.m_height;
+  uint32_t pixelCount = w * h;
+  uint32_t raysBufferSize = pixelCount * rayStride;
+  m_rayBuffer = m_gpuAllocator.allocate(
+      raysBufferSize, "rayBuffers",
+      SirMetal::BUFFER_FLAGS_BITS::BUFFER_FLAG_GPU_ONLY);
+
   SirMetal::graphics::initImgui(m_engine);
   frameBoundarySemaphore = dispatch_semaphore_create(kMaxInflightBuffers);
+
+
+
+  // Create compute pipelines will will execute code on the GPU
+  MTLComputePipelineDescriptor *computeDescriptor = [[MTLComputePipelineDescriptor alloc] init];
+
+  // Set to YES to allow compiler to make certain optimizations
+  computeDescriptor.threadGroupSizeIsMultipleOfThreadExecutionWidth = YES;
+
+  // Generates rays according to view/projection matrices
+  computeDescriptor.computeFunction = m_engine->m_shaderManager->getKernelFunction(m_rtGenShaderHandle);
+
+  //ray pipeline
+  NSError *error = NULL;
+  rayPipeline = [device newComputePipelineStateWithDescriptor:computeDescriptor
+  options:0
+  reflection:nil
+  error:&error];
+
+  if (!rayPipeline)
+    NSLog(@"Failed to create pipeline state: %@", error);
 }
 
 void GraphicsLayer::onDetach() {}
@@ -146,7 +181,7 @@ void GraphicsLayer::onUpdate() {
       SirMetal::getPSO(m_engine, tracker, SirMetal::Material{"Shaders", false});
 
   MTLRenderPassDescriptor *passDescriptor =
-      [MTLRenderPassDescriptor renderPassDescriptor];
+  [MTLRenderPassDescriptor renderPassDescriptor];
 
   passDescriptor.colorAttachments[0].texture = texture;
   passDescriptor.colorAttachments[0].clearColor = {0.2, 0.2, 0.2, 1.0};
@@ -155,20 +190,61 @@ void GraphicsLayer::onUpdate() {
 
   id<MTLCommandBuffer> commandBuffer = [queue commandBuffer];
   id<MTLRenderCommandEncoder> commandEncoder =
-      [commandBuffer renderCommandEncoderWithDescriptor:passDescriptor];
+  [commandBuffer renderCommandEncoderWithDescriptor:passDescriptor];
 
   /*
+  // We will launch a rectangular grid of threads on the GPU to generate the
+  // rays. Threads are launched in groups called "threadgroups". We need to
+  // align the number of threads to be a multiple of the threadgroup size. We
+  // indicated when compiling the pipeline that the threadgroup size would be a
+  // multiple of the thread execution width (SIMD group size) which is typically
+  // 32 or 64 so 8x8 is a safe threadgroup size which should be small to be
+  // supported on most devices. A more advanced application would choose the
+  // threadgroup size dynamically.
+  MTLSize threadsPerThreadgroup = MTLSizeMake(8, 8, 1);
+  MTLSize threadgroups = MTLSizeMake(
+      (w + threadsPerThreadgroup.width - 1) / threadsPerThreadgroup.width,
+      (h + threadsPerThreadgroup.height - 1) / threadsPerThreadgroup.height, 1);
+
+  // First, we will generate rays on the GPU. We create a compute command
+  // encoder which will be used to add commands to the command buffer.
+  id<MTLComputeCommandEncoder> computeEncoder =
+      [commandBuffer computeCommandEncoder];
+
+  // Bind buffers needed by the compute pipeline
+  [computeEncoder setBuffer:_uniformBuffer
+                     offset:_uniformBufferOffset
+                    atIndex:0];
+  [computeEncoder setBuffer:_rayBuffer offset:0 atIndex:1];
+
+  // Bind the ray generation compute pipeline
+  [computeEncoder setComputePipelineState:_rayPipeline];
+
+  // Launch threads
+  [computeEncoder dispatchThreadgroups:threadgroups
+                 threadsPerThreadgroup:threadsPerThreadgroup];
+  */
+
+
+
+
+
+
+  /*
+
+
   [commandEncoder setRenderPipelineState:cache.color];
   [commandEncoder setDepthStencilState:cache.depth];
   [commandEncoder setFrontFacingWinding:MTLWindingCounterClockwise];
   [commandEncoder setCullMode:MTLCullModeBack];
 
   SirMetal::BindInfo info =
-      m_engine->m_constantBufferManager->getBindInfo(m_engine, m_uniformHandle);
-  [commandEncoder setVertexBuffer:info.buffer offset:info.offset atIndex:4];
-  info =
-      m_engine->m_constantBufferManager->getBindInfo(m_engine, m_lightHandle);
-  [commandEncoder setFragmentBuffer:info.buffer offset:info.offset atIndex:5];
+      m_engine->m_constantBufferManager->getBindInfo(m_engine,
+  m_uniformHandle); [commandEncoder setVertexBuffer:info.buffer
+  offset:info.offset atIndex:4]; info =
+      m_engine->m_constantBufferManager->getBindInfo(m_engine,
+  m_lightHandle); [commandEncoder setFragmentBuffer:info.buffer
+  offset:info.offset atIndex:5];
 
   for (auto &mesh : m_meshes) {
     const SirMetal::MeshData *meshData =

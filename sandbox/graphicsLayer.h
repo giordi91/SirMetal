@@ -5,6 +5,7 @@
 #include "SirMetal/graphics/debug/frameTimingsWidget.h"
 #include "SirMetal/graphics/renderingContext.h"
 #include "SirMetal/resources/handle.h"
+#include "SirMetal/core/memory/gpu/GPUMemoryAllocator.h"
 #import <Metal/Metal.h>
 
 #import <MetalPerformanceShaders/MetalPerformanceShaders.h>
@@ -45,6 +46,7 @@ private:
   SirMetal::ConstantBufferHandle m_lightHandle;
   SirMetal::MeshHandle m_meshes[5];
   SirMetal::LibraryHandle m_shaderHandle;
+  SirMetal::LibraryHandle m_rtGenShaderHandle;
   SirMetal::TextureHandle m_color;
   dispatch_semaphore_t frameBoundarySemaphore;
 
@@ -52,6 +54,9 @@ private:
   DirLight light{};
   MPSTriangleAccelerationStructure* m_accelerationStructure;
   MPSRayIntersector* m_intersector;
+  SirMetal::BufferHandle m_rayBuffer;
+  SirMetal::GPUMemoryAllocator m_gpuAllocator;
+  id rayPipeline;
 
 };
 } // namespace Sandbox

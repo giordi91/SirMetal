@@ -32,8 +32,9 @@ namespace SirMetal {
 
         id getVertexFunction(LibraryHandle handle);
         id getFragmentFunction(LibraryHandle handle);
+        id getKernelFunction(LibraryHandle handle);
 
-    private:
+      private:
         bool generateLibraryMetadata(id library,ShaderMetadata& metadata, const char* libraryPath);
 
     private:

@@ -170,5 +170,13 @@ id ShaderManager::getFragmentFunction(LibraryHandle handle) {
   assert(m_libraries.find(index) != m_libraries.end());
   return m_libraries[index].fragFn;
 }
+id ShaderManager::getKernelFunction(LibraryHandle handle) {
+  assert(handle.isHandleValid());
+  assert(getTypeFromHandle(handle) == LibraryHandle::type);
+  uint32_t index = getIndexFromHandle(handle);
+  assert(m_libraries.find(index) != m_libraries.end());
+  return m_libraries[index].computeFn;
+
+}
 
 } // namespace SirMetal
