@@ -2,6 +2,7 @@
 #include <simd/simd.h>
 
 using namespace metal;
+/*
 struct Ray {
     // Starting point
     packed_float3 origin;
@@ -78,5 +79,27 @@ kernel void shadeKernel(uint2 tid [[thread_position_in_grid]],
                 // we'll write the light color into the output image.
                 dstTex.write(float4(0,0,1, 1.0f), tid);
         }
+    }
+}
+*/
+
+
+struct Intersection{
+    float distance;
+    unsigned int primitiveIndex;
+    float2 coordinates;
+};
+
+kernel void shadeKernel(texture2d<float, access::write> image [[texture(0)]],
+                                device const Intersection* intersections [[buffer(0)]],
+                                uint2 coordinates [[thread_position_in_grid]],
+                                uint2 size [[threads_per_grid]])
+{
+    uint rayIndex = coordinates.x + coordinates.y * size.x;
+    device const Intersection& i = intersections[rayIndex];
+    if (i.distance > 0.0f)
+    {
+        float w = 1.0 - i.coordinates.x - i.coordinates.y;
+        image.write(float4(i.coordinates, w, 1.0), coordinates);
     }
 }

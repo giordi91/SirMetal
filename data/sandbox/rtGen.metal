@@ -2,12 +2,14 @@
 #include <simd/simd.h>
 
 using namespace metal;
+/*
 struct Ray {
     // Starting point
     packed_float3 origin;
     // Direction the ray is traveling
     packed_float3 direction;
 };
+*/
 
 struct Camera {
     vector_float3 position;
@@ -56,6 +58,7 @@ constant unsigned int primes[] = {
     41, 43, 47, 53,
 };
 
+/*
 // Generates rays starting from the camera origin and traveling towards the image plane aligned
 // with the camera's coordinate system.
 kernel void rayKernel(uint2 tid [[thread_position_in_grid]],
@@ -100,4 +103,25 @@ kernel void rayKernel(uint2 tid [[thread_position_in_grid]],
                                   uv.y * camera.up +
                                   camera.forward);
     }
+}
+*/
+
+struct Ray
+{
+    packed_float3 origin;
+    float minDistance;
+    packed_float3 direction;
+    float maxDistance;
+};
+
+kernel void rayKernel(device Ray* rays [[buffer(0)]],
+                         uint2 coordinates [[thread_position_in_grid]],
+                         uint2 size [[threads_per_grid]])
+{
+    uint rayIndex = coordinates.x + coordinates.y * size.x;
+    float2 uv = float2(coordinates) / float2(size - 1);
+    rays[rayIndex].origin = packed_float3(uv.x, uv.y, -1.0);
+    rays[rayIndex].direction = packed_float3(0.0, 0.0, 1.0);
+    rays[rayIndex].minDistance = 0.0f;
+    rays[rayIndex].maxDistance = 2.0f;
 }

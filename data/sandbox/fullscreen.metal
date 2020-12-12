@@ -31,5 +31,7 @@ fragment half4 fragment_flatcolor(OutVertex vertexIn [[stage_in]],
                                   texture2d<float> blitTex [[texture(0)]]) {
 
   float2 uv = vertexIn.uv;
-  return half4(uv.x,uv.y,0.0h,1.0h);
+  constexpr sampler linearSampler(coord::normalized, filter::nearest);
+  float4 c = blitTex.sample(linearSampler, uv);
+  return half4(c.x,c.y,c.z,1.0h);
 }

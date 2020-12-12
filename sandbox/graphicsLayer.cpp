@@ -50,6 +50,9 @@ static const size_t intersectionStride =
     sizeof(MPSIntersectionDistancePrimitiveIndexCoordinates);
 constexpr int kMaxInflightBuffers = 3;
 
+using Ray = MPSRayOriginMinDistanceDirectionMaxDistance;
+using Intersection = MPSIntersectionDistancePrimitiveIndexCoordinates;
+
 id createComputePipeline(id<MTLDevice> device, id function)
 {
   // Create compute pipelines will will execute code on the GPU
@@ -138,7 +141,7 @@ void GraphicsLayer::onAttach(SirMetal::EngineContext *context) {
   uint32_t w = m_engine->m_config.m_windowConfig.m_width;
   uint32_t h = m_engine->m_config.m_windowConfig.m_height;
   uint32_t pixelCount = w * h;
-  uint32_t raysBufferSize = pixelCount * rayStride;
+  uint32_t raysBufferSize = pixelCount * sizeof(Ray);
   m_rayBuffer = m_gpuAllocator.allocate(
       raysBufferSize, "raysBuffer",
       SirMetal::BUFFER_FLAGS_BITS::BUFFER_FLAG_GPU_ONLY);
@@ -152,10 +155,35 @@ void GraphicsLayer::onAttach(SirMetal::EngineContext *context) {
 
 
   rayPipeline = createComputePipeline(device,m_engine->m_shaderManager->getKernelFunction(m_rtGenShaderHandle));
-  rayPipeline = createComputePipeline(device,
+  rayShadePipeline= createComputePipeline(device,
       m_engine->m_shaderManager->getKernelFunction(m_rtShadeShaderHandle));
   testFillPipeline= createComputePipeline(device,
                                       m_engine->m_shaderManager->getKernelFunction(m_imageFillHandle));
+
+
+  struct Vertex { float x, y, z, w; } vertices[3] = {
+      { 0.25f, 0.25f, 0.0f },
+      { 0.75f, 0.25f, 0.0f },
+      { 0.50f, 0.75f, 0.0f }
+  };
+  id<MTLBuffer> vertexBuffer = [device newBufferWithBytes:vertices length:sizeof(vertices) options:MTLResourceStorageModeManaged];
+
+  uint32_t indices[3] = { 0, 1, 2 };
+  id<MTLBuffer> indexBuffer = [device newBufferWithBytes:indices length:sizeof(indices) options:MTLResourceStorageModeManaged];
+
+  m_accelerationStructure = [[MPSTriangleAccelerationStructure alloc] initWithDevice:device];
+  [m_accelerationStructure setVertexBuffer:vertexBuffer];
+  [m_accelerationStructure setVertexStride:sizeof(Vertex)];
+  [m_accelerationStructure setIndexBuffer:indexBuffer];
+  [m_accelerationStructure setIndexType:MPSDataTypeUInt32];
+  [m_accelerationStructure setTriangleCount:1];
+  [m_accelerationStructure rebuild];
+
+  m_intersector = [[MPSRayIntersector alloc] initWithDevice:device];
+  [m_intersector setRayDataType:MPSRayDataTypeOriginMinDistanceDirectionMaxDistance];
+  [m_intersector setRayStride:sizeof(Ray)];
+  [m_intersector setIntersectionDataType:MPSIntersectionDataTypeDistancePrimitiveIndexCoordinates];
+  [m_intersector setIntersectionStride:sizeof(Intersection)];
 
 }
 
@@ -274,12 +302,31 @@ void GraphicsLayer::onUpdate() {
   // encoder which will be used to add commands to the command buffer.
   id<MTLComputeCommandEncoder> computeEncoder =
       [commandBuffer computeCommandEncoder];
-  auto t = m_engine->m_textureManager->getNativeFromHandle(m_color);
+  id<MTLTexture> t = m_engine->m_textureManager->getNativeFromHandle(m_color);
   [computeEncoder setTexture:t atIndex:0];
   [computeEncoder setComputePipelineState:testFillPipeline];
   [computeEncoder dispatchThreadgroups:threadgroups threadsPerThreadgroup:MTLSizeMake(8, 8, 1)];
+
+  id rayBuffer = m_gpuAllocator.getBuffer(m_rayBuffer);
+  id intersectionBuffer = m_gpuAllocator.getBuffer(m_intersectionBuffer);
+  [computeEncoder setBuffer:rayBuffer offset:0 atIndex:0];
+  [computeEncoder setComputePipelineState:rayPipeline];
+  [computeEncoder dispatchThreadgroups:threadgroups threadsPerThreadgroup:MTLSizeMake(8, 8, 1)];
   [computeEncoder endEncoding];
 
+  [m_intersector encodeIntersectionToCommandBuffer:commandBuffer
+  intersectionType:MPSIntersectionTypeNearest
+  rayBuffer:rayBuffer rayBufferOffset:0
+  intersectionBuffer:intersectionBuffer intersectionBufferOffset:0
+  rayCount:w*h accelerationStructure:m_accelerationStructure];
+
+  id<MTLComputeCommandEncoder> computeEncoder2 =
+  [commandBuffer computeCommandEncoder];
+  [computeEncoder2 setBuffer:intersectionBuffer offset:0 atIndex:0];
+  [computeEncoder2 setTexture:t atIndex:0];
+  [computeEncoder2 setComputePipelineState:rayShadePipeline];
+  [computeEncoder2 dispatchThreadgroups:threadgroups threadsPerThreadgroup:MTLSizeMake(8, 8, 1)];
+  [computeEncoder2 endEncoding];
 
   id<MTLRenderCommandEncoder> commandEncoder =
   [commandBuffer renderCommandEncoderWithDescriptor:passDescriptor];
