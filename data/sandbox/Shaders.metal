@@ -128,8 +128,9 @@ float PCF_Filter(float2 uv, float zReceiver, float filterRadiusUV,
 
 fragment half4 fragment_flatcolor(OutVertex vertexIn [[stage_in]],
                                   constant DirLight *light [[buffer(5)]],
-                                  depth2d<float> shadowMap [[texture(0)]]) {
+                                  texture2d<float> rt [[texture(0)]]) {
 
+  /*
   //computing world pos in shadow space
   float4 wp = vertexIn.worldPos;
   wp.w = 1.0f;
@@ -184,6 +185,17 @@ fragment half4 fragment_flatcolor(OutVertex vertexIn [[stage_in]],
   float d = saturate(
       dot(normalize(light->lightDir.xyz), normalize(vertexIn.normal.xyz)));
   d *= lightFactor;
+  */
 
-  return half4(d, d, d, 1.0f);
+  /*
+  constexpr sampler s(coord::normalized, filter::linear,
+                      address::clamp_to_edge, compare_func::less,
+                      lod_clamp(0.0f, 0.0f));
+
+  float4 shadowMapDepth =
+       rt.sample(s, uv + poissonDisk[i] * searchWidth);
+  */
+
+  float4 n = vertexIn.normal;
+  return half4(n.x,n.y,n.z,1.0h);
 }

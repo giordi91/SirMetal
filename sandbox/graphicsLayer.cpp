@@ -44,7 +44,8 @@ struct Uniforms {
   AreaLight light;
 };
 
-static const size_t rayStride = 48;
+static const size_t rayStride = sizeof(float) * 8;
+// static const size_t rayStride = 48;
 static const size_t intersectionStride =
     sizeof(MPSIntersectionDistancePrimitiveIndexCoordinates);
 constexpr int kMaxInflightBuffers = 3;
@@ -62,7 +63,7 @@ void GraphicsLayer::onAttach(SirMetal::EngineContext *context) {
   m_camera.nearPlane = 0.01;
   m_camera.farPlane = 60;
   m_cameraController.setCamera(&m_camera);
-  m_cameraController.setPosition(3, 5, 15);
+  m_cameraController.setPosition(0, 0.1, 15);
   m_camConfig = {1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 0.2, 0.008};
 
   m_uniformHandle = m_engine->m_constantBufferManager->allocate(
@@ -103,26 +104,56 @@ void GraphicsLayer::onAttach(SirMetal::EngineContext *context) {
       m_engine->m_shaderManager->loadShader((base + "/Shaders.metal").c_str());
   m_rtGenShaderHandle =
       m_engine->m_shaderManager->loadShader((base + "/rtGen.metal").c_str());
+  m_rtShadeShaderHandle =
+      m_engine->m_shaderManager->loadShader((base + "/rtShade.metal").c_str());
 
   // let us start building the raytracing stuff
   // Create a raytracer for our Metal device
   m_intersector = [[MPSRayIntersector alloc] initWithDevice:device];
-
   m_intersector.rayDataType = MPSRayDataTypeOriginDirection;
-  m_intersector.rayStride = rayStride;
-  m_intersector.rayMaskOptions = MPSRayMaskOptionPrimitive;
+  //m_intersector.rayStride = rayStride;
+  //m_intersector.intersectionStride = sizeof(MPSIntersectionDistancePrimitiveIndexCoordinates);
 
   // Create an acceleration structure from our vertex position data
   m_accelerationStructure =
       [[MPSTriangleAccelerationStructure alloc] initWithDevice:device];
 
+    /*
+  float data[] {
+      -1,-1,0,1,
+      1,1,0,1,
+      1,-1,0,1,
+      -1,-1,0,1,
+      -1,1,0,1,
+      1,1,0,1,
+  };
+
+
+  m_tBuff = m_gpuAllocator.allocate(6*4*sizeof(float),"temp",SirMetal::BUFFER_FLAGS_BITS::BUFFER_FLAG_GPU_ONLY,data);
+  id tBuffH = m_gpuAllocator.getBuffer(m_tBuff);
+
+
+
+
+  m_accelerationStructure.vertexBuffer = tBuffH;
+  m_accelerationStructure.vertexBufferOffset = 0;
+  m_accelerationStructure.triangleCount = 2;
+    */
+
+  
   const SirMetal::MeshData *meshData =
       m_engine->m_meshManager->getMeshData(m_meshes[0]);
   m_accelerationStructure.vertexBuffer = meshData->vertexBuffer;
+  m_accelerationStructure.vertexBufferOffset = 0;
   m_accelerationStructure.indexBuffer = meshData->indexBuffer;
-  m_accelerationStructure.maskBuffer = nil;
+  m_accelerationStructure.indexBufferOffset = 0;
+  m_accelerationStructure.indexType = MPSDataTypeUInt32;
   m_accelerationStructure.triangleCount = meshData->primitivesCount / 3;
   m_accelerationStructure.vertexStride = sizeof(float) * 4;
+
+
+  //sleep 10 seconds
+  //usleep(1000*1000*10); // will sleep for 1 ms
 
   [m_accelerationStructure rebuild];
 
@@ -131,7 +162,11 @@ void GraphicsLayer::onAttach(SirMetal::EngineContext *context) {
   uint32_t pixelCount = w * h;
   uint32_t raysBufferSize = pixelCount * rayStride;
   m_rayBuffer = m_gpuAllocator.allocate(
-      raysBufferSize, "rayBuffers",
+      raysBufferSize, "raysBuffer",
+      SirMetal::BUFFER_FLAGS_BITS::BUFFER_FLAG_GPU_ONLY);
+
+  m_intersectionBuffer = m_gpuAllocator.allocate(
+      pixelCount*intersectionStride, "rayIntersectBuffer",
       SirMetal::BUFFER_FLAGS_BITS::BUFFER_FLAG_GPU_ONLY);
 
   SirMetal::graphics::initImgui(m_engine);
@@ -157,6 +192,17 @@ void GraphicsLayer::onAttach(SirMetal::EngineContext *context) {
 
   if (!rayPipeline)
     NSLog(@"Failed to create pipeline state: %@", error);
+
+  error = nil;
+  computeDescriptor.computeFunction =
+      m_engine->m_shaderManager->getKernelFunction(m_rtShadeShaderHandle);
+  rayShadePipeline = [device newComputePipelineStateWithDescriptor:computeDescriptor
+  options:0
+  reflection:nil
+  error:&error];
+
+  if (!rayShadePipeline)
+    NSLog(@"Failed to create pipeline state: %@", error);
 }
 
 void GraphicsLayer::onDetach() {}
@@ -181,15 +227,17 @@ void GraphicsLayer::updateUniformsForView(float screenWidth,
   u.camera.position = simd_float3{pos.x, pos.y, pos.z};
   simd_float4 f = -m_camera.viewMatrix.columns[2];
   u.camera.forward = simd_float3{f.x, f.y, f.z};
-  simd_float4 up = -m_camera.viewMatrix.columns[1];
+  simd_float4 up = m_camera.viewMatrix.columns[1];
   u.camera.up = simd_float3{up.x, up.y, up.z};
+  simd_float4 right = m_camera.viewMatrix.columns[0];
+  u.camera.right = simd_float3{right.x, right.y, right.z};
 
   u.frameIndex = m_engine->m_timings.m_totalNumberOfFrames;
   u.height = m_engine->m_config.m_windowConfig.m_height;
   u.width = m_engine->m_config.m_windowConfig.m_width;
   // TODO add light data
   // u.light ...
-  m_engine->m_constantBufferManager->update(m_engine,m_uniforms,&u);
+  m_engine->m_constantBufferManager->update(m_engine, m_uniforms, &u);
 }
 struct RtCamera {
   vector_float3 position;
@@ -273,11 +321,10 @@ void GraphicsLayer::onUpdate() {
   id<MTLComputeCommandEncoder> computeEncoder =
       [commandBuffer computeCommandEncoder];
 
-  SirMetal::BindInfo rtinfo = m_engine->m_constantBufferManager->getBindInfo(m_engine,m_uniforms);
+  SirMetal::BindInfo rtinfo =
+      m_engine->m_constantBufferManager->getBindInfo(m_engine, m_uniforms);
   // Bind buffers needed by the compute pipeline
-  [computeEncoder setBuffer: rtinfo.buffer
-                     offset: rtinfo.offset
-                    atIndex:0];
+  [computeEncoder setBuffer:rtinfo.buffer offset:rtinfo.offset atIndex:0];
 
   id rayBuffer = m_gpuAllocator.getBuffer(m_rayBuffer);
   [computeEncoder setBuffer:rayBuffer offset:0 atIndex:1];
@@ -290,11 +337,55 @@ void GraphicsLayer::onUpdate() {
                  threadsPerThreadgroup:threadsPerThreadgroup];
 
   [computeEncoder endEncoding];
-  /*
+
+  
+  id intersectionBuffer= m_gpuAllocator.getBuffer(m_intersectionBuffer);
+  m_intersector.intersectionDataType = MPSIntersectionDataTypeDistancePrimitiveIndexCoordinates;
+
+  [m_intersector
+      encodeIntersectionToCommandBuffer:commandBuffer // Command buffer to encode into
+                       intersectionType:
+                           MPSIntersectionTypeNearest // Intersection
+                                                      // test type
+                              rayBuffer:rayBuffer     // Ray buffer
+                        rayBufferOffset:0             // Offset into ray buffer
+                     intersectionBuffer:intersectionBuffer // Intersection
+                                                           // buffer
+                                                           // (destination)
+               
+               intersectionBufferOffset:0     // Offset into intersection buffer
+                               rayCount:w * h // Number of rays
+                  accelerationStructure:
+                      m_accelerationStructure]; // Acceleration
+                                                // structure
+
+
+  // First, we will generate rays on the GPU. We create a compute command
+  // encoder which will be used to add commands to the command buffer.
+  id<MTLComputeCommandEncoder> computeEncoder2 = [commandBuffer computeCommandEncoder];
+  [computeEncoder2 setBuffer:rtinfo.buffer offset:rtinfo.offset atIndex:0];
+  [computeEncoder2 setBuffer:rayBuffer offset:0 atIndex:1];
+  [computeEncoder2 setBuffer:intersectionBuffer offset:0 atIndex:2];
+  id t = m_engine->m_textureManager->getNativeFromHandle(m_color);
+  [computeEncoder2 setTexture:t atIndex:0];
+  // Bind the ray generation compute pipeline
+  [computeEncoder2 setComputePipelineState:rayShadePipeline];
+
+  // Launch threads
+  [computeEncoder2 dispatchThreadgroups:threadgroups
+  threadsPerThreadgroup:threadsPerThreadgroup];
+  [computeEncoder2 endEncoding];
+
+
+
+
+
+  id<MTLRenderCommandEncoder> commandEncoder =
+  [commandBuffer renderCommandEncoderWithDescriptor:passDescriptor];
 
 
   [commandEncoder setRenderPipelineState:cache.color];
-  [commandEncoder setDepthStencilState:cache.depth];
+  //[commandEncoder setDepthStencilState:cache.depth];
   [commandEncoder setFrontFacingWinding:MTLWindingCounterClockwise];
   [commandEncoder setCullMode:MTLCullModeBack];
 
@@ -322,11 +413,13 @@ void GraphicsLayer::onUpdate() {
     [commandEncoder setVertexBuffer:meshData->vertexBuffer
                              offset:meshData->ranges[3].m_offset
                             atIndex:3];
+    [commandEncoder setFragmentTexture:t atIndex:0];
     [commandEncoder drawIndexedPrimitives:MTLPrimitiveTypeTriangle
                                indexCount:meshData->primitivesCount
                                 indexType:MTLIndexTypeUInt32
                               indexBuffer:meshData->indexBuffer
                         indexBufferOffset:0];
+    break;
   }
   // render debug
   m_engine->m_debugRenderer->newFrame();
@@ -341,9 +434,6 @@ void GraphicsLayer::onUpdate() {
   renderDebugWindow();
   SirMetal::graphics::imguiEndFrame(commandBuffer, commandEncoder);
 
-   */
-  id<MTLRenderCommandEncoder> commandEncoder =
-  [commandBuffer renderCommandEncoderWithDescriptor:passDescriptor];
   [commandEncoder endEncoding];
 
   [commandBuffer addCompletedHandler:^(id<MTLCommandBuffer> commandBuffer) {

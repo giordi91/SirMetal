@@ -48,6 +48,7 @@ private:
   SirMetal::MeshHandle m_meshes[5];
   SirMetal::LibraryHandle m_shaderHandle;
   SirMetal::LibraryHandle m_rtGenShaderHandle;
+  SirMetal::LibraryHandle m_rtShadeShaderHandle;
   SirMetal::TextureHandle m_color;
   dispatch_semaphore_t frameBoundarySemaphore;
 
@@ -55,9 +56,12 @@ private:
   DirLight light{};
   MPSTriangleAccelerationStructure* m_accelerationStructure;
   MPSRayIntersector* m_intersector;
+  SirMetal::BufferHandle m_tBuff;
   SirMetal::BufferHandle m_rayBuffer;
+  SirMetal::BufferHandle m_intersectionBuffer;
   SirMetal::GPUMemoryAllocator m_gpuAllocator;
   id rayPipeline;
+  id rayShadePipeline;
 
 };
 } // namespace Sandbox

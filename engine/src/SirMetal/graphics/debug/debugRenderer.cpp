@@ -179,7 +179,9 @@ void DebugRenderer::render(EngineContext *context,
   auto cache =
       SirMetal::getPSO(context, tracker, SirMetal::Material{"solidColor", false});
   [encoder setRenderPipelineState:cache.color];
-  [encoder setDepthStencilState:cache.depth];
+  if(cache.depth != nil){
+    [encoder setDepthStencilState:cache.depth];
+  }
   [encoder setFrontFacingWinding:MTLWindingCounterClockwise];
   [encoder setCullMode:MTLCullModeBack];
 
