@@ -49,6 +49,8 @@ private:
   SirMetal::LibraryHandle m_shaderHandle;
   SirMetal::LibraryHandle m_rtGenShaderHandle;
   SirMetal::LibraryHandle m_rtShadeShaderHandle;
+  SirMetal::LibraryHandle m_imageFillHandle;
+  SirMetal::LibraryHandle m_fullScreenHandle;
   SirMetal::TextureHandle m_color;
   dispatch_semaphore_t frameBoundarySemaphore;
 
@@ -62,6 +64,7 @@ private:
   SirMetal::GPUMemoryAllocator m_gpuAllocator;
   id rayPipeline;
   id rayShadePipeline;
+  id testFillPipeline;
 
 };
 } // namespace Sandbox

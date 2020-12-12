@@ -50,6 +50,29 @@ static const size_t intersectionStride =
     sizeof(MPSIntersectionDistancePrimitiveIndexCoordinates);
 constexpr int kMaxInflightBuffers = 3;
 
+id createComputePipeline(id<MTLDevice> device, id function)
+{
+  // Create compute pipelines will will execute code on the GPU
+  MTLComputePipelineDescriptor *computeDescriptor =
+  [[MTLComputePipelineDescriptor alloc] init];
+
+  // Set to YES to allow compiler to make certain optimizations
+  computeDescriptor.threadGroupSizeIsMultipleOfThreadExecutionWidth = YES;
+
+  // Generates rays according to view/projection matrices
+  computeDescriptor.computeFunction = function;
+  NSError *error = NULL;
+  id toReturn = [device newComputePipelineStateWithDescriptor:computeDescriptor
+  options:0
+  reflection:nil
+  error:&error];
+
+  if (!toReturn)
+    NSLog(@"Failed to create pipeline state: %@", error);
+
+  return toReturn;
+}
+
 namespace Sandbox {
 void GraphicsLayer::onAttach(SirMetal::EngineContext *context) {
 
@@ -106,56 +129,11 @@ void GraphicsLayer::onAttach(SirMetal::EngineContext *context) {
       m_engine->m_shaderManager->loadShader((base + "/rtGen.metal").c_str());
   m_rtShadeShaderHandle =
       m_engine->m_shaderManager->loadShader((base + "/rtShade.metal").c_str());
+  m_imageFillHandle=
+      m_engine->m_shaderManager->loadShader((base + "/imageFill.metal").c_str());
+  m_fullScreenHandle =
+      m_engine->m_shaderManager->loadShader((base + "/fullscreen.metal").c_str());
 
-  // let us start building the raytracing stuff
-  // Create a raytracer for our Metal device
-  m_intersector = [[MPSRayIntersector alloc] initWithDevice:device];
-  m_intersector.rayDataType = MPSRayDataTypeOriginDirection;
-  //m_intersector.rayStride = rayStride;
-  //m_intersector.intersectionStride = sizeof(MPSIntersectionDistancePrimitiveIndexCoordinates);
-
-  // Create an acceleration structure from our vertex position data
-  m_accelerationStructure =
-      [[MPSTriangleAccelerationStructure alloc] initWithDevice:device];
-
-    /*
-  float data[] {
-      -1,-1,0,1,
-      1,1,0,1,
-      1,-1,0,1,
-      -1,-1,0,1,
-      -1,1,0,1,
-      1,1,0,1,
-  };
-
-
-  m_tBuff = m_gpuAllocator.allocate(6*4*sizeof(float),"temp",SirMetal::BUFFER_FLAGS_BITS::BUFFER_FLAG_GPU_ONLY,data);
-  id tBuffH = m_gpuAllocator.getBuffer(m_tBuff);
-
-
-
-
-  m_accelerationStructure.vertexBuffer = tBuffH;
-  m_accelerationStructure.vertexBufferOffset = 0;
-  m_accelerationStructure.triangleCount = 2;
-    */
-
-  
-  const SirMetal::MeshData *meshData =
-      m_engine->m_meshManager->getMeshData(m_meshes[0]);
-  m_accelerationStructure.vertexBuffer = meshData->vertexBuffer;
-  m_accelerationStructure.vertexBufferOffset = 0;
-  m_accelerationStructure.indexBuffer = meshData->indexBuffer;
-  m_accelerationStructure.indexBufferOffset = 0;
-  m_accelerationStructure.indexType = MPSDataTypeUInt32;
-  m_accelerationStructure.triangleCount = meshData->primitivesCount / 3;
-  m_accelerationStructure.vertexStride = sizeof(float) * 4;
-
-
-  //sleep 10 seconds
-  //usleep(1000*1000*10); // will sleep for 1 ms
-
-  [m_accelerationStructure rebuild];
 
   uint32_t w = m_engine->m_config.m_windowConfig.m_width;
   uint32_t h = m_engine->m_config.m_windowConfig.m_height;
@@ -172,37 +150,13 @@ void GraphicsLayer::onAttach(SirMetal::EngineContext *context) {
   SirMetal::graphics::initImgui(m_engine);
   frameBoundarySemaphore = dispatch_semaphore_create(kMaxInflightBuffers);
 
-  // Create compute pipelines will will execute code on the GPU
-  MTLComputePipelineDescriptor *computeDescriptor =
-      [[MTLComputePipelineDescriptor alloc] init];
 
-  // Set to YES to allow compiler to make certain optimizations
-  computeDescriptor.threadGroupSizeIsMultipleOfThreadExecutionWidth = YES;
+  rayPipeline = createComputePipeline(device,m_engine->m_shaderManager->getKernelFunction(m_rtGenShaderHandle));
+  rayPipeline = createComputePipeline(device,
+      m_engine->m_shaderManager->getKernelFunction(m_rtShadeShaderHandle));
+  testFillPipeline= createComputePipeline(device,
+                                      m_engine->m_shaderManager->getKernelFunction(m_imageFillHandle));
 
-  // Generates rays according to view/projection matrices
-  computeDescriptor.computeFunction =
-      m_engine->m_shaderManager->getKernelFunction(m_rtGenShaderHandle);
-
-  // ray pipeline
-  NSError *error = NULL;
-  rayPipeline = [device newComputePipelineStateWithDescriptor:computeDescriptor
-                                                      options:0
-                                                   reflection:nil
-                                                        error:&error];
-
-  if (!rayPipeline)
-    NSLog(@"Failed to create pipeline state: %@", error);
-
-  error = nil;
-  computeDescriptor.computeFunction =
-      m_engine->m_shaderManager->getKernelFunction(m_rtShadeShaderHandle);
-  rayShadePipeline = [device newComputePipelineStateWithDescriptor:computeDescriptor
-  options:0
-  reflection:nil
-  error:&error];
-
-  if (!rayShadePipeline)
-    NSLog(@"Failed to create pipeline state: %@", error);
 }
 
 void GraphicsLayer::onDetach() {}
@@ -291,7 +245,7 @@ void GraphicsLayer::onUpdate() {
   tracker.depthTarget = nullptr;
 
   SirMetal::PSOCache cache =
-      SirMetal::getPSO(m_engine, tracker, SirMetal::Material{"Shaders", false});
+      SirMetal::getPSO(m_engine, tracker, SirMetal::Material{"fullscreen", false});
 
   MTLRenderPassDescriptor *passDescriptor =
       [MTLRenderPassDescriptor renderPassDescriptor];
@@ -320,64 +274,11 @@ void GraphicsLayer::onUpdate() {
   // encoder which will be used to add commands to the command buffer.
   id<MTLComputeCommandEncoder> computeEncoder =
       [commandBuffer computeCommandEncoder];
-
-  SirMetal::BindInfo rtinfo =
-      m_engine->m_constantBufferManager->getBindInfo(m_engine, m_uniforms);
-  // Bind buffers needed by the compute pipeline
-  [computeEncoder setBuffer:rtinfo.buffer offset:rtinfo.offset atIndex:0];
-
-  id rayBuffer = m_gpuAllocator.getBuffer(m_rayBuffer);
-  [computeEncoder setBuffer:rayBuffer offset:0 atIndex:1];
-
-  // Bind the ray generation compute pipeline
-  [computeEncoder setComputePipelineState:rayPipeline];
-
-  // Launch threads
-  [computeEncoder dispatchThreadgroups:threadgroups
-                 threadsPerThreadgroup:threadsPerThreadgroup];
-
+  auto t = m_engine->m_textureManager->getNativeFromHandle(m_color);
+  [computeEncoder setTexture:t atIndex:0];
+  [computeEncoder setComputePipelineState:testFillPipeline];
+  [computeEncoder dispatchThreadgroups:threadgroups threadsPerThreadgroup:MTLSizeMake(8, 8, 1)];
   [computeEncoder endEncoding];
-
-  
-  id intersectionBuffer= m_gpuAllocator.getBuffer(m_intersectionBuffer);
-  m_intersector.intersectionDataType = MPSIntersectionDataTypeDistancePrimitiveIndexCoordinates;
-
-  [m_intersector
-      encodeIntersectionToCommandBuffer:commandBuffer // Command buffer to encode into
-                       intersectionType:
-                           MPSIntersectionTypeNearest // Intersection
-                                                      // test type
-                              rayBuffer:rayBuffer     // Ray buffer
-                        rayBufferOffset:0             // Offset into ray buffer
-                     intersectionBuffer:intersectionBuffer // Intersection
-                                                           // buffer
-                                                           // (destination)
-               
-               intersectionBufferOffset:0     // Offset into intersection buffer
-                               rayCount:w * h // Number of rays
-                  accelerationStructure:
-                      m_accelerationStructure]; // Acceleration
-                                                // structure
-
-
-  // First, we will generate rays on the GPU. We create a compute command
-  // encoder which will be used to add commands to the command buffer.
-  id<MTLComputeCommandEncoder> computeEncoder2 = [commandBuffer computeCommandEncoder];
-  [computeEncoder2 setBuffer:rtinfo.buffer offset:rtinfo.offset atIndex:0];
-  [computeEncoder2 setBuffer:rayBuffer offset:0 atIndex:1];
-  [computeEncoder2 setBuffer:intersectionBuffer offset:0 atIndex:2];
-  id t = m_engine->m_textureManager->getNativeFromHandle(m_color);
-  [computeEncoder2 setTexture:t atIndex:0];
-  // Bind the ray generation compute pipeline
-  [computeEncoder2 setComputePipelineState:rayShadePipeline];
-
-  // Launch threads
-  [computeEncoder2 dispatchThreadgroups:threadgroups
-  threadsPerThreadgroup:threadsPerThreadgroup];
-  [computeEncoder2 endEncoding];
-
-
-
 
 
   id<MTLRenderCommandEncoder> commandEncoder =
@@ -388,7 +289,10 @@ void GraphicsLayer::onUpdate() {
   //[commandEncoder setDepthStencilState:cache.depth];
   [commandEncoder setFrontFacingWinding:MTLWindingCounterClockwise];
   [commandEncoder setCullMode:MTLCullModeBack];
+  [commandEncoder setFragmentTexture:t atIndex:0];
+  [commandEncoder drawPrimitives:MTLPrimitiveTypeTriangle vertexStart:0 vertexCount:3];
 
+  /*
   SirMetal::BindInfo info =
       m_engine->m_constantBufferManager->getBindInfo(m_engine,
   m_uniformHandle); [commandEncoder setVertexBuffer:info.buffer
@@ -396,6 +300,7 @@ void GraphicsLayer::onUpdate() {
       m_engine->m_constantBufferManager->getBindInfo(m_engine,
   m_lightHandle); [commandEncoder setFragmentBuffer:info.buffer
   offset:info.offset atIndex:5];
+
 
   for (auto &mesh : m_meshes) {
     const SirMetal::MeshData *meshData =
@@ -413,7 +318,6 @@ void GraphicsLayer::onUpdate() {
     [commandEncoder setVertexBuffer:meshData->vertexBuffer
                              offset:meshData->ranges[3].m_offset
                             atIndex:3];
-    [commandEncoder setFragmentTexture:t atIndex:0];
     [commandEncoder drawIndexedPrimitives:MTLPrimitiveTypeTriangle
                                indexCount:meshData->primitivesCount
                                 indexType:MTLIndexTypeUInt32
@@ -428,6 +332,7 @@ void GraphicsLayer::onUpdate() {
                                        vector_float4{1, 0, 0, 1});
   m_engine->m_debugRenderer->render(m_engine, commandEncoder, tracker,
                                     m_uniformHandle, 300, 300);
+  */
 
   // ui
   SirMetal::graphics::imguiNewFrame(m_engine, passDescriptor);
