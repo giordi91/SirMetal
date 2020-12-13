@@ -89,7 +89,7 @@ void GraphicsLayer::onAttach(SirMetal::EngineContext *context) {
   m_camera.nearPlane = 0.01;
   m_camera.farPlane = 60;
   m_cameraController.setCamera(&m_camera);
-  m_cameraController.setPosition(0, 0.1, 15);
+  m_cameraController.setPosition(0, 0.0, 2);
   m_camConfig = {1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 0.2, 0.008};
 
   m_uniformHandle = m_engine->m_constantBufferManager->allocate(
@@ -162,9 +162,9 @@ void GraphicsLayer::onAttach(SirMetal::EngineContext *context) {
 
 
   struct Vertex { float x, y, z, w; } vertices[3] = {
-      { 0.25f, 0.25f, 0.0f },
-      { 0.75f, 0.25f, 0.0f },
-      { 0.50f, 0.75f, 0.0f }
+      { -0.5f, -0.5f, 0.0f },
+      { 0.5f, -0.5f, 0.0f },
+      { 0.0f, 0.5f, 0.0f }
   };
   id<MTLBuffer> vertexBuffer = [device newBufferWithBytes:vertices length:sizeof(vertices) options:MTLResourceStorageModeManaged];
 
@@ -309,7 +309,9 @@ void GraphicsLayer::onUpdate() {
 
   id rayBuffer = m_gpuAllocator.getBuffer(m_rayBuffer);
   id intersectionBuffer = m_gpuAllocator.getBuffer(m_intersectionBuffer);
+  auto bindInfo = m_engine->m_constantBufferManager->getBindInfo(m_engine,m_uniforms);
   [computeEncoder setBuffer:rayBuffer offset:0 atIndex:0];
+  [computeEncoder setBuffer:bindInfo.buffer offset:bindInfo.offset atIndex:1];
   [computeEncoder setComputePipelineState:rayPipeline];
   [computeEncoder dispatchThreadgroups:threadgroups threadsPerThreadgroup:MTLSizeMake(8, 8, 1)];
   [computeEncoder endEncoding];

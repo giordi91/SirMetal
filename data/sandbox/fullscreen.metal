@@ -26,7 +26,6 @@ vertex OutVertex vertex_project( uint vid [[vertex_id]]) {
   return vertexOut;
 }
 
-
 fragment half4 fragment_flatcolor(OutVertex vertexIn [[stage_in]],
                                   texture2d<float> blitTex [[texture(0)]]) {
 
