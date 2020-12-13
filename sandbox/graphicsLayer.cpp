@@ -161,22 +161,26 @@ void GraphicsLayer::onAttach(SirMetal::EngineContext *context) {
                                       m_engine->m_shaderManager->getKernelFunction(m_imageFillHandle));
 
 
+  /*
   struct Vertex { float x, y, z, w; } vertices[3] = {
-      { -0.5f, -0.5f, 0.0f },
+      { 0.0f, 0.5f, 0.0f },
       { 0.5f, -0.5f, 0.0f },
-      { 0.0f, 0.5f, 0.0f }
+      { -0.5f, -0.5f, 0.0f }
   };
   id<MTLBuffer> vertexBuffer = [device newBufferWithBytes:vertices length:sizeof(vertices) options:MTLResourceStorageModeManaged];
-
   uint32_t indices[3] = { 0, 1, 2 };
   id<MTLBuffer> indexBuffer = [device newBufferWithBytes:indices length:sizeof(indices) options:MTLResourceStorageModeManaged];
+   */
+
+  const SirMetal::MeshData* meshData = m_engine->m_meshManager->getMeshData(m_meshes[0]);
+
 
   m_accelerationStructure = [[MPSTriangleAccelerationStructure alloc] initWithDevice:device];
-  [m_accelerationStructure setVertexBuffer:vertexBuffer];
-  [m_accelerationStructure setVertexStride:sizeof(Vertex)];
-  [m_accelerationStructure setIndexBuffer:indexBuffer];
+  [m_accelerationStructure setVertexBuffer:meshData->vertexBuffer];
+  [m_accelerationStructure setVertexStride:sizeof(float)*4];
+  [m_accelerationStructure setIndexBuffer:meshData->indexBuffer];
   [m_accelerationStructure setIndexType:MPSDataTypeUInt32];
-  [m_accelerationStructure setTriangleCount:1];
+  [m_accelerationStructure setTriangleCount:meshData->primitivesCount/3];
   [m_accelerationStructure rebuild];
 
   m_intersector = [[MPSRayIntersector alloc] initWithDevice:device];
