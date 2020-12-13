@@ -92,6 +92,11 @@ struct Intersection{
 
 kernel void shadeKernel(texture2d<float, access::write> image [[texture(0)]],
                                 device const Intersection* intersections [[buffer(0)]],
+                                const device float4 *positions [[buffer(1)]],
+                                const device float4 *normals [[buffer(2)]],
+                                const device float2 *uvs [[buffer(3)]],
+                                const device float4 *tangents [[buffer(4)]],
+                                const device uint *indeces [[buffer(5)]],
                                 uint2 coordinates [[thread_position_in_grid]],
                                 uint2 size [[threads_per_grid]])
 {
@@ -99,7 +104,14 @@ kernel void shadeKernel(texture2d<float, access::write> image [[texture(0)]],
     device const Intersection& i = intersections[rayIndex];
     if (i.distance > 0.0f)
     {
+        int index = i.primitiveIndex * 3;
+        float3 n1 = normals[indeces[index + 0]].xyz;
+        float3 n2 = normals[indeces[index + 1]].xyz;
+        float3 n3 = normals[indeces[index + 2]].xyz;
+
         float w = 1.0 - i.coordinates.x - i.coordinates.y;
-        image.write(float4(i.coordinates, w, 1.0), coordinates);
+        float3 outN = n1 * i.coordinates.x + n2 * i.coordinates.y + n3 * w;
+        image.write(float4(outN, 1.0), coordinates);
+        //image.write(float4(i.coordinates, w, 1.0), coordinates);
     }
 }

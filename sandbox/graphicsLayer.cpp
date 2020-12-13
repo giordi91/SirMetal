@@ -22,6 +22,7 @@
 #import <MetalPerformanceShaders/MetalPerformanceShaders.h>
 
 struct RtCamera {
+  simd_float4x4 VPinverse;
   vector_float3 position;
   vector_float3 right;
   vector_float3 up;
@@ -53,11 +54,10 @@ constexpr int kMaxInflightBuffers = 3;
 using Ray = MPSRayOriginMinDistanceDirectionMaxDistance;
 using Intersection = MPSIntersectionDistancePrimitiveIndexCoordinates;
 
-id createComputePipeline(id<MTLDevice> device, id function)
-{
+id createComputePipeline(id<MTLDevice> device, id function) {
   // Create compute pipelines will will execute code on the GPU
   MTLComputePipelineDescriptor *computeDescriptor =
-  [[MTLComputePipelineDescriptor alloc] init];
+      [[MTLComputePipelineDescriptor alloc] init];
 
   // Set to YES to allow compiler to make certain optimizations
   computeDescriptor.threadGroupSizeIsMultipleOfThreadExecutionWidth = YES;
@@ -66,9 +66,9 @@ id createComputePipeline(id<MTLDevice> device, id function)
   computeDescriptor.computeFunction = function;
   NSError *error = NULL;
   id toReturn = [device newComputePipelineStateWithDescriptor:computeDescriptor
-  options:0
-  reflection:nil
-  error:&error];
+                                                      options:0
+                                                   reflection:nil
+                                                        error:&error];
 
   if (!toReturn)
     NSLog(@"Failed to create pipeline state: %@", error);
@@ -132,11 +132,10 @@ void GraphicsLayer::onAttach(SirMetal::EngineContext *context) {
       m_engine->m_shaderManager->loadShader((base + "/rtGen.metal").c_str());
   m_rtShadeShaderHandle =
       m_engine->m_shaderManager->loadShader((base + "/rtShade.metal").c_str());
-  m_imageFillHandle=
-      m_engine->m_shaderManager->loadShader((base + "/imageFill.metal").c_str());
-  m_fullScreenHandle =
-      m_engine->m_shaderManager->loadShader((base + "/fullscreen.metal").c_str());
-
+  m_imageFillHandle = m_engine->m_shaderManager->loadShader(
+      (base + "/imageFill.metal").c_str());
+  m_fullScreenHandle = m_engine->m_shaderManager->loadShader(
+      (base + "/fullscreen.metal").c_str());
 
   uint32_t w = m_engine->m_config.m_windowConfig.m_width;
   uint32_t h = m_engine->m_config.m_windowConfig.m_height;
@@ -147,19 +146,20 @@ void GraphicsLayer::onAttach(SirMetal::EngineContext *context) {
       SirMetal::BUFFER_FLAGS_BITS::BUFFER_FLAG_GPU_ONLY);
 
   m_intersectionBuffer = m_gpuAllocator.allocate(
-      pixelCount*intersectionStride, "rayIntersectBuffer",
+      pixelCount * intersectionStride, "rayIntersectBuffer",
       SirMetal::BUFFER_FLAGS_BITS::BUFFER_FLAG_GPU_ONLY);
 
   SirMetal::graphics::initImgui(m_engine);
   frameBoundarySemaphore = dispatch_semaphore_create(kMaxInflightBuffers);
 
-
-  rayPipeline = createComputePipeline(device,m_engine->m_shaderManager->getKernelFunction(m_rtGenShaderHandle));
-  rayShadePipeline= createComputePipeline(device,
+  rayPipeline = createComputePipeline(
+      device,
+      m_engine->m_shaderManager->getKernelFunction(m_rtGenShaderHandle));
+  rayShadePipeline = createComputePipeline(
+      device,
       m_engine->m_shaderManager->getKernelFunction(m_rtShadeShaderHandle));
-  testFillPipeline= createComputePipeline(device,
-                                      m_engine->m_shaderManager->getKernelFunction(m_imageFillHandle));
-
+  testFillPipeline = createComputePipeline(
+      device, m_engine->m_shaderManager->getKernelFunction(m_imageFillHandle));
 
   /*
   struct Vertex { float x, y, z, w; } vertices[3] = {
@@ -167,28 +167,38 @@ void GraphicsLayer::onAttach(SirMetal::EngineContext *context) {
       { 0.5f, -0.5f, 0.0f },
       { -0.5f, -0.5f, 0.0f }
   };
-  id<MTLBuffer> vertexBuffer = [device newBufferWithBytes:vertices length:sizeof(vertices) options:MTLResourceStorageModeManaged];
-  uint32_t indices[3] = { 0, 1, 2 };
-  id<MTLBuffer> indexBuffer = [device newBufferWithBytes:indices length:sizeof(indices) options:MTLResourceStorageModeManaged];
+  id<MTLBuffer> vertexBuffer = [device newBufferWithBytes:vertices
+  length:sizeof(vertices) options:MTLResourceStorageModeManaged]; uint32_t
+  indices[3] = { 0, 1, 2 }; id<MTLBuffer> indexBuffer = [device
+  newBufferWithBytes:indices length:sizeof(indices)
+  options:MTLResourceStorageModeManaged];
    */
 
-  const SirMetal::MeshData* meshData = m_engine->m_meshManager->getMeshData(m_meshes[0]);
+  // this is to flush the gpu, should figure out why is not actually flushing
+  // properly
+  m_engine->m_renderingContext->flush();
+  usleep(1000 * 1000 * 2);
+  const SirMetal::MeshData *meshData =
+      m_engine->m_meshManager->getMeshData(m_meshes[0]);
 
-
-  m_accelerationStructure = [[MPSTriangleAccelerationStructure alloc] initWithDevice:device];
+  m_accelerationStructure =
+      [[MPSTriangleAccelerationStructure alloc] initWithDevice:device];
   [m_accelerationStructure setVertexBuffer:meshData->vertexBuffer];
-  [m_accelerationStructure setVertexStride:sizeof(float)*4];
+  [m_accelerationStructure setVertexStride:sizeof(float) * 4];
   [m_accelerationStructure setIndexBuffer:meshData->indexBuffer];
   [m_accelerationStructure setIndexType:MPSDataTypeUInt32];
-  [m_accelerationStructure setTriangleCount:meshData->primitivesCount/3];
+  [m_accelerationStructure setTriangleCount:meshData->primitivesCount / 3];
   [m_accelerationStructure rebuild];
 
+  m_engine->m_renderingContext->flush();
+  usleep(1000 * 1000 * 2);
   m_intersector = [[MPSRayIntersector alloc] initWithDevice:device];
-  [m_intersector setRayDataType:MPSRayDataTypeOriginMinDistanceDirectionMaxDistance];
+  [m_intersector
+      setRayDataType:MPSRayDataTypeOriginMinDistanceDirectionMaxDistance];
   [m_intersector setRayStride:sizeof(Ray)];
-  [m_intersector setIntersectionDataType:MPSIntersectionDataTypeDistancePrimitiveIndexCoordinates];
+  [m_intersector setIntersectionDataType:
+                     MPSIntersectionDataTypeDistancePrimitiveIndexCoordinates];
   [m_intersector setIntersectionStride:sizeof(Intersection)];
-
 }
 
 void GraphicsLayer::onDetach() {}
@@ -209,14 +219,15 @@ void GraphicsLayer::updateUniformsForView(float screenWidth,
   // update rt uniform
   Uniforms u{};
 
+  u.camera.VPinverse = m_camera.VPInverse;
   simd_float4 pos = m_camera.viewMatrix.columns[3];
   u.camera.position = simd_float3{pos.x, pos.y, pos.z};
-  simd_float4 f = -m_camera.viewMatrix.columns[2];
+  simd_float4 f = simd_normalize(-m_camera.viewMatrix.columns[2]);
   u.camera.forward = simd_float3{f.x, f.y, f.z};
-  simd_float4 up = m_camera.viewMatrix.columns[1];
+  simd_float4 up = simd_normalize(m_camera.viewMatrix.columns[1]);
   u.camera.up = simd_float3{up.x, up.y, up.z};
-  simd_float4 right = m_camera.viewMatrix.columns[0];
-  u.camera.right = simd_float3{right.x, right.y, right.z};
+  simd_float4 right = simd_normalize(m_camera.viewMatrix.columns[0]);
+  u.camera.right = simd_normalize(simd_float3{right.x, right.y, right.z});
 
   u.frameIndex = m_engine->m_timings.m_totalNumberOfFrames;
   u.height = m_engine->m_config.m_windowConfig.m_height;
@@ -276,8 +287,8 @@ void GraphicsLayer::onUpdate() {
   tracker.renderTargets[0] = texture;
   tracker.depthTarget = nullptr;
 
-  SirMetal::PSOCache cache =
-      SirMetal::getPSO(m_engine, tracker, SirMetal::Material{"fullscreen", false});
+  SirMetal::PSOCache cache = SirMetal::getPSO(
+      m_engine, tracker, SirMetal::Material{"fullscreen", false});
 
   MTLRenderPassDescriptor *passDescriptor =
       [MTLRenderPassDescriptor renderPassDescriptor];
@@ -309,41 +320,69 @@ void GraphicsLayer::onUpdate() {
   id<MTLTexture> t = m_engine->m_textureManager->getNativeFromHandle(m_color);
   [computeEncoder setTexture:t atIndex:0];
   [computeEncoder setComputePipelineState:testFillPipeline];
-  [computeEncoder dispatchThreadgroups:threadgroups threadsPerThreadgroup:MTLSizeMake(8, 8, 1)];
+  [computeEncoder dispatchThreadgroups:threadgroups
+                 threadsPerThreadgroup:MTLSizeMake(8, 8, 1)];
 
   id rayBuffer = m_gpuAllocator.getBuffer(m_rayBuffer);
   id intersectionBuffer = m_gpuAllocator.getBuffer(m_intersectionBuffer);
-  auto bindInfo = m_engine->m_constantBufferManager->getBindInfo(m_engine,m_uniforms);
+  auto bindInfo =
+      m_engine->m_constantBufferManager->getBindInfo(m_engine, m_uniforms);
   [computeEncoder setBuffer:rayBuffer offset:0 atIndex:0];
   [computeEncoder setBuffer:bindInfo.buffer offset:bindInfo.offset atIndex:1];
   [computeEncoder setComputePipelineState:rayPipeline];
-  [computeEncoder dispatchThreadgroups:threadgroups threadsPerThreadgroup:MTLSizeMake(8, 8, 1)];
+  [computeEncoder dispatchThreadgroups:threadgroups
+                 threadsPerThreadgroup:MTLSizeMake(8, 8, 1)];
   [computeEncoder endEncoding];
 
   [m_intersector encodeIntersectionToCommandBuffer:commandBuffer
-  intersectionType:MPSIntersectionTypeNearest
-  rayBuffer:rayBuffer rayBufferOffset:0
-  intersectionBuffer:intersectionBuffer intersectionBufferOffset:0
-  rayCount:w*h accelerationStructure:m_accelerationStructure];
+                                  intersectionType:MPSIntersectionTypeNearest
+                                         rayBuffer:rayBuffer
+                                   rayBufferOffset:0
+                                intersectionBuffer:intersectionBuffer
+                          intersectionBufferOffset:0
+                                          rayCount:w * h
+                             accelerationStructure:m_accelerationStructure];
 
   id<MTLComputeCommandEncoder> computeEncoder2 =
-  [commandBuffer computeCommandEncoder];
+      [commandBuffer computeCommandEncoder];
   [computeEncoder2 setBuffer:intersectionBuffer offset:0 atIndex:0];
   [computeEncoder2 setTexture:t atIndex:0];
   [computeEncoder2 setComputePipelineState:rayShadePipeline];
-  [computeEncoder2 dispatchThreadgroups:threadgroups threadsPerThreadgroup:MTLSizeMake(8, 8, 1)];
+
+  const SirMetal::MeshData *meshData =
+      m_engine->m_meshManager->getMeshData(m_meshes[0]);
+
+  [computeEncoder2 setBuffer:meshData->vertexBuffer
+                      offset:meshData->ranges[0].m_offset
+                     atIndex:1];
+  [computeEncoder2 setBuffer:meshData->vertexBuffer
+                      offset:meshData->ranges[1].m_offset
+                     atIndex:2];
+  [computeEncoder2 setBuffer:meshData->vertexBuffer
+                      offset:meshData->ranges[2].m_offset
+                     atIndex:3];
+  [computeEncoder2 setBuffer:meshData->vertexBuffer
+                      offset:meshData->ranges[3].m_offset
+                     atIndex:4];
+  [computeEncoder2 setBuffer:meshData->indexBuffer
+  offset: 0
+  atIndex:5];
+
+  [computeEncoder2 dispatchThreadgroups:threadgroups
+                  threadsPerThreadgroup:MTLSizeMake(8, 8, 1)];
   [computeEncoder2 endEncoding];
 
   id<MTLRenderCommandEncoder> commandEncoder =
-  [commandBuffer renderCommandEncoderWithDescriptor:passDescriptor];
-
+      [commandBuffer renderCommandEncoderWithDescriptor:passDescriptor];
 
   [commandEncoder setRenderPipelineState:cache.color];
   //[commandEncoder setDepthStencilState:cache.depth];
   [commandEncoder setFrontFacingWinding:MTLWindingCounterClockwise];
   [commandEncoder setCullMode:MTLCullModeBack];
   [commandEncoder setFragmentTexture:t atIndex:0];
-  [commandEncoder drawPrimitives:MTLPrimitiveTypeTriangle vertexStart:0 vertexCount:3];
+  [commandEncoder drawPrimitives:MTLPrimitiveTypeTriangle
+                     vertexStart:0
+                     vertexCount:3];
 
   /*
   SirMetal::BindInfo info =

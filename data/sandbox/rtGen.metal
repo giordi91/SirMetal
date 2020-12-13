@@ -12,6 +12,7 @@ struct Ray {
 */
 
 struct Camera {
+    float4x4 VPinverse;
     vector_float3 position;
     vector_float3 right;
     vector_float3 up;
@@ -138,32 +139,23 @@ kernel void rayKernel(device Ray* rays [[buffer(0)]],
         // Ray we will produce
         device Ray & ray = rays[rayIdx];
 
-        // Pixel coordinates for this thread
-        float2 pixel = (float2)tid;
-
-        // Apply a random offset to random number index to decorrelate pixels
-        //unsigned int offset = randomTex.read(tid).x;
-
-        //// Add a random offset to the pixel coordinates for antialiasing
-        //float2 r = float2(halton(offset + uniforms.frameIndex, 0),
-        //                  halton(offset + uniforms.frameIndex, 1));
-        // Add a random offset to the pixel coordinates for antialiasing
-        //pixel += r;
-
-        // Map pixel coordinates to -1..1
-        float2 uv = (float2)pixel / float2(uniforms.width, uniforms.height);
-        uv = uv * 2.0f - 1.0f;
-
         constant Camera & camera = uniforms.camera;
 
         // Rays start at the camera position
         ray.origin = camera.position;
-
-        // Map normalized pixel coordinates into camera's coordinate system
-        ray.direction = normalize(uv.x * camera.right +
-                                  uv.y * camera.up +
-                                  camera.forward);
         ray.minDistance = 0.0f;
         ray.maxDistance = 20.0f;
+
+        float2 xy = float2(tid.x + 0.5f, tid.y + 0.5f); // center in the middle of the pixel.
+        float2 screenPos = xy / float2(uniforms.width, uniforms.height) * 2.0 - 1.0;
+
+        // Invert Y for DirectX-style coordinates.
+        //screenPos.y = -screenPos.y;
+
+        // Unproject the pixel coordinate into a ray.
+        float4 world = camera.VPinverse *float4(screenPos, 0, 1);
+
+        world.xyz /= world.w;
+        ray.direction = normalize(world.xyz - ray.origin);
     }
 }

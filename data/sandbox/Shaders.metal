@@ -71,7 +71,8 @@ constant float2 poissonDisk[64] = {
     float2(-0.1154335, 0.8248222),  float2(-0.4230408, -0.7129914),
 };
 
-vertex OutVertex vertex_project(const device float4 *positions [[buffer(0)]],
+vertex OutVertex vertex_project(
+                                const device float4 *positions [[buffer(0)]],
                                 const device float4 *normals [[buffer(1)]],
                                 const device float2 *uvs [[buffer(2)]],
                                 const device float4 *tangents [[buffer(3)]],
