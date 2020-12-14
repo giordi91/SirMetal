@@ -47,12 +47,12 @@ struct Uniforms {
 
 static const size_t rayStride = sizeof(float) * 8;
 // static const size_t rayStride = 48;
-static const size_t intersectionStride =
-    sizeof(MPSIntersectionDistancePrimitiveIndexCoordinates);
-constexpr int kMaxInflightBuffers = 3;
-
 using Ray = MPSRayOriginMinDistanceDirectionMaxDistance;
 using Intersection = MPSIntersectionDistancePrimitiveIndexCoordinates;
+static const size_t intersectionStride =
+    sizeof(Intersection);
+constexpr int kMaxInflightBuffers = 3;
+
 
 id createComputePipeline(id<MTLDevice> device, id function) {
   // Create compute pipelines will will execute code on the GPU
@@ -142,11 +142,11 @@ void GraphicsLayer::onAttach(SirMetal::EngineContext *context) {
   uint32_t pixelCount = w * h;
   uint32_t raysBufferSize = pixelCount * sizeof(Ray);
   m_rayBuffer = m_gpuAllocator.allocate(
-      raysBufferSize, "raysBuffer",
+      raysBufferSize*2, "raysBuffer",
       SirMetal::BUFFER_FLAGS_BITS::BUFFER_FLAG_GPU_ONLY);
 
   m_intersectionBuffer = m_gpuAllocator.allocate(
-      pixelCount * intersectionStride, "rayIntersectBuffer",
+      pixelCount * intersectionStride*2, "rayIntersectBuffer",
       SirMetal::BUFFER_FLAGS_BITS::BUFFER_FLAG_GPU_ONLY);
 
   SirMetal::graphics::initImgui(m_engine);
@@ -178,20 +178,24 @@ void GraphicsLayer::onAttach(SirMetal::EngineContext *context) {
   // properly
   m_engine->m_renderingContext->flush();
   usleep(1000 * 1000 * 2);
+  
   const SirMetal::MeshData *meshData =
       m_engine->m_meshManager->getMeshData(m_meshes[0]);
 
   m_accelerationStructure =
       [[MPSTriangleAccelerationStructure alloc] initWithDevice:device];
+  assert(m_accelerationStructure != nil);
+  assert(meshData->vertexBuffer != nil);
+  assert(meshData->indexBuffer!= nil);
   [m_accelerationStructure setVertexBuffer:meshData->vertexBuffer];
   [m_accelerationStructure setVertexStride:sizeof(float) * 4];
   [m_accelerationStructure setIndexBuffer:meshData->indexBuffer];
   [m_accelerationStructure setIndexType:MPSDataTypeUInt32];
   [m_accelerationStructure setTriangleCount:meshData->primitivesCount / 3];
   [m_accelerationStructure rebuild];
-
-  m_engine->m_renderingContext->flush();
-  usleep(1000 * 1000 * 2);
+  
+  //m_engine->m_renderingContext->flush();
+  //usleep(1000 * 1000 * 2);
   m_intersector = [[MPSRayIntersector alloc] initWithDevice:device];
   [m_intersector
       setRayDataType:MPSRayDataTypeOriginMinDistanceDirectionMaxDistance];
@@ -199,6 +203,7 @@ void GraphicsLayer::onAttach(SirMetal::EngineContext *context) {
   [m_intersector setIntersectionDataType:
                      MPSIntersectionDataTypeDistancePrimitiveIndexCoordinates];
   [m_intersector setIntersectionStride:sizeof(Intersection)];
+
 }
 
 void GraphicsLayer::onDetach() {}
@@ -322,7 +327,9 @@ void GraphicsLayer::onUpdate() {
   [computeEncoder setComputePipelineState:testFillPipeline];
   [computeEncoder dispatchThreadgroups:threadgroups
                  threadsPerThreadgroup:MTLSizeMake(8, 8, 1)];
+  //[computeEncoder endEncoding];
 
+  
   id rayBuffer = m_gpuAllocator.getBuffer(m_rayBuffer);
   id intersectionBuffer = m_gpuAllocator.getBuffer(m_intersectionBuffer);
   auto bindInfo =
@@ -371,6 +378,7 @@ void GraphicsLayer::onUpdate() {
   [computeEncoder2 dispatchThreadgroups:threadgroups
                   threadsPerThreadgroup:MTLSizeMake(8, 8, 1)];
   [computeEncoder2 endEncoding];
+  
 
   id<MTLRenderCommandEncoder> commandEncoder =
       [commandBuffer renderCommandEncoderWithDescriptor:passDescriptor];
