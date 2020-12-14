@@ -89,7 +89,7 @@ void GraphicsLayer::onAttach(SirMetal::EngineContext *context) {
   m_camera.nearPlane = 0.01;
   m_camera.farPlane = 60;
   m_cameraController.setCamera(&m_camera);
-  m_cameraController.setPosition(0, 0.0, 2);
+  m_cameraController.setPosition(0, 0.1, 2);
   m_camConfig = {1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 0.2, 0.008};
 
   m_uniformHandle = m_engine->m_constantBufferManager->allocate(
