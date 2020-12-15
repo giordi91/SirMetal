@@ -37,6 +37,7 @@ private:
   void updateLightData();
   void renderDebugWindow();
   void generateRandomTexture();
+  void encodeShadeRt(id<MTLCommandBuffer> commandBuffer, float w, float h);
 
 private:
   SirMetal::Camera m_camera;
