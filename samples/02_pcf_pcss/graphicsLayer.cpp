@@ -18,6 +18,8 @@
 #include "SirMetal/graphics/renderingContext.h"
 #include "SirMetal/resources/meshes/meshManager.h"
 #include "SirMetal/resources/shaderManager.h"
+#include "../../sandbox/graphicsLayer.h"
+
 
 #include <iostream>
 static const NSUInteger kMaxInflightBuffers = 3;

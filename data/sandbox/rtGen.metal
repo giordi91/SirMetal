@@ -144,7 +144,7 @@ kernel void rayKernel(device Ray* rays [[buffer(0)]],
         // Rays start at the camera position
         ray.origin = camera.position;
         ray.minDistance = 0.0f;
-        ray.maxDistance = 20.0f;
+        ray.maxDistance = 200.0f;
 
         float2 xy = float2(tid.x + 0.5f, tid.y + 0.5f); // center in the middle of the pixel.
         float2 screenPos = xy / float2(uniforms.width, uniforms.height) * 2.0 - 1.0;

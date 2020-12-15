@@ -40,11 +40,11 @@ struct Intersection {
     // The distance from the ray origin to the intersection point. Negative if the ray did not
     // intersect the scene.
     float distance;
-    
+
     // The index of the intersected primitive (triangle), if any. Undefined if the ray did not
     // intersect the scene.
     int primitiveIndex;
-    
+
     // The barycentric coordinates of the intersection point, if any. Undefined if the ray did
     // not intersect the scene.
     float2 coordinates;

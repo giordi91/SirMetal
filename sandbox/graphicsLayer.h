@@ -36,6 +36,7 @@ private:
   void updateUniformsForView(float screenWidth, float screenHeight);
   void updateLightData();
   void renderDebugWindow();
+  void generateRandomTexture();
 
 private:
   SirMetal::Camera m_camera;
@@ -49,6 +50,7 @@ private:
   SirMetal::LibraryHandle m_shaderHandle;
   SirMetal::LibraryHandle m_rtGenShaderHandle;
   SirMetal::LibraryHandle m_rtShadeShaderHandle;
+  SirMetal::LibraryHandle m_rtShadowShaderHandle;
   SirMetal::LibraryHandle m_imageFillHandle;
   SirMetal::LibraryHandle m_fullScreenHandle;
   SirMetal::TextureHandle m_color;
@@ -58,13 +60,16 @@ private:
   DirLight light{};
   MPSTriangleAccelerationStructure* m_accelerationStructure;
   MPSRayIntersector* m_intersector;
+  MPSRayIntersector* m_intersectorShadow;
   SirMetal::BufferHandle m_tBuff;
-  SirMetal::BufferHandle m_rayBuffer;
+  SirMetal::BufferHandle m_rayBuffer[2]{};
   SirMetal::BufferHandle m_intersectionBuffer;
   SirMetal::GPUMemoryAllocator m_gpuAllocator;
   id rayPipeline;
   id rayShadePipeline;
   id testFillPipeline;
+
+  id _randomTexture;
 
 };
 } // namespace Sandbox
