@@ -116,13 +116,15 @@ void GraphicsLayer::onAttach(SirMetal::EngineContext *context) {
       m_engine->m_config.m_windowConfig.m_height,
       1,
       MTLTextureType2D,
-      MTLPixelFormatRGBA16Float,
+      MTLPixelFormatRGBA32Float,
       MTLTextureUsageRenderTarget | MTLTextureUsageShaderRead |
           MTLTextureUsageShaderWrite,
       MTLStorageModePrivate,
       1,
       "colorRayTracing"};
-  m_color = m_engine->m_textureManager->allocate(device, request);
+  m_color[0] = m_engine->m_textureManager->allocate(device, request);
+  request.name = "colorRayTracing2";
+  m_color[1] = m_engine->m_textureManager->allocate(device, request);
 
   m_shaderHandle =
       m_engine->m_shaderManager->loadShader((base + "/Shaders.metal").c_str());
@@ -321,8 +323,10 @@ void GraphicsLayer::onUpdate() {
 
   id<MTLCommandBuffer> commandBuffer = [queue commandBuffer];
 
-  id<MTLTexture> t = m_engine->m_textureManager->getNativeFromHandle(m_color);
-  //if (m_engine->m_timings.m_totalNumberOfFrames < 60) {
+  uint32_t colorIndex = m_engine->m_timings.m_totalNumberOfFrames %2;
+  id<MTLTexture>  colorTexture = m_engine->m_textureManager->getNativeFromHandle(m_color[colorIndex]);
+
+  if (m_engine->m_timings.m_totalNumberOfFrames < 9000) {
 
     // We will launch a rectangular grid of threads on the GPU to generate the
     // rays. Threads are launched in groups called "threadgroups". We need to
@@ -342,10 +346,10 @@ void GraphicsLayer::onUpdate() {
     // encoder which will be used to add commands to the command buffer.
     id<MTLComputeCommandEncoder> computeEncoder =
         [commandBuffer computeCommandEncoder];
-    [computeEncoder setTexture:t atIndex:0];
-    [computeEncoder setComputePipelineState:testFillPipeline];
-    [computeEncoder dispatchThreadgroups:threadgroups
-                   threadsPerThreadgroup:MTLSizeMake(8, 8, 1)];
+    //[computeEncoder setTexture:colorTexture atIndex:0];
+    //[computeEncoder setComputePipelineState:testFillPipeline];
+    //[computeEncoder dispatchThreadgroups:threadgroups
+    //               threadsPerThreadgroup:MTLSizeMake(8, 8, 1)];
 
     id rayBuffer = m_gpuAllocator.getBuffer(m_rayBuffer[0]);
     id intersectionBuffer = m_gpuAllocator.getBuffer(m_intersectionBuffer);
@@ -371,7 +375,7 @@ void GraphicsLayer::onUpdate() {
 
     // shading pixel
     encodeShadeRt(commandBuffer, w, h);
-  //}
+  }
   id<MTLRenderCommandEncoder> commandEncoder =
       [commandBuffer renderCommandEncoderWithDescriptor:passDescriptor];
 
@@ -379,7 +383,7 @@ void GraphicsLayer::onUpdate() {
   //[commandEncoder setDepthStencilState:cache.depth];
   [commandEncoder setFrontFacingWinding:MTLWindingCounterClockwise];
   [commandEncoder setCullMode:MTLCullModeBack];
-  [commandEncoder setFragmentTexture:t atIndex:0];
+  [commandEncoder setFragmentTexture:colorTexture atIndex:0];
   [commandEncoder drawPrimitives:MTLPrimitiveTypeTriangle
                      vertexStart:0
                      vertexCount:3];
@@ -514,7 +518,7 @@ void GraphicsLayer::generateRandomTexture() {
   _randomTexture = [m_engine->m_renderingContext->getDevice()
       newTextureWithDescriptor:renderTargetDescriptor];
 
-  uint32_t *randomValues = (uint32_t *)malloc(sizeof(uint32_t) * w * h);
+  auto *randomValues = static_cast<uint32_t *>(malloc(sizeof(uint32_t) * w * h));
 
   for (NSUInteger i = 0; i < w * h; i++)
     randomValues[i] = rand() % (1024 * 1024);
@@ -530,7 +534,12 @@ void GraphicsLayer::generateRandomTexture() {
 void GraphicsLayer::encodeShadeRt(id<MTLCommandBuffer> commandBuffer, float w,
                                   float h) {
 
-  id<MTLTexture> t = m_engine->m_textureManager->getNativeFromHandle(m_color);
+  uint32_t colorIndex = m_engine->m_timings.m_totalNumberOfFrames %2;
+  id<MTLTexture> colorTexture = m_engine->m_textureManager->getNativeFromHandle(m_color[colorIndex]);
+  colorIndex = (m_engine->m_timings.m_totalNumberOfFrames +1)%2;
+  id<MTLTexture> prevColorTexture = m_engine->m_textureManager->getNativeFromHandle(m_color[colorIndex]);
+  auto bindInfo =
+      m_engine->m_constantBufferManager->getBindInfo(m_engine, m_uniforms);
 
   MTLSize threadsPerThreadgroup = MTLSizeMake(8, 8, 1);
   MTLSize threadgroups = MTLSizeMake(
@@ -540,9 +549,10 @@ void GraphicsLayer::encodeShadeRt(id<MTLCommandBuffer> commandBuffer, float w,
   id intersectionBuffer = m_gpuAllocator.getBuffer(m_intersectionBuffer);
   id<MTLComputeCommandEncoder> computeEncoder2 =
       [commandBuffer computeCommandEncoder];
-  [computeEncoder2 setBuffer:intersectionBuffer offset:0 atIndex:0];
-  [computeEncoder2 setTexture:t atIndex:0];
   [computeEncoder2 setComputePipelineState:rayShadePipeline];
+  [computeEncoder2 setBuffer:intersectionBuffer offset:0 atIndex:0];
+  [computeEncoder2 setTexture:colorTexture atIndex:0];
+  [computeEncoder2 setTexture:prevColorTexture atIndex:1];
 
   const SirMetal::MeshData *meshData =
       m_engine->m_meshManager->getMeshData(m_meshes[0]);
@@ -560,6 +570,7 @@ void GraphicsLayer::encodeShadeRt(id<MTLCommandBuffer> commandBuffer, float w,
                       offset:meshData->ranges[3].m_offset
                      atIndex:4];
   [computeEncoder2 setBuffer:meshData->indexBuffer offset:0 atIndex:5];
+  [computeEncoder2 setBuffer:bindInfo.buffer offset:bindInfo.offset atIndex:6];
 
   [computeEncoder2 dispatchThreadgroups:threadgroups
                   threadsPerThreadgroup:MTLSizeMake(8, 8, 1)];
@@ -581,6 +592,7 @@ void GraphicsLayer::encodeShadowRay(id<MTLCommandBuffer> commandBuffer, float w,
   id intersectionBuffer = m_gpuAllocator.getBuffer(m_intersectionBuffer);
   auto bindInfo =
       m_engine->m_constantBufferManager->getBindInfo(m_engine, m_uniforms);
+
 
   [computeEncoder setTexture:_randomTexture atIndex:0];
   [computeEncoder setBuffer:intersectionBuffer offset:0 atIndex:0];

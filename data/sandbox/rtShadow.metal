@@ -131,7 +131,7 @@ kernel void shadowRayKernel(
         float3 a3 = normals[indeces[index + 2]].xyz;
 
         float w = 1.0 - i.coordinates.x - i.coordinates.y;
-        float3 outN = a1 * i.coordinates.x + a2 * i.coordinates.y + a3 * w;
+        float3 outN = normalize(a1 * i.coordinates.x + a2 * i.coordinates.y + a3 * w);
 
         //compute pos
         a1 = positions[indeces[index + 0]].xyz;
@@ -150,7 +150,8 @@ kernel void shadowRayKernel(
 
         ray.origin =  outP + outN * 1e-3f; //offsetting to avoid self intersection
         ray.direction = sampleDirection;
-        ray.minDistance = 0.0f;
+        //ray.direction = outN;
+        ray.minDistance = 0.001f;
         ray.maxDistance = 200.0f;
     }
 }

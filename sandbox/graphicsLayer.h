@@ -54,7 +54,7 @@ private:
   SirMetal::LibraryHandle m_rtShadowShaderHandle;
   SirMetal::LibraryHandle m_imageFillHandle;
   SirMetal::LibraryHandle m_fullScreenHandle;
-  SirMetal::TextureHandle m_color;
+  SirMetal::TextureHandle m_color[2];
   dispatch_semaphore_t frameBoundarySemaphore;
 
   SirMetal::graphics::FrameTimingsWidget m_timingsWidget;
