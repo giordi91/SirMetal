@@ -163,6 +163,9 @@ void GraphicsLayer::onAttach(SirMetal::EngineContext *context) {
       m_engine->m_shaderManager->getKernelFunction(m_rtShadeShaderHandle));
   testFillPipeline = createComputePipeline(
       device, m_engine->m_shaderManager->getKernelFunction(m_imageFillHandle));
+  shadowPipeline = createComputePipeline(
+      device,
+      m_engine->m_shaderManager->getKernelFunction(m_rtShadowShaderHandle));
 
   /*
   struct Vertex { float x, y, z, w; } vertices[3] = {
@@ -319,7 +322,7 @@ void GraphicsLayer::onUpdate() {
   id<MTLCommandBuffer> commandBuffer = [queue commandBuffer];
 
   id<MTLTexture> t = m_engine->m_textureManager->getNativeFromHandle(m_color);
-  if (m_engine->m_timings.m_totalNumberOfFrames < 60) {
+  //if (m_engine->m_timings.m_totalNumberOfFrames < 60) {
 
     // We will launch a rectangular grid of threads on the GPU to generate the
     // rays. Threads are launched in groups called "threadgroups". We need to
@@ -343,7 +346,6 @@ void GraphicsLayer::onUpdate() {
     [computeEncoder setComputePipelineState:testFillPipeline];
     [computeEncoder dispatchThreadgroups:threadgroups
                    threadsPerThreadgroup:MTLSizeMake(8, 8, 1)];
-    //[computeEncoder endEncoding];
 
     id rayBuffer = m_gpuAllocator.getBuffer(m_rayBuffer[0]);
     id intersectionBuffer = m_gpuAllocator.getBuffer(m_intersectionBuffer);
@@ -364,11 +366,12 @@ void GraphicsLayer::onUpdate() {
                             intersectionBufferOffset:0
                                             rayCount:w * h
                                accelerationStructure:m_accelerationStructure];
-    //SHADOW RAYS
+    // SHADOW RAYS
+    encodeShadowRay(commandBuffer, w, h);
 
-    //shading pixel
-    encodeShadeRt(commandBuffer,w,h);
-  }
+    // shading pixel
+    encodeShadeRt(commandBuffer, w, h);
+  //}
   id<MTLRenderCommandEncoder> commandEncoder =
       [commandBuffer renderCommandEncoderWithDescriptor:passDescriptor];
 
@@ -500,7 +503,7 @@ void GraphicsLayer::generateRandomTexture() {
 
   // Stored in private memory because it will only be read and written from the
   // GPU
-  renderTargetDescriptor.storageMode = MTLStorageModePrivate;
+  renderTargetDescriptor.storageMode = MTLStorageModeManaged;
 
   renderTargetDescriptor.pixelFormat = MTLPixelFormatR32Uint;
   renderTargetDescriptor.usage = MTLTextureUsageShaderRead;
@@ -524,20 +527,19 @@ void GraphicsLayer::generateRandomTexture() {
   free(randomValues);
 }
 
-void GraphicsLayer::encodeShadeRt(id<MTLCommandBuffer> commandBuffer, float w, float h)
-{
+void GraphicsLayer::encodeShadeRt(id<MTLCommandBuffer> commandBuffer, float w,
+                                  float h) {
 
   id<MTLTexture> t = m_engine->m_textureManager->getNativeFromHandle(m_color);
 
   MTLSize threadsPerThreadgroup = MTLSizeMake(8, 8, 1);
   MTLSize threadgroups = MTLSizeMake(
       (w + threadsPerThreadgroup.width - 1) / threadsPerThreadgroup.width,
-      (h + threadsPerThreadgroup.height - 1) / threadsPerThreadgroup.height,
-      1);
+      (h + threadsPerThreadgroup.height - 1) / threadsPerThreadgroup.height, 1);
 
   id intersectionBuffer = m_gpuAllocator.getBuffer(m_intersectionBuffer);
   id<MTLComputeCommandEncoder> computeEncoder2 =
-  [commandBuffer computeCommandEncoder];
+      [commandBuffer computeCommandEncoder];
   [computeEncoder2 setBuffer:intersectionBuffer offset:0 atIndex:0];
   [computeEncoder2 setTexture:t atIndex:0];
   [computeEncoder2 setComputePipelineState:rayShadePipeline];
@@ -546,24 +548,81 @@ void GraphicsLayer::encodeShadeRt(id<MTLCommandBuffer> commandBuffer, float w, f
       m_engine->m_meshManager->getMeshData(m_meshes[0]);
 
   [computeEncoder2 setBuffer:meshData->vertexBuffer
-  offset:meshData->ranges[0].m_offset
-  atIndex:1];
+                      offset:meshData->ranges[0].m_offset
+                     atIndex:1];
   [computeEncoder2 setBuffer:meshData->vertexBuffer
-  offset:meshData->ranges[1].m_offset
-  atIndex:2];
+                      offset:meshData->ranges[1].m_offset
+                     atIndex:2];
   [computeEncoder2 setBuffer:meshData->vertexBuffer
-  offset:meshData->ranges[2].m_offset
-  atIndex:3];
+                      offset:meshData->ranges[2].m_offset
+                     atIndex:3];
   [computeEncoder2 setBuffer:meshData->vertexBuffer
-  offset:meshData->ranges[3].m_offset
-  atIndex:4];
+                      offset:meshData->ranges[3].m_offset
+                     atIndex:4];
   [computeEncoder2 setBuffer:meshData->indexBuffer offset:0 atIndex:5];
 
   [computeEncoder2 dispatchThreadgroups:threadgroups
-  threadsPerThreadgroup:MTLSizeMake(8, 8, 1)];
+                  threadsPerThreadgroup:MTLSizeMake(8, 8, 1)];
   [computeEncoder2 endEncoding];
+}
+void GraphicsLayer::encodeShadowRay(id<MTLCommandBuffer> commandBuffer, float w,
+                                    float h) {
+  MTLSize threadsPerThreadgroup = MTLSizeMake(8, 8, 1);
+  MTLSize threadgroups = MTLSizeMake(
+      (w + threadsPerThreadgroup.width - 1) / threadsPerThreadgroup.width,
+      (h + threadsPerThreadgroup.height - 1) / threadsPerThreadgroup.height, 1);
 
+  // First, we will generate rays on the GPU. We create a compute command
+  // encoder which will be used to add commands to the command buffer.
+  id<MTLComputeCommandEncoder> computeEncoder =
+      [commandBuffer computeCommandEncoder];
+
+  id rayBuffer = m_gpuAllocator.getBuffer(m_rayBuffer[0]);
+  id intersectionBuffer = m_gpuAllocator.getBuffer(m_intersectionBuffer);
+  auto bindInfo =
+      m_engine->m_constantBufferManager->getBindInfo(m_engine, m_uniforms);
+
+  [computeEncoder setTexture:_randomTexture atIndex:0];
+  [computeEncoder setBuffer:intersectionBuffer offset:0 atIndex:0];
+
+  // bind the mesh
+  const SirMetal::MeshData *meshData =
+      m_engine->m_meshManager->getMeshData(m_meshes[0]);
+
+  [computeEncoder setBuffer:meshData->vertexBuffer
+                     offset:meshData->ranges[0].m_offset
+                    atIndex:1];
+  [computeEncoder setBuffer:meshData->vertexBuffer
+                     offset:meshData->ranges[1].m_offset
+                    atIndex:2];
+  [computeEncoder setBuffer:meshData->vertexBuffer
+                     offset:meshData->ranges[2].m_offset
+                    atIndex:3];
+  [computeEncoder setBuffer:meshData->vertexBuffer
+                     offset:meshData->ranges[3].m_offset
+                    atIndex:4];
+  [computeEncoder setBuffer:meshData->indexBuffer offset:0 atIndex:5];
+
+  id shadowBuffer = m_gpuAllocator.getBuffer(m_rayBuffer[1]);
+  [computeEncoder setBuffer:shadowBuffer offset:0 atIndex:6];
+  [computeEncoder setBuffer:bindInfo.buffer offset:bindInfo.offset atIndex:7];
+  uint32_t bounce = 1;
+  [computeEncoder setBytes:&bounce length:sizeof(bounce) atIndex:8];
+
+  // dispatch
+  [computeEncoder setComputePipelineState:shadowPipeline];
+  [computeEncoder dispatchThreadgroups:threadgroups
+                 threadsPerThreadgroup:MTLSizeMake(8, 8, 1)];
+  [computeEncoder endEncoding];
+
+  [m_intersector encodeIntersectionToCommandBuffer:commandBuffer
+                                  intersectionType:MPSIntersectionTypeNearest
+                                         rayBuffer:shadowBuffer
+                                   rayBufferOffset:0
+                                intersectionBuffer:intersectionBuffer
+                          intersectionBufferOffset:0
+                                          rayCount:w * h
+                             accelerationStructure:m_accelerationStructure];
 }
 
 } // namespace Sandbox
-

@@ -67,10 +67,12 @@ private:
   SirMetal::BufferHandle m_intersectionBuffer;
   SirMetal::GPUMemoryAllocator m_gpuAllocator;
   id rayPipeline;
+  id shadowPipeline;
   id rayShadePipeline;
   id testFillPipeline;
 
   id _randomTexture;
 
+  void encodeShadowRay(id<MTLCommandBuffer> buffer, float w, float h);
 };
 } // namespace Sandbox

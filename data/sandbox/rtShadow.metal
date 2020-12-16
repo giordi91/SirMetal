@@ -106,8 +106,7 @@ struct Uniforms
 };
 
 kernel void shadowRayKernel(
-                                texture2d<float, access::write> image [[texture(0)]],
-                                texture2d<uint> randomTex [[texture(1)]],
+                                texture2d<uint> randomTex [[texture(0)]],
                                 device const Intersection* intersections [[buffer(0)]],
                                 const device float4 *positions [[buffer(1)]],
                                 const device float4 *normals [[buffer(2)]],
@@ -118,7 +117,7 @@ kernel void shadowRayKernel(
                                 constant Uniforms & uniforms [[buffer(7)]],
                                 uint2 coordinates [[thread_position_in_grid]],
                                 uint2 size [[threads_per_grid]],
-                                constant unsigned int & bounce
+                                constant unsigned int & bounce [[buffer(8)]]
                                 )
 {
     uint rayIndex = coordinates.x + coordinates.y * size.x;

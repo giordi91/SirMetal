@@ -102,6 +102,7 @@ kernel void shadeKernel(texture2d<float, access::write> image [[texture(0)]],
 {
     uint rayIndex = coordinates.x + coordinates.y * size.x;
     device const Intersection& i = intersections[rayIndex];
+    float3 skyColor = float3(53/255.0f,81/255.0f,92/255.0f);
     if (i.distance > 0.0f)
     {
         int index = i.primitiveIndex * 3;
@@ -111,7 +112,11 @@ kernel void shadeKernel(texture2d<float, access::write> image [[texture(0)]],
 
         float w = 1.0 - i.coordinates.x - i.coordinates.y;
         float3 outN = n1 * i.coordinates.x + n2 * i.coordinates.y + n3 * w;
-        image.write(float4(outN, 1.0), coordinates);
+        image.write(float4(0,0,0, 1.0), coordinates);
+        //image.write(float4(outN, 1.0), coordinates);
         //image.write(float4(i.coordinates, w, 1.0), coordinates);
+    }
+    else{
+        image.write(float4(skyColor, 1.0), coordinates);
     }
 }
