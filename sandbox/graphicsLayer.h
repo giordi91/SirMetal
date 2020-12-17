@@ -61,7 +61,6 @@ private:
   DirLight light{};
   MPSTriangleAccelerationStructure* m_accelerationStructure;
   MPSRayIntersector* m_intersector;
-  MPSRayIntersector* m_intersectorShadow;
   SirMetal::BufferHandle m_tBuff;
   SirMetal::BufferHandle m_rayBuffer[2]{};
   SirMetal::BufferHandle m_intersectionBuffer;
@@ -69,10 +68,10 @@ private:
   id rayPipeline;
   id shadowPipeline;
   id rayShadePipeline;
-  id testFillPipeline;
 
   id _randomTexture;
 
   void encodeShadowRay(id<MTLCommandBuffer> buffer, float w, float h);
+  void encodePrimaryRay(id<MTLCommandBuffer> commandBuffer, float w, float h);
 };
 } // namespace Sandbox
