@@ -46,7 +46,7 @@ private:
   SirMetal::FPSCameraController m_cameraController;
   SirMetal::CameraManipulationConfig m_camConfig{};
   SirMetal::EngineContext *m_engine{};
-  SirMetal::ConstantBufferHandle m_uniformHandle;
+  SirMetal::ConstantBufferHandle m_camUniformHandle;
   SirMetal::ConstantBufferHandle m_lightHandle;
   SirMetal::MeshHandle m_meshes[5];
   SirMetal::TextureHandle m_depthHandle;

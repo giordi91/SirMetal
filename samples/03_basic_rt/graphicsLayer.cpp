@@ -45,8 +45,12 @@ struct Uniforms {
   AreaLight light;
 };
 
-static const size_t rayStride = sizeof(float) * 8;
-// static const size_t rayStride = 48;
+/*
+ * This is a basic sample to put the plumbing down, is a simpler example compared
+ * to the one provided from Apple: https://developer.apple.com/documentation/metalperformanceshaders/metal_for_accelerating_ray_tracing
+ * I find it easier to start with an hello world triangle and move from there, you can find a very simple hello world triangle here:
+ * https://github.com/sergeyreznik/metal-ray-tracer
+ */
 using Ray = MPSRayOriginMinDistanceDirectionMaxDistance;
 using Intersection = MPSIntersectionDistancePrimitiveIndexCoordinates;
 static const size_t intersectionStride = sizeof(Intersection);
@@ -93,21 +97,15 @@ void GraphicsLayer::onAttach(SirMetal::EngineContext *context) {
   m_camUniformHandle = m_engine->m_constantBufferManager->allocate(
       m_engine, sizeof(SirMetal::Camera),
       SirMetal::CONSTANT_BUFFER_FLAGS_BITS::CONSTANT_BUFFER_FLAG_BUFFERED);
-  m_lightHandle = m_engine->m_constantBufferManager->allocate(
-      m_engine, sizeof(DirLight),
-      SirMetal::CONSTANT_BUFFER_FLAGS_BITS::CONSTANT_BUFFER_FLAG_NONE);
+  //constant buffer used to drive the raytracing
   m_uniforms = m_engine->m_constantBufferManager->allocate(
       m_engine, sizeof(Uniforms),
       SirMetal::CONSTANT_BUFFER_FLAGS_BITS::CONSTANT_BUFFER_FLAG_BUFFERED);
 
-  updateLightData();
+  const std::string base = m_engine->m_config.m_dataSourcePath;
+  const std::string baseSample = base + "/03_basic_rt";
 
-  const std::string base = m_engine->m_config.m_dataSourcePath + "/sandbox";
-
-  const char *names[1] = {"/rt.obj"};
-  for (int i = 0; i < 1; ++i) {
-    m_meshes[i] = m_engine->m_meshManager->loadMesh(base + names[i]);
-  }
+  m_mesh = m_engine->m_meshManager->loadMesh(baseSample + "/rt.obj");
 
   id<MTLDevice> device = m_engine->m_renderingContext->getDevice();
 
@@ -126,16 +124,14 @@ void GraphicsLayer::onAttach(SirMetal::EngineContext *context) {
   request.name = "colorRayTracing2";
   m_color[1] = m_engine->m_textureManager->allocate(device, request);
 
-  m_shaderHandle =
-      m_engine->m_shaderManager->loadShader((base + "/Shaders.metal").c_str());
   m_rtGenShaderHandle =
-      m_engine->m_shaderManager->loadShader((base + "/rtGen.metal").c_str());
+      m_engine->m_shaderManager->loadShader((baseSample + "/rtGen.metal").c_str());
   m_rtShadeShaderHandle =
-      m_engine->m_shaderManager->loadShader((base + "/rtShade.metal").c_str());
+      m_engine->m_shaderManager->loadShader((baseSample + "/rtShade.metal").c_str());
   m_rtShadowShaderHandle =
-      m_engine->m_shaderManager->loadShader((base + "/rtShadow.metal").c_str());
+      m_engine->m_shaderManager->loadShader((baseSample + "/rtShadow.metal").c_str());
   m_fullScreenHandle = m_engine->m_shaderManager->loadShader(
-      (base + "/fullscreen.metal").c_str());
+      (baseSample + "/fullscreen.metal").c_str());
 
   uint32_t w = m_engine->m_config.m_windowConfig.m_width;
   uint32_t h = m_engine->m_config.m_windowConfig.m_height;
@@ -171,7 +167,7 @@ void GraphicsLayer::onAttach(SirMetal::EngineContext *context) {
   usleep(1000 * 1000 * 2);
 
   const SirMetal::MeshData *meshData =
-      m_engine->m_meshManager->getMeshData(m_meshes[0]);
+      m_engine->m_meshManager->getMeshData(m_mesh);
 
   m_accelerationStructure =
       [[MPSTriangleAccelerationStructure alloc] initWithDevice:device];
@@ -277,7 +273,6 @@ void GraphicsLayer::onUpdate() {
   float w = texture.width;
   float h = texture.height;
   updateUniformsForView(w, h);
-  updateLightData();
 
   // render
   SirMetal::graphics::DrawTracker tracker{};
@@ -324,53 +319,6 @@ void GraphicsLayer::onUpdate() {
                      vertexStart:0
                      vertexCount:3];
 
-  /*
-  SirMetal::BindInfo info =
-      m_engine->m_constantBufferManager->getBindInfo(m_engine,
-  m_camUniformHandle); [commandEncoder setVertexBuffer:info.buffer
-  offset:info.offset atIndex:4]; info =
-      m_engine->m_constantBufferManager->getBindInfo(m_engine,
-  m_lightHandle); [commandEncoder setFragmentBuffer:info.buffer
-  offset:info.offset atIndex:5];
-
-
-  for (auto &mesh : m_meshes) {
-    const SirMetal::MeshData *meshData =
-        m_engine->m_meshManager->getMeshData(mesh);
-
-    [commandEncoder setVertexBuffer:meshData->vertexBuffer
-                             offset:meshData->ranges[0].m_offset
-                            atIndex:0];
-    [commandEncoder setVertexBuffer:meshData->vertexBuffer
-                             offset:meshData->ranges[1].m_offset
-                            atIndex:1];
-    [commandEncoder setVertexBuffer:meshData->vertexBuffer
-                             offset:meshData->ranges[2].m_offset
-                            atIndex:2];
-    [commandEncoder setVertexBuffer:meshData->vertexBuffer
-                             offset:meshData->ranges[3].m_offset
-                            atIndex:3];
-    [commandEncoder drawIndexedPrimitives:MTLPrimitiveTypeTriangle
-                               indexCount:meshData->primitivesCount
-                                indexType:MTLIndexTypeUInt32
-                              indexBuffer:meshData->indexBuffer
-                        indexBufferOffset:0];
-    break;
-  }
-  // render debug
-  m_engine->m_debugRenderer->newFrame();
-  float data[6]{0, 0, 0, 0, 100, 0};
-  m_engine->m_debugRenderer->drawLines(data, sizeof(float) * 6,
-                                       vector_float4{1, 0, 0, 1});
-  m_engine->m_debugRenderer->render(m_engine, commandEncoder, tracker,
-                                    m_camUniformHandle, 300, 300);
-  */
-
-  // ui
-  SirMetal::graphics::imguiNewFrame(m_engine, passDescriptor);
-  renderDebugWindow();
-  SirMetal::graphics::imguiEndFrame(commandBuffer, commandEncoder);
-
   [commandEncoder endEncoding];
 
   [commandBuffer addCompletedHandler:^(id<MTLCommandBuffer> commandBuffer) {
@@ -394,44 +342,11 @@ void GraphicsLayer::clear() {
   m_engine->m_renderingContext->flush();
   SirMetal::graphics::shutdownImgui();
 }
-void GraphicsLayer::updateLightData() {
-  simd_float3 view{0, 1, 1};
-  simd_float3 up{0, 1, 0};
-  simd_float3 cross = simd_normalize(simd_cross(up, view));
-  up = simd_normalize(simd_cross(view, cross));
-  simd_float4 pos4{0, 15, 15, 1};
-
-  simd_float4 view4{view.x, view.y, view.z, 0};
-  simd_float4 up4{up.x, up.y, up.z, 0};
-  simd_float4 cross4{cross.x, cross.y, cross.z, 0};
-  light.V = {cross4, up4, view4, pos4};
-  light.P = matrix_float4x4_perspective(1, M_PI / 2, 0.01f, 40.0f);
-  // light.VInverse = simd_inverse(light.V);
-  light.VP = simd_mul(light.P, simd_inverse(light.V));
-  light.lightDir = view4;
-
-  m_engine->m_constantBufferManager->update(m_engine, m_lightHandle, &light);
-}
-void GraphicsLayer::renderDebugWindow() {
-
-  static bool p_open = false;
-  if (m_engine->m_inputManager->isKeyReleased(SDL_SCANCODE_GRAVE)) {
-    p_open = !p_open;
-  }
-  if (!p_open) {
-    return;
-  }
-  ImGui::SetNextWindowPos(ImVec2(0, 0), ImGuiCond_Once);
-  if (ImGui::Begin("Debug", &p_open, 0)) {
-  }
-  ImGui::End();
-}
-
 void GraphicsLayer::generateRandomTexture() {
 
   // fix this
-  uint32_t w = 1280;
-  uint32_t h = 720;
+  uint32_t w = m_engine->m_config.m_windowConfig.m_width;
+  uint32_t h = m_engine->m_config.m_windowConfig.m_height;
 
   // Create a render target which the shading kernel can write to
   MTLTextureDescriptor *renderTargetDescriptor =
@@ -494,7 +409,7 @@ void GraphicsLayer::encodeShadeRt(id<MTLCommandBuffer> commandBuffer, float w,
   [computeEncoder2 setTexture:prevColorTexture atIndex:1];
 
   const SirMetal::MeshData *meshData =
-      m_engine->m_meshManager->getMeshData(m_meshes[0]);
+      m_engine->m_meshManager->getMeshData(m_mesh);
 
   [computeEncoder2 setBuffer:meshData->vertexBuffer
                       offset:meshData->ranges[0].m_offset
@@ -535,7 +450,7 @@ void GraphicsLayer::encodeShadowRay(id<MTLCommandBuffer> commandBuffer, float w,
 
   // bind the mesh
   const SirMetal::MeshData *meshData =
-      m_engine->m_meshManager->getMeshData(m_meshes[0]);
+      m_engine->m_meshManager->getMeshData(m_mesh);
 
   [computeEncoder setBuffer:meshData->vertexBuffer
                      offset:meshData->ranges[0].m_offset

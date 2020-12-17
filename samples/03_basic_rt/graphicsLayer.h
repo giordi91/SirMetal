@@ -34,10 +34,10 @@ public:
 
 private:
   void updateUniformsForView(float screenWidth, float screenHeight);
-  void updateLightData();
-  void renderDebugWindow();
   void generateRandomTexture();
   void encodeShadeRt(id<MTLCommandBuffer> commandBuffer, float w, float h);
+  void encodeShadowRay(id<MTLCommandBuffer> buffer, float w, float h);
+  void encodePrimaryRay(id<MTLCommandBuffer> commandBuffer, float w, float h);
 
 private:
   SirMetal::Camera m_camera;
@@ -45,14 +45,11 @@ private:
   SirMetal::CameraManipulationConfig m_camConfig{};
   SirMetal::EngineContext *m_engine{};
   SirMetal::ConstantBufferHandle m_camUniformHandle;
-  SirMetal::ConstantBufferHandle m_lightHandle;
   SirMetal::ConstantBufferHandle m_uniforms;
-  SirMetal::MeshHandle m_meshes[5];
-  SirMetal::LibraryHandle m_shaderHandle;
+  SirMetal::MeshHandle m_mesh;
   SirMetal::LibraryHandle m_rtGenShaderHandle;
   SirMetal::LibraryHandle m_rtShadeShaderHandle;
   SirMetal::LibraryHandle m_rtShadowShaderHandle;
-  SirMetal::LibraryHandle m_imageFillHandle;
   SirMetal::LibraryHandle m_fullScreenHandle;
   SirMetal::TextureHandle m_color[2];
   dispatch_semaphore_t frameBoundarySemaphore;
@@ -71,7 +68,5 @@ private:
 
   id _randomTexture;
 
-  void encodeShadowRay(id<MTLCommandBuffer> buffer, float w, float h);
-  void encodePrimaryRay(id<MTLCommandBuffer> commandBuffer, float w, float h);
 };
 } // namespace Sandbox

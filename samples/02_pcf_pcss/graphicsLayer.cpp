@@ -41,7 +41,7 @@ void GraphicsLayer::onAttach(SirMetal::EngineContext *context) {
   m_cameraController.setPosition(3, 5, 15);
   m_camConfig = {1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 0.2, 0.008};
 
-  m_uniformHandle = m_engine->m_constantBufferManager->allocate(
+  m_camUniformHandle = m_engine->m_constantBufferManager->allocate(
       m_engine, sizeof(SirMetal::Camera),
       SirMetal::CONSTANT_BUFFER_FLAGS_BITS::CONSTANT_BUFFER_FLAG_BUFFERED);
   m_lightHandle = m_engine->m_constantBufferManager->allocate(
@@ -106,7 +106,7 @@ void GraphicsLayer::updateUniformsForView(float screenWidth,
   }
 
   m_cameraController.updateProjection(screenWidth, screenHeight);
-  m_engine->m_constantBufferManager->update(m_engine, m_uniformHandle,
+  m_engine->m_constantBufferManager->update(m_engine, m_camUniformHandle,
                                             &m_camera);
 }
 
@@ -218,7 +218,8 @@ void GraphicsLayer::onUpdate() {
   [commandEncoder setCullMode:MTLCullModeBack];
 
   info =
-      m_engine->m_constantBufferManager->getBindInfo(m_engine, m_uniformHandle);
+      m_engine->m_constantBufferManager->getBindInfo(m_engine,
+                                                        m_camUniformHandle);
   [commandEncoder setVertexBuffer:info.buffer offset:info.offset atIndex:4];
   info =
       m_engine->m_constantBufferManager->getBindInfo(m_engine, m_lightHandle);
@@ -255,7 +256,7 @@ void GraphicsLayer::onUpdate() {
   m_engine->m_debugRenderer->drawLines(data, sizeof(float) * 6,
                                        vector_float4{1, 0, 0, 1});
   m_engine->m_debugRenderer->render(m_engine, commandEncoder, tracker,
-                                    m_uniformHandle, 300, 300);
+                                    m_camUniformHandle, 300, 300);
 
   // ui
   SirMetal::graphics::imguiNewFrame(m_engine, passDescriptor);
