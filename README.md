@@ -70,6 +70,7 @@ If something is hit, is considered occluded, otherwise sky color is used. Very b
 used as a test bed to get all the Metal Performance Shader plumbing to work.
 The sample keeps accumulating up to 9000 samples, then it stops. I suggest not to move the 
 camera, the RT process is not reset on camera movement.
+
 ![basic](./docs/images/samples03.png "basicrt")
 
 ## What this project used to be!
