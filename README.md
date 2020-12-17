@@ -44,6 +44,7 @@ to the resource folder.
 ### Samples list:
 - [Jump Flooding Selection](#jump)  
 - [Shadows PCF and PCSS](#shadow)
+- [Basic raytracing plumbing](#basicrt)
 
 ### Jump flooding selection. <a name="jump"/>
 This is an implementation of jump flooding algorithm used to generate a thick outline, 
@@ -62,6 +63,14 @@ You can press '`' on the keyboard (the button on the left of the 1, or the butto
 to open the debug widget
 
 ![basic](./docs/images/samples02.png "flood")
+
+### Basic raytracing plumbing, shadow ray <a name="basicrt">
+A basic RT test, where a random shadow ray is traced from the primary ray hit, in a hemisphere.
+If something is hit, is considered occluded, otherwise sky color is used. Very basic mostly 
+used as a test bed to get all the Metal Performance Shader plumbing to work.
+The sample keeps accumulating up to 9000 samples, then it stops. I suggest not to move the 
+camera, the RT process is not reset on camera movement.
+![basic](./docs/images/samples03.png "basicrt")
 
 ## What this project used to be!
 This project used to be a start of a game editor, but then due to reasons I decided

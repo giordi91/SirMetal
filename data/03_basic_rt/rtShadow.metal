@@ -3,6 +3,7 @@
 
 using namespace metal;
 
+//halton sequence and hemisphere sampling from Apple original sample
 constant unsigned int primes[] = {
     2,   3,  5,  7,
     11, 13, 17, 19,
@@ -67,6 +68,7 @@ inline float3 alignHemisphereWithNormal(float3 sample, float3 normal) {
 }
 
 
+//Necesssary structures, unluckily I can't use include due to how I am compiling the shaders at runtime
 struct Intersection{
     float distance;
     unsigned int primitiveIndex;

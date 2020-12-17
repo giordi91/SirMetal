@@ -10,8 +10,8 @@ struct OutVertex {
 
 vertex OutVertex vertex_project( uint vid [[vertex_id]]) {
 
-
   OutVertex vertexOut;
+  //generating a full screen triangle
   float x = -1.0 + float((vid & 1) << 2);
   float y = -1.0 + float((vid & 2) << 1);
   float uvx = (x+1.0)*0.5;

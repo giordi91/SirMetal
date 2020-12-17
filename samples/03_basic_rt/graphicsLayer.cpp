@@ -46,9 +46,11 @@ struct Uniforms {
 };
 
 /*
- * This is a basic sample to put the plumbing down, is a simpler example compared
- * to the one provided from Apple: https://developer.apple.com/documentation/metalperformanceshaders/metal_for_accelerating_ray_tracing
- * I find it easier to start with an hello world triangle and move from there, you can find a very simple hello world triangle here:
+ * This is a basic sample to put the plumbing down, is a simpler example
+ * compared to the one provided from Apple:
+ * https://developer.apple.com/documentation/metalperformanceshaders/metal_for_accelerating_ray_tracing
+ * I find it easier to start with an hello world triangle and move from there,
+ * you can find a very simple hello world triangle here:
  * https://github.com/sergeyreznik/metal-ray-tracer
  */
 using Ray = MPSRayOriginMinDistanceDirectionMaxDistance;
@@ -97,12 +99,12 @@ void GraphicsLayer::onAttach(SirMetal::EngineContext *context) {
   m_camUniformHandle = m_engine->m_constantBufferManager->allocate(
       m_engine, sizeof(SirMetal::Camera),
       SirMetal::CONSTANT_BUFFER_FLAGS_BITS::CONSTANT_BUFFER_FLAG_BUFFERED);
-  //constant buffer used to drive the raytracing
+  // constant buffer used to drive the raytracing
   m_uniforms = m_engine->m_constantBufferManager->allocate(
       m_engine, sizeof(Uniforms),
       SirMetal::CONSTANT_BUFFER_FLAGS_BITS::CONSTANT_BUFFER_FLAG_BUFFERED);
 
-  //loading/allocating resources
+  // loading/allocating resources
   const std::string base = m_engine->m_config.m_dataSourcePath;
   const std::string baseSample = base + "/03_basic_rt";
 
@@ -110,9 +112,9 @@ void GraphicsLayer::onAttach(SirMetal::EngineContext *context) {
 
   id<MTLDevice> device = m_engine->m_renderingContext->getDevice();
 
-  //we allocate two color buffers, one for frame N and one for frame N-1.
-  //this is such we can accumalate without using a read and write texture, my current gpu does
-  //not support it: Nvidia gt 650m of a mid 2012 MBP.
+  // we allocate two color buffers, one for frame N and one for frame N-1.
+  // this is such we can accumalate without using a read and write texture, my
+  // current gpu does not support it: Nvidia gt 650m of a mid 2012 MBP.
   SirMetal::AllocTextureRequest request{
       m_engine->m_config.m_windowConfig.m_width,
       m_engine->m_config.m_windowConfig.m_height,
@@ -128,20 +130,21 @@ void GraphicsLayer::onAttach(SirMetal::EngineContext *context) {
   request.name = "colorRayTracing2";
   m_color[1] = m_engine->m_textureManager->allocate(device, request);
 
-  //shaders
-  m_rtGenShaderHandle =
-      m_engine->m_shaderManager->loadShader((baseSample + "/rtGen.metal").c_str());
-  m_rtShadeShaderHandle =
-      m_engine->m_shaderManager->loadShader((baseSample + "/rtShade.metal").c_str());
-  m_rtShadowShaderHandle =
-      m_engine->m_shaderManager->loadShader((baseSample + "/rtShadow.metal").c_str());
+  // shaders
+  m_rtGenShaderHandle = m_engine->m_shaderManager->loadShader(
+      (baseSample + "/rtGen.metal").c_str());
+  m_rtShadeShaderHandle = m_engine->m_shaderManager->loadShader(
+      (baseSample + "/rtShade.metal").c_str());
+  m_rtShadowShaderHandle = m_engine->m_shaderManager->loadShader(
+      (baseSample + "/rtShadow.metal").c_str());
   m_fullScreenHandle = m_engine->m_shaderManager->loadShader(
       (baseSample + "/fullscreen.metal").c_str());
 
-  //we use two buffers to allocate the rays, one is for the the primary ray
-  //the second is for the shadow rays. Shooting over and over primary rays is overkill
-  //but is kept in place, such that adding jitter to the ray allows to do anti-aliasing easily
-  //as of now is not added yet, will be added to another sample
+  // we use two buffers to allocate the rays, one is for the the primary ray
+  // the second is for the shadow rays. Shooting over and over primary rays is
+  // overkill but is kept in place, such that adding jitter to the ray allows to
+  // do anti-aliasing easily as of now is not added yet, will be added to another
+  // sample
   uint32_t w = m_engine->m_config.m_windowConfig.m_width;
   uint32_t h = m_engine->m_config.m_windowConfig.m_height;
   uint32_t pixelCount = w * h;
@@ -153,11 +156,9 @@ void GraphicsLayer::onAttach(SirMetal::EngineContext *context) {
       raysBufferSize, "shadowBuffer",
       SirMetal::BUFFER_FLAGS_BITS::BUFFER_FLAG_GPU_ONLY);
 
-
   m_intersectionBuffer = m_gpuAllocator.allocate(
       pixelCount * intersectionStride * 2, "rayIntersectBuffer",
       SirMetal::BUFFER_FLAGS_BITS::BUFFER_FLAG_GPU_ONLY);
-
 
   rayPipeline = createComputePipeline(
       device,
@@ -169,15 +170,16 @@ void GraphicsLayer::onAttach(SirMetal::EngineContext *context) {
       device,
       m_engine->m_shaderManager->getKernelFunction(m_rtShadowShaderHandle));
 
-  //this is just to stay on the safe side and make sure the mesh data is available on the
-  //gpu before starting the build of the accell structure
+  // this is just to stay on the safe side and make sure the mesh data is
+  // available on the gpu before starting the build of the accell structure
   m_engine->m_renderingContext->flush();
 
   const SirMetal::MeshData *meshData =
       m_engine->m_meshManager->getMeshData(m_mesh);
 
-  //on this old gpu there seem to be a bug in building the accel structure where sometimes
-  //it will fail, the issue has been reproduced on the Apple sample aswell.
+  // on this old gpu there seem to be a bug in building the accel structure
+  // where sometimes it will fail, the issue has been reproduced on the Apple
+  // sample aswell.
   m_accelerationStructure =
       [[MPSTriangleAccelerationStructure alloc] initWithDevice:device];
   assert(m_accelerationStructure != nil);
@@ -198,7 +200,7 @@ void GraphicsLayer::onAttach(SirMetal::EngineContext *context) {
                      MPSIntersectionDataTypeDistancePrimitiveIndexCoordinates];
   [m_intersector setIntersectionStride:sizeof(Intersection)];
 
-  //random noise texture used to jitter on the GPU on top of a halton series
+  // random noise texture used to jitter on the GPU on top of a halton series
   generateRandomTexture();
 
   SirMetal::graphics::initImgui(m_engine);
@@ -227,8 +229,8 @@ void GraphicsLayer::updateUniformsForView(float screenWidth,
   simd_float4 pos = m_camera.viewMatrix.columns[3];
   u.camera.position = simd_float3{pos.x, pos.y, pos.z};
   simd_float4 f = simd_normalize(-m_camera.viewMatrix.columns[2]);
-  //to make life easier we pass the axis of the reference system separatedly
-  //makes it easier to generate the rays
+  // to make life easier we pass the axis of the reference system separatedly
+  // makes it easier to generate the rays
   u.camera.forward = simd_float3{f.x, f.y, f.z};
   simd_float4 up = simd_normalize(m_camera.viewMatrix.columns[1]);
   u.camera.up = simd_float3{up.x, up.y, up.z};
@@ -293,25 +295,24 @@ void GraphicsLayer::onUpdate() {
   SirMetal::PSOCache cache = SirMetal::getPSO(
       m_engine, tracker, SirMetal::Material{"fullscreen", false});
 
-
   id<MTLCommandBuffer> commandBuffer = [queue commandBuffer];
 
-
-  //we accumulate for around 9000 frames, which is a lot, it already gives issues
-  //with the accumulation where a fp16 texture is not enough for this many rays
+  // we accumulate for around 9000 frames, which is a lot, it already gives
+  // issues with the accumulation where a fp16 texture is not enough for this
+  // many rays
   if (m_engine->m_timings.m_totalNumberOfFrames < 9000) {
 
-    //three steps in the pipeline, first we shoot the primary rays, from there
-    //the intersection we shoot a random ray in the hemisphere looking for the sky
-    //if fails we return the skycolor, if we hit something we simply return black
-    //finally we accumulate
+    // three steps in the pipeline, first we shoot the primary rays, from there
+    // the intersection we shoot a random ray in the hemisphere looking for the
+    // sky if fails we return the skycolor, if we hit something we simply return
+    // black finally we accumulate
     encodePrimaryRay(commandBuffer, w, h);
     encodeShadowRay(commandBuffer, w, h);
     encodeShadeRt(commandBuffer, w, h);
   }
-  //blitting to the swap chain
+  // blitting to the swap chain
   MTLRenderPassDescriptor *passDescriptor =
-  [MTLRenderPassDescriptor renderPassDescriptor];
+      [MTLRenderPassDescriptor renderPassDescriptor];
 
   passDescriptor.colorAttachments[0].texture = texture;
   passDescriptor.colorAttachments[0].clearColor = {0.2, 0.2, 0.2, 1.0};
@@ -400,8 +401,8 @@ void GraphicsLayer::generateRandomTexture() {
 void GraphicsLayer::encodeShadeRt(id<MTLCommandBuffer> commandBuffer, float w,
                                   float h) {
 
-  //as mentioned above, we use two textures to ping pong. We use the
-  //current frame index to cycle
+  // as mentioned above, we use two textures to ping pong. We use the
+  // current frame index to cycle
   uint32_t colorIndex = m_engine->m_timings.m_totalNumberOfFrames % 2;
   id<MTLTexture> colorTexture =
       m_engine->m_textureManager->getNativeFromHandle(m_color[colorIndex]);
