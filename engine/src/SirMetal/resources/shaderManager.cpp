@@ -113,6 +113,14 @@ bool ShaderManager::generateLibraryMetadata(
       }
       break;
     }
+    case MTLFunctionTypeVisible: {
+      assert(0 && "function type not supported");
+      break;
+    }
+    case MTLFunctionTypeIntersection: {
+      assert(0 && "function type not supported");
+      break;
+    }
     }
   }
 

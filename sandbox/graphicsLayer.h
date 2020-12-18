@@ -7,6 +7,7 @@
 #include "SirMetal/resources/handle.h"
 #include "SirMetal/core/memory/gpu/GPUMemoryAllocator.h"
 #import <Metal/Metal.h>
+#include "SirMetal/resources/gltfLoader.h"
 
 #import <MetalPerformanceShaders/MetalPerformanceShaders.h>
 
@@ -73,5 +74,7 @@ private:
 
   void encodeShadowRay(id<MTLCommandBuffer> buffer, float w, float h);
   void encodePrimaryRay(id<MTLCommandBuffer> commandBuffer, float w, float h);
+
+  SirMetal::GLTFAsset asset;
 };
 } // namespace Sandbox

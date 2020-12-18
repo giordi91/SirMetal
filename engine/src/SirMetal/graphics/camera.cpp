@@ -2,8 +2,8 @@
 #import <simd/simd.h>
 
 #include "SDL.h"
-#include "SirMetal/MBEMathUtilities.h"
 #import "SirMetal/core/input.h"
+#include "SirMetal/core/mathUtils.h"
 #import "SirMetal/engine.h"
 #include "SirMetal/graphics/camera.h"
 

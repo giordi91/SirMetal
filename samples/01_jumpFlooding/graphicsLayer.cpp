@@ -2,7 +2,7 @@
 
 #import <Metal/Metal.h>
 #import <QuartzCore/CAMetalLayer.h>
-#include <SirMetal/MBEMathUtilities.h>
+#include <SirMetal/core/mathUtils.h>
 #include <SirMetal/resources/textureManager.h>
 #include <simd/simd.h>
 

@@ -6,9 +6,12 @@
 #import <unordered_map>
 
 #import "SirMetal/core/core.h"
-#import "SirMetal/core/core.h"
-#include "SirMetal/MBEMathUtilities.h"
+#include "SirMetal/core/mathUtils.h"
 #include "SirMetal/core/memory/gpu/GPUMemoryAllocator.h"
+#import "meshManager.h"
+
+struct cgltf_mesh;
+
 namespace SirMetal {
 // TODO: temp public, we will need to build abstraction to render
 // this data potentially without the need to extract it from here
@@ -23,11 +26,13 @@ struct MeshData {
   uint32_t primitivesCount;
   BufferHandle m_vertexHandle;
   BufferHandle m_indexHandle;
+  float m_boundingBox[6]{};
 };
 
 class MeshManager {
 public:
   MeshHandle loadMesh(const std::string &path);
+  MeshHandle loadMesh(const cgltf_mesh* mesh);
 
   void initialize(id device, id queue) {
     m_allocator.initialize(device,queue);

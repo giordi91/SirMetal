@@ -77,11 +77,12 @@ vertex OutVertex vertex_project(
                                 const device float2 *uvs [[buffer(2)]],
                                 const device float4 *tangents [[buffer(3)]],
                                 constant Camera *camera [[buffer(4)]],
+                                constant float4x4& modelMatrix [[buffer(5)]],
                                 uint vid [[vertex_id]]) {
   OutVertex vertexOut;
-  vertexOut.position = camera->VP * positions[vid];
+  vertexOut.position = camera->VP * (modelMatrix*positions[vid]);
   vertexOut.worldPos = positions[vid];
-  vertexOut.normal = normals[vid];
+  vertexOut.normal = modelMatrix*normals[vid];
   vertexOut.uv = uvs[vid];
   return vertexOut;
 }

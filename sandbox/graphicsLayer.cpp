@@ -2,7 +2,7 @@
 
 #import <Metal/Metal.h>
 #import <QuartzCore/CAMetalLayer.h>
-#include <SirMetal/MBEMathUtilities.h>
+#include <SirMetal/core/mathUtils.h>
 #include <SirMetal/resources/textureManager.h>
 #include <simd/simd.h>
 
@@ -102,7 +102,10 @@ void GraphicsLayer::onAttach(SirMetal::EngineContext *context) {
 
   updateLightData();
 
+
   const std::string base = m_engine->m_config.m_dataSourcePath + "/sandbox";
+  //let us load the gltf file
+  SirMetal::loadGLTF(m_engine,(base + + "/test.glb").c_str(),asset, SirMetal::GLTFLoadFlags::GLTF_LOAD_FLAGS_FLATTEN_HIERARCHY);
 
   const char *names[1] = {"/rt.obj"};
   for (int i = 0; i < 1; ++i) {
@@ -285,12 +288,14 @@ void GraphicsLayer::onUpdate() {
   tracker.depthTarget = nullptr;
 
   SirMetal::PSOCache cache = SirMetal::getPSO(
-      m_engine, tracker, SirMetal::Material{"fullscreen", false});
+      m_engine, tracker, SirMetal::Material{"Shaders", false});
 
 
   id<MTLCommandBuffer> commandBuffer = [queue commandBuffer];
 
 
+  /*
+   * RT STUFF
   if (m_engine->m_timings.m_totalNumberOfFrames < 9000) {
 
     encodePrimaryRay(commandBuffer, w, h);
@@ -300,9 +305,6 @@ void GraphicsLayer::onUpdate() {
     // shading pixel
     encodeShadeRt(commandBuffer, w, h);
   }
-  //blitting to the swap chain
-  MTLRenderPassDescriptor *passDescriptor =
-  [MTLRenderPassDescriptor renderPassDescriptor];
 
   passDescriptor.colorAttachments[0].texture = texture;
   passDescriptor.colorAttachments[0].clearColor = {0.2, 0.2, 0.2, 1.0};
@@ -323,8 +325,23 @@ void GraphicsLayer::onUpdate() {
   [commandEncoder drawPrimitives:MTLPrimitiveTypeTriangle
                      vertexStart:0
                      vertexCount:3];
+  */
+  //blitting to the swap chain
+  MTLRenderPassDescriptor *passDescriptor =
+  [MTLRenderPassDescriptor renderPassDescriptor];
+  passDescriptor.colorAttachments[0].texture = texture;
+  passDescriptor.colorAttachments[0].clearColor = {0.2, 0.2, 0.2, 1.0};
+  passDescriptor.colorAttachments[0].storeAction = MTLStoreActionStore;
+  passDescriptor.colorAttachments[0].loadAction = MTLLoadActionClear;
 
-  /*
+
+  id<MTLRenderCommandEncoder> commandEncoder =
+  [commandBuffer renderCommandEncoderWithDescriptor:passDescriptor];
+
+  [commandEncoder setRenderPipelineState:cache.color];
+  [commandEncoder setFrontFacingWinding:MTLWindingCounterClockwise];
+  [commandEncoder setCullMode:MTLCullModeBack];
+
   SirMetal::BindInfo info =
       m_engine->m_constantBufferManager->getBindInfo(m_engine,
   m_camUniformHandle); [commandEncoder setVertexBuffer:info.buffer
@@ -333,10 +350,10 @@ void GraphicsLayer::onUpdate() {
   m_lightHandle); [commandEncoder setFragmentBuffer:info.buffer
   offset:info.offset atIndex:5];
 
-
-  for (auto &mesh : m_meshes) {
+  for (auto &mesh : asset.models) {
+    if(!mesh.mesh.isHandleValid())continue;
     const SirMetal::MeshData *meshData =
-        m_engine->m_meshManager->getMeshData(mesh);
+        m_engine->m_meshManager->getMeshData(mesh.mesh);
 
     [commandEncoder setVertexBuffer:meshData->vertexBuffer
                              offset:meshData->ranges[0].m_offset
@@ -350,12 +367,13 @@ void GraphicsLayer::onUpdate() {
     [commandEncoder setVertexBuffer:meshData->vertexBuffer
                              offset:meshData->ranges[3].m_offset
                             atIndex:3];
+    auto* data = (void*)(&mesh.matrix);
+    [commandEncoder setVertexBytes: data length:16*4 atIndex:5];
     [commandEncoder drawIndexedPrimitives:MTLPrimitiveTypeTriangle
                                indexCount:meshData->primitivesCount
                                 indexType:MTLIndexTypeUInt32
                               indexBuffer:meshData->indexBuffer
                         indexBufferOffset:0];
-    break;
   }
   // render debug
   m_engine->m_debugRenderer->newFrame();
@@ -364,7 +382,6 @@ void GraphicsLayer::onUpdate() {
                                        vector_float4{1, 0, 0, 1});
   m_engine->m_debugRenderer->render(m_engine, commandEncoder, tracker,
                                     m_camUniformHandle, 300, 300);
-  */
 
   // ui
   SirMetal::graphics::imguiNewFrame(m_engine, passDescriptor);

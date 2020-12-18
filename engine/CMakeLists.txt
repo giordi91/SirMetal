@@ -14,6 +14,7 @@ include_directories(${PROJECT_NAME}
         "${CMAKE_CURRENT_SOURCE_DIR}/src"
         "${CMAKE_SOURCE_DIR}/vendors/json/include"
         "${CMAKE_SOURCE_DIR}/vendors/meshoptimizer"
+        "${CMAKE_SOURCE_DIR}/vendors"
         )
 
 
