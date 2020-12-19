@@ -199,6 +199,9 @@ void GraphicsLayer::onAttach(SirMetal::EngineContext *context) {
   [m_intersector setIntersectionStride:sizeof(Intersection)];
 
   generateRandomTexture();
+
+  MTLArgumentBuffersTier tier = [device argumentBuffersSupport];
+  assert(tier == MTLArgumentBuffersTier2);
 }
 
 void GraphicsLayer::onDetach() {}

@@ -15,6 +15,7 @@ file(GLOB_RECURSE SOURCE_FILES "*.cpp" "*.h")
 set_source_files_properties(${SOURCE_FILES} PROPERTIES
         COMPILE_FLAGS "-x objective-c++")
 
+
 # Project Libs
 set(LINK_LIBS)
 set(MAC_LIBS Metal MetalKit Foundation Cocoa)

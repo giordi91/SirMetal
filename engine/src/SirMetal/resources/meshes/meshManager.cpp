@@ -48,7 +48,7 @@ static cgltf_size component_size(cgltf_component_type component_type) {
 }
 
 // list of mesh attributes we want to extract from the gtlf file
-static constexpr char *MESH_ATTRIBUTES[MESH_ATTRIBUTE_TYPE_COUNT] = {
+static char const *MESH_ATTRIBUTES[MESH_ATTRIBUTE_TYPE_COUNT] = {
     "POSITION",
     "NORMAL",
     "TEXCOORD_0",
@@ -236,7 +236,7 @@ MeshHandle MeshManager::loadMesh(const cgltf_mesh *mesh) {
     }
   } else {
     if (componentSize != 2) {
-      printf("Mesh index buffer needs to be either 4 or 2 bytes, got %i",
+      printf("Mesh index buffer needs to be either 4 or 2 bytes, got %lu",
              componentSize);
       return {};
     }
