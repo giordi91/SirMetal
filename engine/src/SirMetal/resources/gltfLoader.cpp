@@ -48,7 +48,7 @@ void loadNode(EngineContext* context,const cgltf_node *node, GLTFAsset &outAsset
     printf("loading mesh for node %s\n", node->name);
     assert(node->mesh->primitives_count == 1 &&
            "gltf loader does not support multiple primitives per mesh yet");
-    meshHandle = context->m_meshManager->loadMesh(node->mesh);
+    meshHandle = context->m_meshManager->loadFromMemory(node->mesh, LOAD_MESH_TYPE::GLTF_MESH);
   }
   simd_float4x4 matrix = getMatrix(*node);
   matrix = simd_mul(parentMatrix, matrix);

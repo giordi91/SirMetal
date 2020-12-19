@@ -8,11 +8,17 @@
 #import "SirMetal/core/core.h"
 #include "SirMetal/core/mathUtils.h"
 #include "SirMetal/core/memory/gpu/GPUMemoryAllocator.h"
-#import "meshManager.h"
+#include "SirMetal/resources/meshes/meshLoadType.h"
+
+#import "SirMetal/resources/meshes/meshManager.h"
 
 struct cgltf_mesh;
 
 namespace SirMetal {
+
+
+
+
 // TODO: temp public, we will need to build abstraction to render
 // this data potentially without the need to extract it from here
 // this is just an intermediate step
@@ -20,8 +26,6 @@ struct MeshData {
   id vertexBuffer;
   id indexBuffer;
   std::string name;
-  // Temp model matrix to allow manipulation
-  matrix_float4x4 modelMatrix;
   MemoryRange ranges[4];
   uint32_t primitivesCount;
   BufferHandle m_vertexHandle;
@@ -32,7 +36,7 @@ struct MeshData {
 class MeshManager {
 public:
   MeshHandle loadMesh(const std::string &path);
-  MeshHandle loadMesh(const cgltf_mesh* mesh);
+  MeshHandle loadFromMemory(const void *data, LOAD_MESH_TYPE type);
 
   void initialize(id device, id queue) {
     m_allocator.initialize(device,queue);

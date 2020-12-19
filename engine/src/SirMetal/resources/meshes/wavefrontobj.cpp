@@ -10,7 +10,8 @@
 
 #include "meshoptimizer.h"
 
-bool loadMeshObj(MeshObj &result, const char *path) {
+namespace SirMetal {
+bool loadMeshObj(MeshLoadResult &result, const char *path) {
 
   ObjFile file;
   if (!objParseFile(file, path))
@@ -67,25 +68,26 @@ bool loadMeshObj(MeshObj &result, const char *path) {
   std::vector<float> uvOut;
   std::vector<float> tOut;
   result.indices.resize(index_count);
-  SirMetal::MapperData mapper{
-      &positions,
-      &normals,
-      &uvs,
-      &tangents,
-      &posOut,
-      &nOut,
-      &uvOut,
-      &tOut,
-      &result.indices,
-      static_cast<uint32_t>(index_count)
-  };
+  SirMetal::MapperData mapper{&positions,
+                              &normals,
+                              &uvs,
+                              &tangents,
+                              &posOut,
+                              &nOut,
+                              &uvOut,
+                              &tOut,
+                              &result.indices,
+                              static_cast<uint32_t>(index_count)};
 
-  //generate an index buffer and optimize per vertex cache hit using mesh optimizer
+  // generate an index buffer and optimize per vertex cache hit using mesh
+  // optimizer
   SirMetal::optimizeRawDeinterleavedMesh(mapper);
 
-  //merge the buffer into a single one
+  // merge the buffer into a single one
   SirMetal::mergeRawMeshBuffers(posOut, nOut, uvOut, tOut, result.vertices,
                                 result.ranges);
 
   return true;
 }
+
+} // namespace SirMetal

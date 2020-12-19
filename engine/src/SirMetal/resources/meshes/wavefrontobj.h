@@ -2,22 +2,16 @@
 
 #include <vector>
 #include "SirMetal/core/core.h"
+#include "SirMetal/resources/meshes/meshLoadType.h"
 
-struct Vertex
-{
-    float vx, vy, vz, vw;
-    float nx, ny, nz,nw;
-    float tu, tv, pad1,pad2;
+namespace SirMetal {
+struct Vertex {
+  float vx, vy, vz, vw;
+  float nx, ny, nz, nw;
+  float tu, tv, pad1, pad2;
 };
 
-struct MeshObj
-{
-    std::vector<float> vertices;
-    std::vector<uint32_t> indices;
-    MemoryRange ranges[4];
-    uint32_t rangeCount;
-};
-
-bool loadMeshObj(MeshObj& result, const char* path);
+bool loadMeshObj(MeshLoadResult &result, const char *path);
+}
 
 
