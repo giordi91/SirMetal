@@ -36,11 +36,11 @@ BufferHandle GPUMemoryAllocator::allocate(const uint32_t sizeInBytes,
     if (data == nullptr) {
       buffer =
           [device newBufferWithLength:allocatedSize
-                              options:MTLResourceOptionCPUCacheModeDefault];
+                              options:MTLResourceCPUCacheModeDefaultCache];
     } else {
       buffer = [device newBufferWithBytes:data
                                    length:allocatedSize
-                                  options:MTLResourceOptionCPUCacheModeDefault];
+                                  options:MTLResourceCPUCacheModeDefaultCache];
     }
   }
   if (name != nullptr) {
@@ -56,7 +56,7 @@ BufferHandle GPUMemoryAllocator::allocate(const uint32_t sizeInBytes,
     id<MTLBuffer> sharedBuffer =
         [device newBufferWithBytes:data
                             length:sizeInBytes
-                           options:MTLResourceOptionCPUCacheModeDefault];
+                           options:MTLResourceCPUCacheModeDefaultCache];
 
     // Create a command buffer for GPU work.
     id<MTLCommandQueue> queue = m_queue;
