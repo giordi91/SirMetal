@@ -22,20 +22,33 @@ struct Camera {
   float fov;
 };
 
+struct Mesh
+{
+    device float4 *positions [[id(0)]];
+    device float4 *normals [[id(1)]];
+    device float2 *uvs [[id(2)]];
+    device float4 *tangents [[id(3)]];
+    //device uint *indices[[id(4)]];
+};
 
 vertex OutVertex vertex_project(
-                                const device float4 *positions [[buffer(0)]],
-                                const device float4 *normals [[buffer(1)]],
-                                const device float2 *uvs [[buffer(2)]],
-                                const device float4 *tangents [[buffer(3)]],
+                                const device Mesh* meshes[[buffer(0)]],
+                                //const device float4 *positions [[buffer(0)]],
+                                //const device float4 *normals [[buffer(1)]],
+                                //const device float2 *uvs [[buffer(2)]],
+                                //const device float4 *tangents [[buffer(3)]],
                                 constant Camera *camera [[buffer(4)]],
                                 constant float4x4& modelMatrix [[buffer(5)]],
+                                constant uint& meshIdx [[buffer(6)]],
                                 uint vid [[vertex_id]]) {
+
   OutVertex vertexOut;
-  vertexOut.position = camera->VP * (modelMatrix*positions[vid]);
-  vertexOut.worldPos = positions[vid];
-  vertexOut.normal = modelMatrix*normals[vid];
-  vertexOut.uv = uvs[vid];
+  device const Mesh& m = meshes[meshIdx];
+  float4 p = m.positions[vid];
+  vertexOut.position = camera->VP * (modelMatrix*p);
+  vertexOut.worldPos = p;
+  vertexOut.normal = modelMatrix*m.normals[vid];
+  vertexOut.uv = m.uvs[vid];
   return vertexOut;
 }
 

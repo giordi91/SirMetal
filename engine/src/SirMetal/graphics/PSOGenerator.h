@@ -12,6 +12,8 @@ struct Material;
 struct PSOCache {
   id color = nil;
   id depth = nil;
+  id vtxFunction;
+  id fragFunction;
 };
 
 PSOCache getPSO(EngineContext*context, const SirMetal::graphics::DrawTracker &tracker,

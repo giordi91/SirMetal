@@ -102,10 +102,11 @@ void GraphicsLayer::onAttach(SirMetal::EngineContext *context) {
 
   updateLightData();
 
-
   const std::string base = m_engine->m_config.m_dataSourcePath + "/sandbox";
-  //let us load the gltf file
-  SirMetal::loadGLTF(m_engine,(base + + "/test.glb").c_str(),asset, SirMetal::GLTFLoadFlags::GLTF_LOAD_FLAGS_FLATTEN_HIERARCHY);
+  // let us load the gltf file
+  SirMetal::loadGLTF(
+      m_engine, (base + +"/test.glb").c_str(), asset,
+      SirMetal::GLTFLoadFlags::GLTF_LOAD_FLAGS_FLATTEN_HIERARCHY);
 
   const char *names[1] = {"/rt.obj"};
   for (int i = 0; i < 1; ++i) {
@@ -139,6 +140,34 @@ void GraphicsLayer::onAttach(SirMetal::EngineContext *context) {
       m_engine->m_shaderManager->loadShader((base + "/rtShadow.metal").c_str());
   m_fullScreenHandle = m_engine->m_shaderManager->loadShader(
       (base + "/fullscreen.metal").c_str());
+
+  // args buffer
+  id<MTLFunction> fn =
+      m_engine->m_shaderManager->getVertexFunction(m_shaderHandle);
+  id<MTLArgumentEncoder> argumentEncoder =
+      [fn newArgumentEncoderWithBufferIndex:0];
+
+  int meshesCount = asset.models.size();
+  int buffInstanceSize = argumentEncoder.encodedLength;
+  argBuffer =
+      [device newBufferWithLength:buffInstanceSize * meshesCount options:0];
+  for (int i = 0; i < meshesCount; ++i) {
+    [argumentEncoder setArgumentBuffer:argBuffer offset:i * buffInstanceSize];
+    const auto *meshData =
+        m_engine->m_meshManager->getMeshData(asset.models[i].mesh);
+    [argumentEncoder setBuffer:meshData->vertexBuffer
+                        offset:meshData->ranges[0].m_offset
+                       atIndex:0];
+    [argumentEncoder setBuffer:meshData->vertexBuffer
+                        offset:meshData->ranges[1].m_offset
+                       atIndex:1];
+    [argumentEncoder setBuffer:meshData->vertexBuffer
+                        offset:meshData->ranges[2].m_offset
+                       atIndex:2];
+    [argumentEncoder setBuffer:meshData->vertexBuffer
+                        offset:meshData->ranges[3].m_offset
+                       atIndex:3];
+  }
 
   uint32_t w = m_engine->m_config.m_windowConfig.m_width;
   uint32_t h = m_engine->m_config.m_windowConfig.m_height;
@@ -290,12 +319,10 @@ void GraphicsLayer::onUpdate() {
   tracker.renderTargets[0] = texture;
   tracker.depthTarget = nullptr;
 
-  SirMetal::PSOCache cache = SirMetal::getPSO(
-      m_engine, tracker, SirMetal::Material{"Shaders", false});
-
+  SirMetal::PSOCache cache =
+      SirMetal::getPSO(m_engine, tracker, SirMetal::Material{"Shaders", false});
 
   id<MTLCommandBuffer> commandBuffer = [queue commandBuffer];
-
 
   /*
    * RT STUFF
@@ -330,54 +357,59 @@ void GraphicsLayer::onUpdate() {
                      vertexCount:3];
   */
 
-  //blitting to the swap chain
+  // blitting to the swap chain
   MTLRenderPassDescriptor *passDescriptor =
-  [MTLRenderPassDescriptor renderPassDescriptor];
+      [MTLRenderPassDescriptor renderPassDescriptor];
   passDescriptor.colorAttachments[0].texture = texture;
   passDescriptor.colorAttachments[0].clearColor = {0.2, 0.2, 0.2, 1.0};
   passDescriptor.colorAttachments[0].storeAction = MTLStoreActionStore;
   passDescriptor.colorAttachments[0].loadAction = MTLLoadActionClear;
 
-
   id<MTLRenderCommandEncoder> commandEncoder =
-  [commandBuffer renderCommandEncoderWithDescriptor:passDescriptor];
+      [commandBuffer renderCommandEncoderWithDescriptor:passDescriptor];
 
   [commandEncoder setRenderPipelineState:cache.color];
   [commandEncoder setFrontFacingWinding:MTLWindingCounterClockwise];
   [commandEncoder setCullMode:MTLCullModeBack];
 
-  SirMetal::BindInfo info =
-      m_engine->m_constantBufferManager->getBindInfo(m_engine,
-  m_camUniformHandle); [commandEncoder setVertexBuffer:info.buffer
-  offset:info.offset atIndex:4]; info =
-      m_engine->m_constantBufferManager->getBindInfo(m_engine,
-  m_lightHandle); [commandEncoder setFragmentBuffer:info.buffer
-  offset:info.offset atIndex:5];
+  SirMetal::BindInfo info = m_engine->m_constantBufferManager->getBindInfo(
+      m_engine, m_camUniformHandle);
+  [commandEncoder setVertexBuffer:info.buffer offset:info.offset atIndex:4];
+  info =
+      m_engine->m_constantBufferManager->getBindInfo(m_engine, m_lightHandle);
+  [commandEncoder setFragmentBuffer:info.buffer offset:info.offset atIndex:5];
 
+  int counter = 0;
   for (auto &mesh : asset.models) {
-    if(!mesh.mesh.isHandleValid())continue;
+    if (!mesh.mesh.isHandleValid())
+      continue;
     const SirMetal::MeshData *meshData =
         m_engine->m_meshManager->getMeshData(mesh.mesh);
 
-    [commandEncoder setVertexBuffer:meshData->vertexBuffer
-                             offset:meshData->ranges[0].m_offset
+    [commandEncoder setVertexBuffer:argBuffer
+                             offset: 0
                             atIndex:0];
-    [commandEncoder setVertexBuffer:meshData->vertexBuffer
-                             offset:meshData->ranges[1].m_offset
-                            atIndex:1];
-    [commandEncoder setVertexBuffer:meshData->vertexBuffer
-                             offset:meshData->ranges[2].m_offset
-                            atIndex:2];
-    [commandEncoder setVertexBuffer:meshData->vertexBuffer
-                             offset:meshData->ranges[3].m_offset
-                            atIndex:3];
-    auto* data = (void*)(&mesh.matrix);
-    [commandEncoder setVertexBytes: data length:16*4 atIndex:5];
+    //[commandEncoder setVertexBuffer:meshData->vertexBuffer
+    //                         offset:meshData->ranges[0].m_offset
+    //                        atIndex:0];
+    //[commandEncoder setVertexBuffer:meshData->vertexBuffer
+    //                         offset:meshData->ranges[1].m_offset
+    //                        atIndex:1];
+    //[commandEncoder setVertexBuffer:meshData->vertexBuffer
+    //                         offset:meshData->ranges[2].m_offset
+    //                        atIndex:2];
+    //[commandEncoder setVertexBuffer:meshData->vertexBuffer
+    //                         offset:meshData->ranges[3].m_offset
+    //                        atIndex:3];
+    auto *data = (void *)(&mesh.matrix);
+    [commandEncoder setVertexBytes:data length:16 * 4 atIndex:5];
+    [commandEncoder setVertexBytes:&counter length:4 atIndex:6];
     [commandEncoder drawIndexedPrimitives:MTLPrimitiveTypeTriangle
                                indexCount:meshData->primitivesCount
                                 indexType:MTLIndexTypeUInt32
                               indexBuffer:meshData->indexBuffer
                         indexBufferOffset:0];
+    counter++;
   }
   // render debug
   m_engine->m_debugRenderer->newFrame();

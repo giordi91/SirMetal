@@ -65,6 +65,7 @@ PSOCache getPSO(EngineContext *context,
   pipelineDescriptor.vertexFunction = sManager->getVertexFunction(lh);
   pipelineDescriptor.fragmentFunction = sManager->getFragmentFunction(lh);
 
+
   for (int i = 0; i < MAX_COLOR_ATTACHMENT; ++i) {
     id<MTLTexture> texture = tracker.renderTargets[i];
     pipelineDescriptor.colorAttachments[i].pixelFormat = texture.pixelFormat;
@@ -89,7 +90,7 @@ PSOCache getPSO(EngineContext *context,
         material.blendingState.destinationAlphaBlendFactor;
   }
 
-  PSOCache cache{nil, nil};
+  PSOCache cache{nil, nil, pipelineDescriptor.vertexFunction,pipelineDescriptor.fragmentFunction};
 
   if (tracker.depthTarget != nil) {
     // need to do depth stuff here
@@ -106,6 +107,10 @@ PSOCache getPSO(EngineContext *context,
   NSError *error = NULL;
   cache.color = [device newRenderPipelineStateWithDescriptor:pipelineDescriptor
                                                        error:&error];
+
+  if (error) {
+    NSLog(@"Failed to create pipeline state: %@", error);
+  }
   m_psoCache[hash] = cache;
   return cache;
 }
