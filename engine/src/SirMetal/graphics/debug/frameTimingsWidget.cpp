@@ -11,23 +11,23 @@
 
 namespace SirMetal::graphics{
 FrameTimingsWidget::FrameTimingsWidget() {
-  for (int i = 0; i < NUMBER_OF_SAMPLES; ++i) {
-    m_samples[i] = 0.0f;
+  for (float & m_sample : m_samples) {
+    m_sample = 0.0f;
   }
-  for (int i = 0; i < NUMBER_OF_HISTOGRAMS_BUCKETS; ++i) {
-    m_framesHistogram[i] = 0.0f;
+  for (float & i : m_framesHistogram) {
+    i = 0.0f;
   }
 }
 
 void FrameTimingsWidget::render(EngineContext* context) {
   std::string totalFrames{"Number of frames: "};
   totalFrames += std::to_string(context->m_timings.m_totalNumberOfFrames);
-  ImGui::Text(totalFrames.c_str());
+  ImGui::Text("%s",totalFrames.c_str());
   std::string totalTime{"Time since start: "};
   totalTime += std::to_string(static_cast<float>(
                    context->m_timings.m_timeSinceStartInSeconds)) +
                "s";
-  ImGui::Text(totalTime.c_str());
+  ImGui::Text("%s",totalTime.c_str());
   if (!ImGui::CollapsingHeader("Timings", ImGuiTreeNodeFlags_DefaultOpen))
     return;
 
@@ -42,8 +42,7 @@ void FrameTimingsWidget::render(EngineContext* context) {
   float minV = 100.0f;
 
   // lets compute min max and average
-  for (int i = 0; i < NUMBER_OF_SAMPLES; ++i) {
-    float v = m_samples[i];
+  for (float v : m_samples) {
     maxV = maxV > v ? maxV : v;
     minV = minV < v ? minV : v;
     average += v;
@@ -51,7 +50,7 @@ void FrameTimingsWidget::render(EngineContext* context) {
   average /= static_cast<float>(NUMBER_OF_SAMPLES);
 
   // final
-  for (int i = 0; i < NUMBER_OF_SAMPLES; ++i) {
+  for (uint32_t i = 0; i < NUMBER_OF_SAMPLES; ++i) {
     int idx = (m_runningCounter + i) % NUMBER_OF_SAMPLES;
     finalSamples[i] = ((m_samples[idx] - minV) / (maxV - minV) - 0.5f) * 2.0f;
   }
@@ -104,7 +103,7 @@ void FrameTimingsWidget::render(EngineContext* context) {
   }
   std::string histoLabel{"Frame distribution: bucket size "};
   histoLabel += std::to_string(bucketSize) + "ms";
-  ImGui::Text(histoLabel.c_str());
+  ImGui::Text("%s",histoLabel.c_str());
   ImGui::PlotHistogram("", finalHisto, IM_ARRAYSIZE(finalHisto), 0, NULL, 0.0f,
                        1.0f, ImVec2(0, 80));
   ImGui::PopItemWidth();
