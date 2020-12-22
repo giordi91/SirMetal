@@ -12,9 +12,9 @@ set_source_files_properties(${SOURCE_FILES} PROPERTIES
 include_directories(${PROJECT_NAME}
         ${SDL2_INCLUDE_DIRS}
         "${CMAKE_CURRENT_SOURCE_DIR}/src"
+        "${CMAKE_SOURCE_DIR}/vendors"
         "${CMAKE_SOURCE_DIR}/vendors/json/include"
         "${CMAKE_SOURCE_DIR}/vendors/meshoptimizer"
-        "${CMAKE_SOURCE_DIR}/vendors"
         )
 
 

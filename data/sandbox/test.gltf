@@ -113,12 +113,10 @@
       "doubleSided": true,
       "name": "PlaneMaterial",
       "pbrMetallicRoughness": {
-        "baseColorFactor": [
-          0.800000011920929,
-          0.800000011920929,
-          0.800000011920929,
-          1
-        ],
+        "baseColorTexture": {
+          "index": 0,
+          "texCoord": 0
+        },
         "metallicFactor": 0,
         "roughnessFactor": 0.5
       }
@@ -226,6 +224,18 @@
           "material": 3
         }
       ]
+    }
+  ],
+  "textures": [
+    {
+      "sampler": 0,
+      "source": 0
+    }
+  ],
+  "images": [
+    {
+      "name": "uv",
+      "uri": "test_img0.png"
     }
   ],
   "accessors": [
@@ -490,6 +500,12 @@
       "buffer": 0,
       "byteLength": 72,
       "byteOffset": 152736
+    }
+  ],
+  "samplers": [
+    {
+      "magFilter": 9729,
+      "minFilter": 9986
     }
   ],
   "buffers": [
