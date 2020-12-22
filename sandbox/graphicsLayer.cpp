@@ -167,6 +167,7 @@ void GraphicsLayer::onAttach(SirMetal::EngineContext *context) {
     [argumentEncoder setBuffer:meshData->vertexBuffer
                         offset:meshData->ranges[3].m_offset
                        atIndex:3];
+    [argumentEncoder setBuffer:meshData->indexBuffer offset:0 atIndex:4];
   }
 
   uint32_t w = m_engine->m_config.m_windowConfig.m_width;
@@ -380,35 +381,17 @@ void GraphicsLayer::onUpdate() {
   [commandEncoder setFragmentBuffer:info.buffer offset:info.offset atIndex:5];
 
   int counter = 0;
+  [commandEncoder setVertexBuffer:argBuffer offset:0 atIndex:0];
   for (auto &mesh : asset.models) {
     if (!mesh.mesh.isHandleValid())
       continue;
     const SirMetal::MeshData *meshData =
         m_engine->m_meshManager->getMeshData(mesh.mesh);
-
-    [commandEncoder setVertexBuffer:argBuffer
-                             offset: 0
-                            atIndex:0];
-    //[commandEncoder setVertexBuffer:meshData->vertexBuffer
-    //                         offset:meshData->ranges[0].m_offset
-    //                        atIndex:0];
-    //[commandEncoder setVertexBuffer:meshData->vertexBuffer
-    //                         offset:meshData->ranges[1].m_offset
-    //                        atIndex:1];
-    //[commandEncoder setVertexBuffer:meshData->vertexBuffer
-    //                         offset:meshData->ranges[2].m_offset
-    //                        atIndex:2];
-    //[commandEncoder setVertexBuffer:meshData->vertexBuffer
-    //                         offset:meshData->ranges[3].m_offset
-    //                        atIndex:3];
     auto *data = (void *)(&mesh.matrix);
     [commandEncoder setVertexBytes:data length:16 * 4 atIndex:5];
     [commandEncoder setVertexBytes:&counter length:4 atIndex:6];
-    [commandEncoder drawIndexedPrimitives:MTLPrimitiveTypeTriangle
-                               indexCount:meshData->primitivesCount
-                                indexType:MTLIndexTypeUInt32
-                              indexBuffer:meshData->indexBuffer
-                        indexBufferOffset:0];
+    [commandEncoder drawPrimitives:MTLPrimitiveTypeTriangle
+    vertexStart:0 vertexCount:meshData->primitivesCount ];
     counter++;
   }
   // render debug

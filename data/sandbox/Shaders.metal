@@ -28,7 +28,7 @@ struct Mesh
     device float4 *normals [[id(1)]];
     device float2 *uvs [[id(2)]];
     device float4 *tangents [[id(3)]];
-    //device uint *indices[[id(4)]];
+    device uint *indices[[id(4)]];
 };
 
 vertex OutVertex vertex_project(
@@ -40,10 +40,12 @@ vertex OutVertex vertex_project(
                                 constant Camera *camera [[buffer(4)]],
                                 constant float4x4& modelMatrix [[buffer(5)]],
                                 constant uint& meshIdx [[buffer(6)]],
-                                uint vid [[vertex_id]]) {
+                                uint vertexCount [[vertex_id]]) {
+
 
   OutVertex vertexOut;
   device const Mesh& m = meshes[meshIdx];
+  uint vid = m.indices[vertexCount];
   float4 p = m.positions[vid];
   vertexOut.position = camera->VP * (modelMatrix*p);
   vertexOut.worldPos = p;

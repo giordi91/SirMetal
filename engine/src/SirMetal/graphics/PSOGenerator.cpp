@@ -104,7 +104,7 @@ PSOCache getPSO(EngineContext *context,
         [device newDepthStencilStateWithDescriptor:depthStencilDescriptor];
   }
 
-  NSError *error = NULL;
+  NSError *error = nullptr;
   cache.color = [device newRenderPipelineStateWithDescriptor:pipelineDescriptor
                                                        error:&error];
 
