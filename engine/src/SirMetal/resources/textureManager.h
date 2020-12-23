@@ -1,13 +1,16 @@
 #pragma once
 
+#include <assert.h>
 #include <stdint.h>
 #include <string>
 #include <unordered_map>
-#include <assert.h>
 
 #import <Metal/Metal.h>
 
-#import "handle.h"
+#include "SirMetal/resources/handle.h"
+#include "SirMetal/resources/resourceTypes.h"
+#import "gltfLoader.h"
+#import "resourceTypes.h"
 
 namespace SirMetal {
 struct AllocTextureRequest {
@@ -30,10 +33,13 @@ public:
 
   TextureHandle allocate(id<MTLDevice> device,
                          const AllocTextureRequest &request);
+  TextureHandle loadFromMemory(void *data, LOAD_TEXTURE_TYPE type,
+                               bool isGamma);
+
   bool resizeTexture(id<MTLDevice> device, TextureHandle handle,
                      uint32_t newWidth, uint32_t newHeight);
 
-  MTLPixelFormat getFormat(const TextureHandle handle)const{
+  MTLPixelFormat getFormat(const TextureHandle handle) const {
     HANDLE_TYPE type = getTypeFromHandle(handle);
     assert(type == HANDLE_TYPE::TEXTURE);
     auto found = m_data.find(handle.handle);
@@ -42,11 +48,12 @@ public:
     }
     assert(0 && "requested invalid texture");
     return MTLPixelFormatInvalid;
-
-
   }
 
   id getNativeFromHandle(TextureHandle handle);
+
+private:
+  TextureHandle createTextureFromTextureLoadResult(const TextureLoadResult &result);
 
 private:
   struct TextureData {

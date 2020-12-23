@@ -2,6 +2,7 @@
 
 #include "SirMetal/resources/resourceTypes.h"
 
+
 namespace SirMetal {
-bool loadGltfMesh(MeshLoadResult &outMesh, const void *gltfMesh);
+void loadGltfTexture(TextureLoadResult &outData,void* data, bool isGamma);
 }

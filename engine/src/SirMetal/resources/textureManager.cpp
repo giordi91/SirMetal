@@ -1,6 +1,7 @@
 
 #include "SirMetal/resources/textureManager.h"
-#import "SirMetal/resources/handle.h"
+#include "SirMetal/resources/handle.h"
+#include <SirMetal/resources/textures/gltfTexture.h>
 
 namespace SirMetal {
 
@@ -12,7 +13,7 @@ bool isDepthFormat(MTLPixelFormat format) {
 }
 
 id<MTLTexture> createTextureFromRequest(id<MTLDevice> device,
-                                        const AllocTextureRequest request) {
+                                        const AllocTextureRequest& request) {
   if (request.sampleCount != 1) {
     assert(request.mipLevel == 1 && "if we use MSAA we can't have mip maps");
   }
@@ -44,11 +45,27 @@ TextureHandle TextureManager::allocate(id<MTLDevice> device,
   }
   auto tex = createTextureFromRequest(device, request);
 
-  TextureHandle handle = getHandle<TextureHandle>(m_textureCounter++);
+  auto handle = getHandle<TextureHandle>(m_textureCounter++);
   m_data[handle.handle] = TextureData{request, tex};
   m_nameToHandle[request.name] = handle.handle;
 
   return handle;
+}
+
+TextureHandle TextureManager::loadFromMemory(void* data, LOAD_TEXTURE_TYPE type, bool isGamma)
+{
+  switch(type)
+  {
+  case LOAD_TEXTURE_TYPE::INVALID:
+  {assert(0 && "unsupported texture");break;}
+  case LOAD_TEXTURE_TYPE::GLTF_TEXTURE:
+  {
+    TextureLoadResult outData;
+    loadGltfTexture(outData,data,isGamma);
+    return createTextureFromTextureLoadResult(outData);
+  }
+  }
+  return {};
 }
 
 id TextureManager::getNativeFromHandle(TextureHandle handle) {
@@ -103,5 +120,26 @@ bool TextureManager::resizeTexture(id<MTLDevice> device, TextureHandle handle,
   }
 
   return true;
+}
+TextureHandle TextureManager::createTextureFromTextureLoadResult(
+    const TextureLoadResult &result) {
+
+  MTLTextureDescriptor *textureDescriptor = [[MTLTextureDescriptor alloc] init];
+  textureDescriptor.textureType = result.isCube ? MTLTextureType::MTLTextureTypeCube  :MTLTextureType::MTLTextureType2D;
+  textureDescriptor.width = result.width;
+  textureDescriptor.height = result.height;
+  textureDescriptor.sampleCount = 1; //no msaa texture from file
+  textureDescriptor.pixelFormat = request.format;
+  textureDescriptor.mipmapLevelCount = request.mipLevel;
+  textureDescriptor.usage = request.usage;
+  if (isDepthFormat(request.format)) {
+    // if is a depth format storage mode must be private
+    assert(request.storage == MTLStorageModePrivate);
+  }
+  textureDescriptor.storageMode = request.storage;
+
+  auto tex = [device newTextureWithDescriptor:textureDescriptor];
+  return tex;
+
 }
 } // namespace SirMetal

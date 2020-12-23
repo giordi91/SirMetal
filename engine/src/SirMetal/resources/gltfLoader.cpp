@@ -1,9 +1,10 @@
 #include "SirMetal/resources/gltfLoader.h"
+#include "SirMetal/engine.h"
 #include "SirMetal/io/fileUtils.h"
+#include "SirMetal/resources/meshes/meshManager.h"
+#include "SirMetal/resources/textureManager.h"
 #include <SirMetal/core/mathUtils.h>
 #include <simd/simd.h>
-#include "SirMetal/engine.h"
-#include "SirMetal/resources/meshes/meshManager.h"
 
 #define CGLTF_IMPLEMENTATION
 #include "cgltf/cgltf.h"
@@ -40,30 +41,55 @@ simd_float4x4 getMatrix(const cgltf_node &node) {
   return getMatrixFromComponents(t, r, s);
 }
 
-void loadNode(EngineContext* context,const cgltf_node *node, GLTFAsset &outAsset,
-              GLTFLoadFlags flags, simd_float4x4 parentMatrix) {
+GLTFMaterial loadMaterial(EngineContext *context,
+                          const cgltf_material *material) {
+  GLTFMaterial outMaterial;
+  outMaterial.name = material->name;
+  outMaterial.doubleSided = true;
+  const auto &pbr = material->pbr_metallic_roughness;
+  auto colorFactor = pbr.base_color_factor;
+  outMaterial.colorFactors = simd_float4{colorFactor[0], colorFactor[1],
+                                         colorFactor[2], colorFactor[3]};
+  outMaterial.colorTexture = pbr.base_color_texture.texture
+                                 ? context->m_textureManager->loadFromMemory(
+                                       pbr.base_color_texture.texture,
+                                       LOAD_TEXTURE_TYPE::GLTF_TEXTURE, true)
+                                 : TextureHandle{};
 
-  MeshHandle meshHandle{};
+  return outMaterial;
+}
+
+void loadNode(EngineContext *context, const cgltf_node *node,
+              GLTFAsset &outAsset, GLTFLoadFlags flags,
+              simd_float4x4 parentMatrix) {
+  Model model{};
   if (node->mesh != nullptr) {
     printf("loading mesh for node %s\n", node->name);
     assert(node->mesh->primitives_count == 1 &&
            "gltf loader does not support multiple primitives per mesh yet");
-    meshHandle = context->m_meshManager->loadFromMemory(node->mesh, LOAD_MESH_TYPE::GLTF_MESH);
+    model.mesh = context->m_meshManager->loadFromMemory(
+        node->mesh, LOAD_MESH_TYPE::GLTF_MESH);
+
+    assert(node->mesh->primitives_count == 1);
+    if (node->mesh->primitives[0].material != nullptr) {
+      model.material =
+          loadMaterial(context, node->mesh->primitives[0].material);
+    }
   }
+
   simd_float4x4 matrix = getMatrix(*node);
-  matrix = simd_mul(parentMatrix, matrix);
+  model.matrix = simd_mul(parentMatrix, matrix);
+
   bool flatten = (flags & GLTF_LOAD_FLAGS_FLATTEN_HIERARCHY) > 0;
   bool isEmpty = node->mesh == nullptr;
-  if(!(flatten & isEmpty)) {
-    outAsset.models.emplace_back(Model{matrix, meshHandle});
+  if (!(flatten & isEmpty)) {
+    outAsset.models.push_back(model);
   }
 
-  for(int c =0; c < node->children_count;++c)
-  {
-    const auto* child = node->children[c];
-    loadNode(context,child,outAsset,flags,matrix);
+  for (int c = 0; c < node->children_count; ++c) {
+    const auto *child = node->children[c];
+    loadNode(context, child, outAsset, flags, model.matrix);
   }
-
 }
 
 bool loadGLTF(EngineContext *context, const char *path, GLTFAsset &outAsset,
@@ -94,7 +120,7 @@ bool loadGLTF(EngineContext *context, const char *path, GLTFAsset &outAsset,
   for (int i = 0; i < nodesCount; ++i) {
     auto *node = scene->nodes[i];
     printf("Node -> %s\n", node->name);
-    loadNode(context,node, outAsset, flags, getIdentity());
+    loadNode(context, node, outAsset, flags, getIdentity());
   }
 
   cgltf_free(data);

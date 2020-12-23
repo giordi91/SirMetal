@@ -1,17 +1,15 @@
 #pragma once
 
-#include <vector>
 #include <stdint.h>
 #include <string>
+#include <vector>
 
 #include "SirMetal/core/core.h"
 
-namespace SirMetal
-{
-enum class LOAD_MESH_TYPE {
-  INVALID =0,
-  GLTF_MESH
-};
+namespace SirMetal {
+
+// mesh types
+enum class LOAD_MESH_TYPE { INVALID = 0, GLTF_MESH };
 
 enum MESH_ATTRIBUTE_TYPE {
   MESH_ATTRIBUTE_TYPE_POSITION = 0,
@@ -39,4 +37,22 @@ struct MeshLoadResult {
   float m_boundingBox[6];
   std::string name;
 };
-}
+
+// texture types
+enum class LOAD_TEXTURE_TYPE { INVALID = 0, GLTF_TEXTURE };
+enum class LOAD_TEXTURE_PIXEL_FORMAT {INVALID =0,RGBA32_UNORM, RGBA32_UNORM_S};
+
+struct TextureLoadResult
+{
+  std::string name;
+  std::vector<unsigned char>data;
+  LOAD_TEXTURE_PIXEL_FORMAT format;
+  int width;
+  int height;
+  bool hasMips : 1;
+  bool isCube : 1;
+  uint32_t padding: 30;
+
+};
+
+} // namespace SirMetal

@@ -8,7 +8,7 @@
 #import "SirMetal/core/core.h"
 #include "SirMetal/core/mathUtils.h"
 #include "SirMetal/core/memory/gpu/GPUMemoryAllocator.h"
-#include "SirMetal/resources/meshes/meshLoadType.h"
+#include "SirMetal/resources/resourceTypes.h"
 
 #import "SirMetal/resources/meshes/meshManager.h"
 

@@ -76,7 +76,7 @@ bool loadGltfMesh(MeshLoadResult &outMesh, const void *gltfMesh) {
       printf("[WARN] Could not find %s attribute in gltf file, filling with "
              "zeroes",
              MESH_ATTRIBUTES[attrIdx]);
-      // TODO properly implement attribute pacthign
+      // TODO properly implement attribute patching
       assert(0);
       continue;
     }
