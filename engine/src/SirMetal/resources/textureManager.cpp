@@ -193,7 +193,7 @@ MTLPixelFormat TextureManager::resultToMetalPixelFormat(LOAD_TEXTURE_PIXEL_FORMA
     }
   }
 }
-TextureHandle TextureManager::generateSolidColorTexture(id<MTLDevice> device, int w, int h, uint32_t color, const std::string &name) {
+TextureHandle TextureManager::generateSolidColorTexture(id<MTLDevice> device, id<MTLCommandQueue> queue, int w, int h, uint32_t color, const std::string &name) {
 
 
   // Create a render target which the shading kernel can write to
@@ -211,7 +211,7 @@ TextureHandle TextureManager::generateSolidColorTexture(id<MTLDevice> device, in
   textureDescriptor.pixelFormat = MTLPixelFormatRGBA8Unorm;
   textureDescriptor.usage = MTLTextureUsageShaderRead;
 
-  id<MTLTexture> tex = [device
+  id<MTLTexture> texStaging = [device
           newTextureWithDescriptor:textureDescriptor];
 
   auto *values =
@@ -220,13 +220,26 @@ TextureHandle TextureManager::generateSolidColorTexture(id<MTLDevice> device, in
   for (NSUInteger i = 0; i < w * h; i++)
     values[i] = color;
 
-  [tex replaceRegion:MTLRegionMake2D(0, 0, w, h)
-          mipmapLevel:0
-            withBytes:values
-          bytesPerRow:sizeof(uint32_t) * w];
-
-
+  [texStaging replaceRegion:MTLRegionMake2D(0, 0, w, h)
+                mipmapLevel:0
+                  withBytes:values
+                bytesPerRow:sizeof(uint32_t) * w];
   free(values);
+
+  textureDescriptor.storageMode = MTLStorageModePrivate;
+  int mipCount = std::floor(std::log2(std::max(w, h) + 1));
+  textureDescriptor.mipmapLevelCount = mipCount;
+
+  id<MTLTexture> tex = [device
+          newTextureWithDescriptor:textureDescriptor];
+
+  id<MTLCommandBuffer> commandBuffer = [queue commandBuffer];
+  id<MTLBlitCommandEncoder> commandEncoder = [commandBuffer blitCommandEncoder];
+  [commandEncoder copyFromTexture:texStaging toTexture:tex];
+  [commandEncoder generateMipmapsForTexture:tex];
+  [commandEncoder endEncoding];
+  [commandBuffer commit];
+
 
   TextureData data{};
   data.request.width = w;
@@ -245,8 +258,8 @@ TextureHandle TextureManager::generateSolidColorTexture(id<MTLDevice> device, in
   m_nameToHandle[data.request.name] = handle.handle;
   return handle;
 }
-void TextureManager::initialize(id<MTLDevice> device) {
-  m_whiteTexture = generateSolidColorTexture(device, 2, 2, 0xFFFFFFFF, "white");
-  m_blackTexture = generateSolidColorTexture(device, 2, 2, 0, "black");
+void TextureManager::initialize(id<MTLDevice> device, id<MTLCommandQueue> queue) {
+  m_whiteTexture = generateSolidColorTexture(device, queue, 2, 2, 0xFFFFFFFF, "white");
+  m_blackTexture = generateSolidColorTexture(device, queue, 2, 2, 0, "black");
 }
 }// namespace SirMetal

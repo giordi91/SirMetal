@@ -30,7 +30,7 @@ struct AllocTextureRequest {
 class TextureManager {
   public:
   TextureManager() = default;
-  void initialize(id<MTLDevice> device);
+  void initialize(id<MTLDevice> device, id<MTLCommandQueue> queue);
   void cleanup(){};
 
   TextureHandle allocate(id<MTLDevice> device,
@@ -59,7 +59,7 @@ class TextureManager {
   private:
   TextureHandle createTextureFromTextureLoadResult(id<MTLDevice> device, id<MTLCommandQueue> queue, const TextureLoadResult &result);
   MTLPixelFormat resultToMetalPixelFormat(LOAD_TEXTURE_PIXEL_FORMAT format);
-  TextureHandle generateSolidColorTexture(id<MTLDevice> device,  int w, int h, uint32_t color, const std::string &name);
+  TextureHandle generateSolidColorTexture(id<MTLDevice> device, id<MTLCommandQueue> queue, int w, int h, uint32_t color, const std::string &name);
 
   private:
   struct TextureData {

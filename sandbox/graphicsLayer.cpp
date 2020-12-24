@@ -420,7 +420,7 @@ void GraphicsLayer::onUpdate() {
     const SirMetal::MeshData *meshData =
         m_engine->m_meshManager->getMeshData(mesh.mesh);
     auto *data = (void *)(&mesh.matrix);
-    [commandEncoder useResource: m_engine->m_textureManager->getNativeFromHandle(mesh.material.colorTexture) usage:MTLResourceUsageSample];
+    //[commandEncoder useResource: m_engine->m_textureManager->getNativeFromHandle(mesh.material.colorTexture) usage:MTLResourceUsageSample];
     [commandEncoder setVertexBytes:data length:16 * 4 atIndex:5];
     [commandEncoder setVertexBytes:&counter length:4 atIndex:6];
     [commandEncoder drawPrimitives:MTLPrimitiveTypeTriangle

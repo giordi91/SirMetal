@@ -92,7 +92,7 @@ EngineContext *engineStartUp(const EngineConfig &config, SDL_Window *window) {
   context->m_meshManager = new MeshManager();
   context->m_meshManager->initialize(device, queue);
   context->m_textureManager = new TextureManager();
-  context->m_textureManager->initialize(device);
+  context->m_textureManager->initialize(device,queue);
   context->m_debugRenderer = new graphics::DebugRenderer();
   context->m_debugRenderer->initialize(context);
   /*
