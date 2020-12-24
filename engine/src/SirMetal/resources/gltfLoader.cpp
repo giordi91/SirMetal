@@ -7,6 +7,8 @@
 #include <simd/simd.h>
 
 #define CGLTF_IMPLEMENTATION
+#include "SirMetal/engine.h"
+#include "SirMetal/graphics/renderingContext.h"
 #include "cgltf/cgltf.h"
 
 namespace SirMetal {
@@ -27,17 +29,17 @@ simd_float4x4 getMatrix(const cgltf_node &node) {
   }
 
   simd_float3 t = node.has_translation
-                      ? simd_float3{node.translation[0], node.translation[1],
-                                    node.translation[2]}
-                      : simd_float3{0, 0, 0};
+                          ? simd_float3{node.translation[0], node.translation[1],
+                                        node.translation[2]}
+                          : simd_float3{0, 0, 0};
   simd_quatf r = node.has_rotation
-                     ? simd_quaternion(node.rotation[0], node.rotation[1],
-                                       node.rotation[2], node.rotation[3])
-                     : simd_quaternion(0.0f, simd_float3{0, 1, 0});
+                         ? simd_quaternion(node.rotation[0], node.rotation[1],
+                                           node.rotation[2], node.rotation[3])
+                         : simd_quaternion(0.0f, simd_float3{0, 1, 0});
 
   simd_float3 s = node.has_scale
-                      ? simd_float3{node.scale[0], node.scale[1], node.scale[2]}
-                      : simd_float3{1, 1, 1};
+                          ? simd_float3{node.scale[0], node.scale[1], node.scale[2]}
+                          : simd_float3{1, 1, 1};
   return getMatrixFromComponents(t, r, s);
 }
 
@@ -51,10 +53,11 @@ GLTFMaterial loadMaterial(EngineContext *context,
   outMaterial.colorFactors = simd_float4{colorFactor[0], colorFactor[1],
                                          colorFactor[2], colorFactor[3]};
   outMaterial.colorTexture = pbr.base_color_texture.texture
-                                 ? context->m_textureManager->loadFromMemory(
-                                       pbr.base_color_texture.texture,
-                                       LOAD_TEXTURE_TYPE::GLTF_TEXTURE, true)
-                                 : TextureHandle{};
+                                     ? context->m_textureManager->loadFromMemory(
+                                               context->m_renderingContext->getDevice(),
+                                               pbr.base_color_texture.texture,
+                                               LOAD_TEXTURE_TYPE::GLTF_TEXTURE, true)
+                                     : TextureHandle{};
 
   return outMaterial;
 }
@@ -68,12 +71,12 @@ void loadNode(EngineContext *context, const cgltf_node *node,
     assert(node->mesh->primitives_count == 1 &&
            "gltf loader does not support multiple primitives per mesh yet");
     model.mesh = context->m_meshManager->loadFromMemory(
-        node->mesh, LOAD_MESH_TYPE::GLTF_MESH);
+            node->mesh, LOAD_MESH_TYPE::GLTF_MESH);
 
     assert(node->mesh->primitives_count == 1);
     if (node->mesh->primitives[0].material != nullptr) {
       model.material =
-          loadMaterial(context, node->mesh->primitives[0].material);
+              loadMaterial(context, node->mesh->primitives[0].material);
     }
   }
 
@@ -127,4 +130,4 @@ bool loadGLTF(EngineContext *context, const char *path, GLTFAsset &outAsset,
   return true;
 }
 
-} // namespace SirMetal
+}// namespace SirMetal

@@ -49,9 +49,9 @@ struct TextureLoadResult
   LOAD_TEXTURE_PIXEL_FORMAT format;
   int width;
   int height;
-  bool hasMips : 1;
+  int mipLevel : 8;
   bool isCube : 1;
-  uint32_t padding: 30;
+  uint32_t padding: 23;
 
 };
 

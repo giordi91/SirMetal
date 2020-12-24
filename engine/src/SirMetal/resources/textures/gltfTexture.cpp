@@ -38,7 +38,9 @@ void loadGltfTexture(TextureLoadResult &outData, void *data, bool isGamma) {
   memcpy(outData.data.data(), ptr, bufferSize);
 
   outData.format = getGltfTextureFormat(texture, isGamma);
-  outData.hasMips = false;
+  outData.mipLevel = 1;
+  outData.width = x;
+  outData.height= y;
   outData.isCube = false;
 }
 

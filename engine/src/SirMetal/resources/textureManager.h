@@ -7,6 +7,7 @@
 
 #import <Metal/Metal.h>
 
+#import "../../../../../../../../../Library/Developer/CommandLineTools/SDKs/MacOSX11.1.sdk/System/Library/Frameworks/Metal.framework/Headers/MTLPixelFormat.h"
 #include "SirMetal/resources/handle.h"
 #include "SirMetal/resources/resourceTypes.h"
 #import "gltfLoader.h"
@@ -26,15 +27,14 @@ struct AllocTextureRequest {
 };
 
 class TextureManager {
-public:
+  public:
   TextureManager() = default;
   void initialize(){};
   void cleanup(){};
 
   TextureHandle allocate(id<MTLDevice> device,
                          const AllocTextureRequest &request);
-  TextureHandle loadFromMemory(void *data, LOAD_TEXTURE_TYPE type,
-                               bool isGamma);
+  TextureHandle loadFromMemory(id<MTLDevice> device, void *data, LOAD_TEXTURE_TYPE type, bool isGamma);
 
   bool resizeTexture(id<MTLDevice> device, TextureHandle handle,
                      uint32_t newWidth, uint32_t newHeight);
@@ -52,18 +52,19 @@ public:
 
   id getNativeFromHandle(TextureHandle handle);
 
-private:
-  TextureHandle createTextureFromTextureLoadResult(const TextureLoadResult &result);
+  private:
+  TextureHandle createTextureFromTextureLoadResult(id<MTLDevice> device, const TextureLoadResult &result);
+  MTLPixelFormat resultToMetalPixelFormat(LOAD_TEXTURE_PIXEL_FORMAT format);
 
-private:
+  private:
   struct TextureData {
     AllocTextureRequest request;
     id<MTLTexture> texture;
   };
 
-private:
+  private:
   std::unordered_map<uint32_t, TextureData> m_data;
   std::unordered_map<std::string, uint32_t> m_nameToHandle;
   int m_textureCounter = 1;
 };
-} // namespace SirMetal
+}// namespace SirMetal

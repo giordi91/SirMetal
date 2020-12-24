@@ -12,8 +12,9 @@ bool isDepthFormat(MTLPixelFormat format) {
          (MTLPixelFormatDepth24Unorm_Stencil8 == format);
 }
 
+
 id<MTLTexture> createTextureFromRequest(id<MTLDevice> device,
-                                        const AllocTextureRequest& request) {
+                                        const AllocTextureRequest &request) {
   if (request.sampleCount != 1) {
     assert(request.mipLevel == 1 && "if we use MSAA we can't have mip maps");
   }
@@ -52,18 +53,17 @@ TextureHandle TextureManager::allocate(id<MTLDevice> device,
   return handle;
 }
 
-TextureHandle TextureManager::loadFromMemory(void* data, LOAD_TEXTURE_TYPE type, bool isGamma)
-{
-  switch(type)
-  {
-  case LOAD_TEXTURE_TYPE::INVALID:
-  {assert(0 && "unsupported texture");break;}
-  case LOAD_TEXTURE_TYPE::GLTF_TEXTURE:
-  {
-    TextureLoadResult outData;
-    loadGltfTexture(outData,data,isGamma);
-    return createTextureFromTextureLoadResult(outData);
-  }
+TextureHandle TextureManager::loadFromMemory(id<MTLDevice> device, void *data, LOAD_TEXTURE_TYPE type, bool isGamma) {
+  switch (type) {
+    case LOAD_TEXTURE_TYPE::INVALID: {
+      assert(0 && "unsupported texture");
+      break;
+    }
+    case LOAD_TEXTURE_TYPE::GLTF_TEXTURE: {
+      TextureLoadResult outData;
+      loadGltfTexture(outData, data, isGamma);
+      return createTextureFromTextureLoadResult(device,outData);
+    }
   }
   return {};
 }
@@ -121,25 +121,52 @@ bool TextureManager::resizeTexture(id<MTLDevice> device, TextureHandle handle,
 
   return true;
 }
+
+
 TextureHandle TextureManager::createTextureFromTextureLoadResult(
-    const TextureLoadResult &result) {
+        id<MTLDevice> device, const TextureLoadResult &result) {
 
   MTLTextureDescriptor *textureDescriptor = [[MTLTextureDescriptor alloc] init];
-  textureDescriptor.textureType = result.isCube ? MTLTextureType::MTLTextureTypeCube  :MTLTextureType::MTLTextureType2D;
+  textureDescriptor.textureType = result.isCube ? MTLTextureType::MTLTextureTypeCube : MTLTextureType::MTLTextureType2D;
   textureDescriptor.width = result.width;
   textureDescriptor.height = result.height;
-  textureDescriptor.sampleCount = 1; //no msaa texture from file
-  textureDescriptor.pixelFormat = request.format;
-  textureDescriptor.mipmapLevelCount = request.mipLevel;
-  textureDescriptor.usage = request.usage;
-  if (isDepthFormat(request.format)) {
-    // if is a depth format storage mode must be private
-    assert(request.storage == MTLStorageModePrivate);
-  }
-  textureDescriptor.storageMode = request.storage;
+  textureDescriptor.sampleCount = 1;//no msaa texture from file
+  textureDescriptor.pixelFormat = resultToMetalPixelFormat(result.format);
+  textureDescriptor.mipmapLevelCount = result.mipLevel;
+  textureDescriptor.usage = MTLTextureUsageShaderRead;
+  textureDescriptor.storageMode = MTLStorageModePrivate;//for now only supporting private mode
 
   auto tex = [device newTextureWithDescriptor:textureDescriptor];
-  return tex;
+  TextureData data{};
+  data.request.width = result.width;
+  data.request.height = result.height;
+  data.request.sampleCount = textureDescriptor.sampleCount;
+  data.request.type = textureDescriptor.textureType;
+  data.request.format = textureDescriptor.pixelFormat;
+  data.request.usage = textureDescriptor.usage;
+  data.request.storage = textureDescriptor.storageMode;
+  data.request.mipLevel = textureDescriptor.mipmapLevelCount;
+  data.request.name = result.name;
+  data.texture = tex;
 
+  auto handle = getHandle<TextureHandle>(m_textureCounter++);
+  m_data[handle.handle] = data;
+  m_nameToHandle[data.request.name] = handle.handle;
+
+  return handle;
 }
-} // namespace SirMetal
+MTLPixelFormat TextureManager::resultToMetalPixelFormat(LOAD_TEXTURE_PIXEL_FORMAT format) {
+  switch (format) {
+    case LOAD_TEXTURE_PIXEL_FORMAT::INVALID: {
+      assert(0 && "passed invalid pixel format");
+      return MTLPixelFormat::MTLPixelFormatInvalid;
+    }
+    case LOAD_TEXTURE_PIXEL_FORMAT::RGBA32_UNORM: {
+      return MTLPixelFormatRGBA8Unorm;
+    }
+    case LOAD_TEXTURE_PIXEL_FORMAT::RGBA32_UNORM_S: {
+      return MTLPixelFormatRGBA8Unorm_sRGB;
+    }
+  }
+}
+}// namespace SirMetal
