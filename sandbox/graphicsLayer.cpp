@@ -399,7 +399,6 @@ void GraphicsLayer::onUpdate() {
                      vertexStart:0
                      vertexCount:3];
   */
-
   // blitting to the swap chain
   MTLRenderPassDescriptor *passDescriptor =
           [MTLRenderPassDescriptor renderPassDescriptor];
