@@ -45,6 +45,7 @@ to the resource folder.
 - [Jump Flooding Selection](#jump)  
 - [Shadows PCF and PCSS](#shadow)
 - [Basic raytracing plumbing](#basicrt)
+- [GLTF scene + argument buffers](#gltf)
 
 ### Jump flooding selection. <a name="jump"/>
 This is an implementation of jump flooding algorithm used to generate a thick outline, 
@@ -72,6 +73,14 @@ The sample keeps accumulating up to 9000 samples, then it stops. I suggest not t
 camera, the RT process is not reset on camera movement.
 
 ![basic](./docs/images/samples03.png "basicrt")
+
+### GLTF scene and argument buffers <a name="gltf">
+This  work was mostly a requirement for moving forward with the raytracing work, and also wanted
+to start loading asset properly, not simple obj but a more complex scene using mostly gltf.
+This sample shows the use of the gltf loader and the use of arguments buffer feature.
+All data is loaded and indexed through arguments buffers, both geometry and materials
+
+![basic](./docs/images/samples04.png "gltf")
 
 ## What this project used to be!
 This project used to be a start of a game editor, but then due to reasons I decided
