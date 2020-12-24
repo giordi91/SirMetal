@@ -227,16 +227,20 @@ TextureHandle TextureManager::generateSolidColorTexture(id<MTLDevice> device, id
   free(values);
 
   textureDescriptor.storageMode = MTLStorageModePrivate;
-  int mipCount = std::floor(std::log2(std::max(w, h) + 1));
+  int mipCount = static_cast<int>(std::floor(std::log2(std::max(w, h) + 1)));
+  mipCount = std::max(mipCount,1);
   textureDescriptor.mipmapLevelCount = mipCount;
 
   id<MTLTexture> tex = [device
           newTextureWithDescriptor:textureDescriptor];
 
+
   id<MTLCommandBuffer> commandBuffer = [queue commandBuffer];
   id<MTLBlitCommandEncoder> commandEncoder = [commandBuffer blitCommandEncoder];
   [commandEncoder copyFromTexture:texStaging toTexture:tex];
-  [commandEncoder generateMipmapsForTexture:tex];
+  if(mipCount > 1){
+    [commandEncoder generateMipmapsForTexture:tex];
+  }
   [commandEncoder endEncoding];
   [commandBuffer commit];
 

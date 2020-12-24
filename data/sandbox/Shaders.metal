@@ -23,41 +23,46 @@ struct Camera {
   float fov;
 };
 
-struct Mesh
-{
-    device float4 *positions [[id(0)]];
-    device float4 *normals [[id(1)]];
-    device float2 *uvs [[id(2)]];
-    device float4 *tangents [[id(3)]];
-    device uint *indices[[id(4)]];
+struct DirLight {
+  float4x4 V;
+  float4x4 P;
+  float4x4 VP;
+  float4 lightDir;
 };
 
-struct Material
-{
+struct Mesh {
+  device float4 *positions [[id(0)]];
+  device float4 *normals [[id(1)]];
+  device float2 *uvs [[id(2)]];
+  device float4 *tangents [[id(3)]];
+  device uint *indices [[id(4)]];
+};
+
+struct Material {
   texture2d<float> albedoTex [[id(0)]];
-  sampler sampler[[id(1)]];
+  sampler sampler [[id(1)]];
   float4 tintColor [[id(2)]];
 };
 
 vertex OutVertex vertex_project(
-                                const device Mesh* meshes[[buffer(0)]],
-                                //const device float4 *positions [[buffer(0)]],
-                                //const device float4 *normals [[buffer(1)]],
-                                //const device float2 *uvs [[buffer(2)]],
-                                //const device float4 *tangents [[buffer(3)]],
-                                constant Camera *camera [[buffer(4)]],
-                                constant float4x4& modelMatrix [[buffer(5)]],
-                                constant uint& meshIdx [[buffer(6)]],
-                                uint vertexCount [[vertex_id]]) {
+        const device Mesh *meshes [[buffer(0)]],
+        //const device float4 *positions [[buffer(0)]],
+        //const device float4 *normals [[buffer(1)]],
+        //const device float2 *uvs [[buffer(2)]],
+        //const device float4 *tangents [[buffer(3)]],
+        constant Camera *camera [[buffer(4)]],
+        constant float4x4 &modelMatrix [[buffer(5)]],
+        constant uint &meshIdx [[buffer(6)]],
+        uint vertexCount [[vertex_id]]) {
 
 
   OutVertex vertexOut;
-  device const Mesh& m = meshes[meshIdx];
+  device const Mesh &m = meshes[meshIdx];
   uint vid = m.indices[vertexCount];
   float4 p = m.positions[vid];
-  vertexOut.position = camera->VP * (modelMatrix*p);
+  vertexOut.position = camera->VP * (modelMatrix * p);
   vertexOut.worldPos = p;
-  vertexOut.normal = modelMatrix*m.normals[vid];
+  vertexOut.normal = modelMatrix * m.normals[vid];
   vertexOut.uv = m.uvs[vid];
   vertexOut.id = meshIdx;
   return vertexOut;
@@ -65,15 +70,17 @@ vertex OutVertex vertex_project(
 
 
 fragment half4 fragment_flatcolor(OutVertex vertexIn [[stage_in]],
-                                  const device Material* materials [[buffer(0)]]) {
+                                  constant DirLight *light [[buffer(5)]],
+                                  const device Material *materials [[buffer(0)]]) {
 
-  device const Material& mat = materials[vertexIn.id];
-  float4 n = mat.tintColor;
+  device const Material &mat = materials[vertexIn.id];
+  float4 n = vertexIn.normal;
 
   float2 uv = vertexIn.uv;
-  float4 albedo=
+  float4 albedo =
           mat.albedoTex.sample(mat.sampler, uv);
-  float4 color = mat.tintColor *albedo;
+  float4 color = mat.tintColor * albedo;
+  color*=  saturate(dot(n.xyz,light->lightDir.xyz));
 
-  return half4(color.x,color.y,color.z,1.0h);
+  return half4(color.x, color.y, color.z, 1.0h);
 }
