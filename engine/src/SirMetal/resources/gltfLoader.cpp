@@ -55,6 +55,7 @@ GLTFMaterial loadMaterial(EngineContext *context,
   outMaterial.colorTexture = pbr.base_color_texture.texture
                                      ? context->m_textureManager->loadFromMemory(
                                                context->m_renderingContext->getDevice(),
+                                               context->m_renderingContext->getQueue(),
                                                pbr.base_color_texture.texture,
                                                LOAD_TEXTURE_TYPE::GLTF_TEXTURE, true)
                                      : context->m_textureManager->getWhiteTexture();

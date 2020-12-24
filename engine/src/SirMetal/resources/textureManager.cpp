@@ -53,7 +53,7 @@ TextureHandle TextureManager::allocate(id<MTLDevice> device,
   return handle;
 }
 
-TextureHandle TextureManager::loadFromMemory(id<MTLDevice> device, void *data, LOAD_TEXTURE_TYPE type, bool isGamma) {
+TextureHandle TextureManager::loadFromMemory(id<MTLDevice> device, id<MTLCommandQueue> queue, void *data, LOAD_TEXTURE_TYPE type, bool isGamma) {
   switch (type) {
     case LOAD_TEXTURE_TYPE::INVALID: {
       assert(0 && "unsupported texture");
@@ -62,7 +62,7 @@ TextureHandle TextureManager::loadFromMemory(id<MTLDevice> device, void *data, L
     case LOAD_TEXTURE_TYPE::GLTF_TEXTURE: {
       TextureLoadResult outData;
       loadGltfTexture(outData, data, isGamma);
-      return createTextureFromTextureLoadResult(device,outData);
+      return createTextureFromTextureLoadResult(device, queue, outData);
     }
   }
   return {};
@@ -124,7 +124,7 @@ bool TextureManager::resizeTexture(id<MTLDevice> device, TextureHandle handle,
 
 
 TextureHandle TextureManager::createTextureFromTextureLoadResult(
-        id<MTLDevice> device, const TextureLoadResult &result) {
+        id<MTLDevice> device, id<MTLCommandQueue> queue, const TextureLoadResult &result) {
 
   MTLTextureDescriptor *textureDescriptor = [[MTLTextureDescriptor alloc] init];
   textureDescriptor.textureType = result.isCube ? MTLTextureType::MTLTextureTypeCube : MTLTextureType::MTLTextureType2D;
@@ -136,13 +136,30 @@ TextureHandle TextureManager::createTextureFromTextureLoadResult(
   textureDescriptor.usage = MTLTextureUsageShaderRead;
   textureDescriptor.storageMode = MTLStorageModeManaged;//for now only supporting private mode
 
-  auto tex = [device newTextureWithDescriptor:textureDescriptor];
 
+  id<MTLTexture> texStaging = [device
+          newTextureWithDescriptor:textureDescriptor];
 
-  [tex replaceRegion:MTLRegionMake2D(0, 0, result.width,result.height)
-  mipmapLevel:0
-  withBytes:result.data.data()
-  bytesPerRow:sizeof(uint32_t) * result.width];
+  [texStaging replaceRegion:MTLRegionMake2D(0, 0, result.width, result.height)
+                mipmapLevel:0
+                  withBytes:result.data.data()
+                bytesPerRow:sizeof(uint32_t) * result.width];
+
+  textureDescriptor.storageMode = MTLStorageModePrivate;
+  textureDescriptor.mipmapLevelCount = result.mipLevel;
+  int mipCount = std::floor(std::log2(std::max(result.width, result.height))) + 1;
+  textureDescriptor.mipmapLevelCount = mipCount;
+
+  id<MTLTexture> tex = [device
+          newTextureWithDescriptor:textureDescriptor];
+
+  id<MTLCommandBuffer> commandBuffer = [queue commandBuffer];
+  id<MTLBlitCommandEncoder> commandEncoder = [commandBuffer blitCommandEncoder];
+  [commandEncoder copyFromTexture:texStaging toTexture:tex];
+  [commandEncoder generateMipmapsForTexture:tex];
+  [commandEncoder endEncoding];
+  [commandBuffer commit];
+
 
   TextureData data{};
   data.request.width = result.width;
@@ -176,12 +193,12 @@ MTLPixelFormat TextureManager::resultToMetalPixelFormat(LOAD_TEXTURE_PIXEL_FORMA
     }
   }
 }
-TextureHandle TextureManager::generateSolidColorTexture(id<MTLDevice> device, int w, int h, uint32_t color, const std::string& name) {
+TextureHandle TextureManager::generateSolidColorTexture(id<MTLDevice> device, int w, int h, uint32_t color, const std::string &name) {
 
 
   // Create a render target which the shading kernel can write to
   MTLTextureDescriptor *textureDescriptor =
-  [[MTLTextureDescriptor alloc] init];
+          [[MTLTextureDescriptor alloc] init];
 
   textureDescriptor.textureType = MTLTextureType2D;
   textureDescriptor.width = w;
@@ -194,19 +211,19 @@ TextureHandle TextureManager::generateSolidColorTexture(id<MTLDevice> device, in
   textureDescriptor.pixelFormat = MTLPixelFormatRGBA8Unorm;
   textureDescriptor.usage = MTLTextureUsageShaderRead;
 
-  id<MTLTexture> tex = [ device
-  newTextureWithDescriptor:textureDescriptor];
+  id<MTLTexture> tex = [device
+          newTextureWithDescriptor:textureDescriptor];
 
-  auto *values=
-          static_cast<uint32_t*>(malloc(sizeof(uint32_t) * w * h));
+  auto *values =
+          static_cast<uint32_t *>(malloc(sizeof(uint32_t) * w * h));
 
   for (NSUInteger i = 0; i < w * h; i++)
     values[i] = color;
 
   [tex replaceRegion:MTLRegionMake2D(0, 0, w, h)
-  mipmapLevel:0
-  withBytes: values
-  bytesPerRow:sizeof(uint32_t) * w];
+          mipmapLevel:0
+            withBytes:values
+          bytesPerRow:sizeof(uint32_t) * w];
 
 
   free(values);
@@ -227,10 +244,9 @@ TextureHandle TextureManager::generateSolidColorTexture(id<MTLDevice> device, in
   m_data[handle.handle] = data;
   m_nameToHandle[data.request.name] = handle.handle;
   return handle;
-
 }
 void TextureManager::initialize(id<MTLDevice> device) {
-  m_whiteTexture = generateSolidColorTexture(device,2,2,0xFFFFFFFF,"white");
-  m_blackTexture = generateSolidColorTexture(device,2,2,0,"black");
+  m_whiteTexture = generateSolidColorTexture(device, 2, 2, 0xFFFFFFFF, "white");
+  m_blackTexture = generateSolidColorTexture(device, 2, 2, 0, "black");
 }
 }// namespace SirMetal

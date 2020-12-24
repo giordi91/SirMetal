@@ -35,7 +35,7 @@ class TextureManager {
 
   TextureHandle allocate(id<MTLDevice> device,
                          const AllocTextureRequest &request);
-  TextureHandle loadFromMemory(id<MTLDevice> device, void *data, LOAD_TEXTURE_TYPE type, bool isGamma);
+  TextureHandle loadFromMemory(id<MTLDevice> device, id<MTLCommandQueue> queue, void *data, LOAD_TEXTURE_TYPE type, bool isGamma);
 
   bool resizeTexture(id<MTLDevice> device, TextureHandle handle,
                      uint32_t newWidth, uint32_t newHeight);
@@ -53,13 +53,13 @@ class TextureManager {
 
   id getNativeFromHandle(TextureHandle handle);
 
-  TextureHandle getWhiteTexture()const {return m_whiteTexture;}
-  TextureHandle getBlackTexture()const {return m_blackTexture;}
+  TextureHandle getWhiteTexture() const { return m_whiteTexture; }
+  TextureHandle getBlackTexture() const { return m_blackTexture; }
 
   private:
-  TextureHandle createTextureFromTextureLoadResult(id<MTLDevice> device, const TextureLoadResult &result);
+  TextureHandle createTextureFromTextureLoadResult(id<MTLDevice> device, id<MTLCommandQueue> queue, const TextureLoadResult &result);
   MTLPixelFormat resultToMetalPixelFormat(LOAD_TEXTURE_PIXEL_FORMAT format);
-  TextureHandle generateSolidColorTexture(id<MTLDevice> device, int w, int h, uint32_t color, const std::string& name);
+  TextureHandle generateSolidColorTexture(id<MTLDevice> device,  int w, int h, uint32_t color, const std::string &name);
 
   private:
   struct TextureData {
