@@ -134,9 +134,16 @@ TextureHandle TextureManager::createTextureFromTextureLoadResult(
   textureDescriptor.pixelFormat = resultToMetalPixelFormat(result.format);
   textureDescriptor.mipmapLevelCount = result.mipLevel;
   textureDescriptor.usage = MTLTextureUsageShaderRead;
-  textureDescriptor.storageMode = MTLStorageModePrivate;//for now only supporting private mode
+  textureDescriptor.storageMode = MTLStorageModeManaged;//for now only supporting private mode
 
   auto tex = [device newTextureWithDescriptor:textureDescriptor];
+
+
+  [tex replaceRegion:MTLRegionMake2D(0, 0, result.width,result.height)
+  mipmapLevel:0
+  withBytes:result.data.data()
+  bytesPerRow:sizeof(uint32_t) * result.width];
+
   TextureData data{};
   data.request.width = result.width;
   data.request.height = result.height;
@@ -168,5 +175,62 @@ MTLPixelFormat TextureManager::resultToMetalPixelFormat(LOAD_TEXTURE_PIXEL_FORMA
       return MTLPixelFormatRGBA8Unorm_sRGB;
     }
   }
+}
+TextureHandle TextureManager::generateSolidColorTexture(id<MTLDevice> device, int w, int h, uint32_t color, const std::string& name) {
+
+
+  // Create a render target which the shading kernel can write to
+  MTLTextureDescriptor *textureDescriptor =
+  [[MTLTextureDescriptor alloc] init];
+
+  textureDescriptor.textureType = MTLTextureType2D;
+  textureDescriptor.width = w;
+  textureDescriptor.height = h;
+
+  // Stored in private memory because it will only be read and written from the
+  // GPU
+  textureDescriptor.storageMode = MTLStorageModeManaged;
+
+  textureDescriptor.pixelFormat = MTLPixelFormatRGBA8Unorm;
+  textureDescriptor.usage = MTLTextureUsageShaderRead;
+
+  id<MTLTexture> tex = [ device
+  newTextureWithDescriptor:textureDescriptor];
+
+  auto *values=
+          static_cast<uint32_t*>(malloc(sizeof(uint32_t) * w * h));
+
+  for (NSUInteger i = 0; i < w * h; i++)
+    values[i] = color;
+
+  [tex replaceRegion:MTLRegionMake2D(0, 0, w, h)
+  mipmapLevel:0
+  withBytes: values
+  bytesPerRow:sizeof(uint32_t) * w];
+
+
+  free(values);
+
+  TextureData data{};
+  data.request.width = w;
+  data.request.height = h;
+  data.request.sampleCount = 1;
+  data.request.type = textureDescriptor.textureType;
+  data.request.format = textureDescriptor.pixelFormat;
+  data.request.usage = textureDescriptor.usage;
+  data.request.storage = textureDescriptor.storageMode;
+  data.request.mipLevel = textureDescriptor.mipmapLevelCount;
+  data.request.name = name;
+  data.texture = tex;
+
+  auto handle = getHandle<TextureHandle>(m_textureCounter++);
+  m_data[handle.handle] = data;
+  m_nameToHandle[data.request.name] = handle.handle;
+  return handle;
+
+}
+void TextureManager::initialize(id<MTLDevice> device) {
+  m_whiteTexture = generateSolidColorTexture(device,2,2,0xFFFFFFFF,"white");
+  m_blackTexture = generateSolidColorTexture(device,2,2,0,"black");
 }
 }// namespace SirMetal

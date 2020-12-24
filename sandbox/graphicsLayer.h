@@ -73,6 +73,8 @@ private:
   id _randomTexture;
 
   id argBuffer;
+  id argBufferFrag;
+  id sampler;
 
   void encodeShadowRay(id<MTLCommandBuffer> buffer, float w, float h);
   void encodePrimaryRay(id<MTLCommandBuffer> commandBuffer, float w, float h);

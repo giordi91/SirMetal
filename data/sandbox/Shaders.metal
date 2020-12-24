@@ -7,6 +7,7 @@ struct OutVertex {
   float4 worldPos;
   float4 normal;
   float2 uv;
+  int id [[flat]];
 };
 
 struct Camera {
@@ -31,6 +32,13 @@ struct Mesh
     device uint *indices[[id(4)]];
 };
 
+struct Material
+{
+  texture2d<float> albedoTex [[id(0)]];
+  sampler sampler[[id(1)]];
+  float4 tintColor [[id(2)]];
+};
+
 vertex OutVertex vertex_project(
                                 const device Mesh* meshes[[buffer(0)]],
                                 //const device float4 *positions [[buffer(0)]],
@@ -51,15 +59,21 @@ vertex OutVertex vertex_project(
   vertexOut.worldPos = p;
   vertexOut.normal = modelMatrix*m.normals[vid];
   vertexOut.uv = m.uvs[vid];
+  vertexOut.id = meshIdx;
   return vertexOut;
 }
 
 
 fragment half4 fragment_flatcolor(OutVertex vertexIn [[stage_in]],
-                                  texture2d<float> rt [[texture(0)]]) {
+                                  const device Material* materials [[buffer(0)]]) {
 
+  device const Material& mat = materials[vertexIn.id];
+  float4 n = mat.tintColor;
 
-  float4 n = vertexIn.normal;
   float2 uv = vertexIn.uv;
-  return half4(n.x,n.y,n.z,1.0h);
+  float4 albedo=
+          mat.albedoTex.sample(mat.sampler, uv);
+  float4 color = mat.tintColor *albedo;
+
+  return half4(color.x,color.y,color.z,1.0h);
 }

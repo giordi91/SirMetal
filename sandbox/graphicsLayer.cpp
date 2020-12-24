@@ -146,11 +146,29 @@ void GraphicsLayer::onAttach(SirMetal::EngineContext *context) {
       m_engine->m_shaderManager->getVertexFunction(m_shaderHandle);
   id<MTLArgumentEncoder> argumentEncoder =
       [fn newArgumentEncoderWithBufferIndex:0];
+  id<MTLFunction> fnFrag =
+          m_engine->m_shaderManager->getFragmentFunction(m_shaderHandle);
+  id<MTLArgumentEncoder> argumentEncoderFrag =
+  [fnFrag newArgumentEncoderWithBufferIndex:0];
 
   int meshesCount = asset.models.size();
   int buffInstanceSize = argumentEncoder.encodedLength;
+  int buffInstanceSizeFrag = argumentEncoderFrag.encodedLength;
   argBuffer =
       [device newBufferWithLength:buffInstanceSize * meshesCount options:0];
+  argBufferFrag =
+  [device newBufferWithLength:buffInstanceSizeFrag * meshesCount options:0];
+
+  MTLSamplerDescriptor *samplerDesc = [MTLSamplerDescriptor new];
+  samplerDesc.minFilter = MTLSamplerMinMagFilterLinear;
+  samplerDesc.magFilter = MTLSamplerMinMagFilterLinear;
+  samplerDesc.mipFilter = MTLSamplerMipFilterNotMipmapped;
+  samplerDesc.normalizedCoordinates = YES;
+  samplerDesc.supportArgumentBuffers = YES;
+
+  sampler = [device newSamplerStateWithDescriptor:samplerDesc];
+
+
   for (int i = 0; i < meshesCount; ++i) {
     [argumentEncoder setArgumentBuffer:argBuffer offset:i * buffInstanceSize];
     const auto *meshData =
@@ -167,7 +185,19 @@ void GraphicsLayer::onAttach(SirMetal::EngineContext *context) {
     [argumentEncoder setBuffer:meshData->vertexBuffer
                         offset:meshData->ranges[3].m_offset
                        atIndex:3];
+    //[argumentEncoder constantDataAtIndex:()];
     [argumentEncoder setBuffer:meshData->indexBuffer offset:0 atIndex:4];
+
+
+    const auto& material = asset.models[i].material;
+    [argumentEncoderFrag setArgumentBuffer:argBufferFrag offset:i * buffInstanceSizeFrag];
+    id albedo = m_engine->m_textureManager->getNativeFromHandle(material.colorTexture);
+    [argumentEncoderFrag setTexture:albedo atIndex:0];
+    [argumentEncoderFrag setSamplerState:sampler atIndex:1];
+    auto* ptr = [argumentEncoderFrag constantDataAtIndex:2];
+    memcpy(ptr, &material.colorFactors,sizeof(float)*4);
+
+
   }
 
   uint32_t w = m_engine->m_config.m_windowConfig.m_width;
@@ -382,12 +412,15 @@ void GraphicsLayer::onUpdate() {
 
   int counter = 0;
   [commandEncoder setVertexBuffer:argBuffer offset:0 atIndex:0];
+  [commandEncoder setFragmentBuffer:argBufferFrag offset:0 atIndex:0];
+
   for (auto &mesh : asset.models) {
     if (!mesh.mesh.isHandleValid())
       continue;
     const SirMetal::MeshData *meshData =
         m_engine->m_meshManager->getMeshData(mesh.mesh);
     auto *data = (void *)(&mesh.matrix);
+    [commandEncoder useResource: m_engine->m_textureManager->getNativeFromHandle(mesh.material.colorTexture) usage:MTLResourceUsageSample];
     [commandEncoder setVertexBytes:data length:16 * 4 atIndex:5];
     [commandEncoder setVertexBytes:&counter length:4 atIndex:6];
     [commandEncoder drawPrimitives:MTLPrimitiveTypeTriangle

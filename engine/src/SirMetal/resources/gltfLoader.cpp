@@ -57,7 +57,7 @@ GLTFMaterial loadMaterial(EngineContext *context,
                                                context->m_renderingContext->getDevice(),
                                                pbr.base_color_texture.texture,
                                                LOAD_TEXTURE_TYPE::GLTF_TEXTURE, true)
-                                     : TextureHandle{};
+                                     : context->m_textureManager->getWhiteTexture();
 
   return outMaterial;
 }

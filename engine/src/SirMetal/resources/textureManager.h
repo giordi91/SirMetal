@@ -11,6 +11,7 @@
 #include "SirMetal/resources/handle.h"
 #include "SirMetal/resources/resourceTypes.h"
 #import "gltfLoader.h"
+#import "handle.h"
 #import "resourceTypes.h"
 
 namespace SirMetal {
@@ -29,7 +30,7 @@ struct AllocTextureRequest {
 class TextureManager {
   public:
   TextureManager() = default;
-  void initialize(){};
+  void initialize(id<MTLDevice> device);
   void cleanup(){};
 
   TextureHandle allocate(id<MTLDevice> device,
@@ -52,9 +53,13 @@ class TextureManager {
 
   id getNativeFromHandle(TextureHandle handle);
 
+  TextureHandle getWhiteTexture()const {return m_whiteTexture;}
+  TextureHandle getBlackTexture()const {return m_blackTexture;}
+
   private:
   TextureHandle createTextureFromTextureLoadResult(id<MTLDevice> device, const TextureLoadResult &result);
   MTLPixelFormat resultToMetalPixelFormat(LOAD_TEXTURE_PIXEL_FORMAT format);
+  TextureHandle generateSolidColorTexture(id<MTLDevice> device, int w, int h, uint32_t color, const std::string& name);
 
   private:
   struct TextureData {
@@ -66,5 +71,7 @@ class TextureManager {
   std::unordered_map<uint32_t, TextureData> m_data;
   std::unordered_map<std::string, uint32_t> m_nameToHandle;
   int m_textureCounter = 1;
+  TextureHandle m_whiteTexture{};
+  TextureHandle m_blackTexture{};
 };
 }// namespace SirMetal
