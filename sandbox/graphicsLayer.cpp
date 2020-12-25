@@ -514,6 +514,7 @@ void GraphicsLayer::renderDebugWindow() {
   }
   ImGui::SetNextWindowPos(ImVec2(0, 0), ImGuiCond_Once);
   if (ImGui::Begin("Debug", &p_open, 0)) {
+    m_gpuInfo.render(m_engine->m_renderingContext->getDevice());
     m_timingsWidget.render(m_engine);
   }
   ImGui::End();

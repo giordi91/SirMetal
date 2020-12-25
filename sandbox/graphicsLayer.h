@@ -3,6 +3,7 @@
 #include "SirMetal//application/layer.h"
 #include "SirMetal/graphics/camera.h"
 #include "SirMetal/graphics/debug/frameTimingsWidget.h"
+#include "SirMetal/graphics/debug/gpuWidget.h"
 #include "SirMetal/graphics/renderingContext.h"
 #include "SirMetal/resources/handle.h"
 #include "SirMetal/core/memory/gpu/GPUMemoryAllocator.h"
@@ -60,6 +61,7 @@ private:
   dispatch_semaphore_t frameBoundarySemaphore;
 
   SirMetal::graphics::FrameTimingsWidget m_timingsWidget;
+  SirMetal::graphics::GPUInfoWidget m_gpuInfo;
   DirLight light{};
   MPSTriangleAccelerationStructure* m_accelerationStructure;
   MPSRayIntersector* m_intersector;
