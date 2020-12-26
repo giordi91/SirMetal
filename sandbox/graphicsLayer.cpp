@@ -140,23 +140,29 @@ void GraphicsLayer::onAttach(SirMetal::EngineContext *context) {
           m_engine->m_shaderManager->loadShader((base + "/rtShadow.metal").c_str());
   m_fullScreenHandle = m_engine->m_shaderManager->loadShader(
           (base + "/fullscreen.metal").c_str());
+  m_rtMono = m_engine->m_shaderManager->loadShader(
+          (base + "/rtMono.metal").c_str());
 
   // args buffer
   id<MTLFunction> fn =
-          m_engine->m_shaderManager->getVertexFunction(m_shaderHandle);
+          m_engine->m_shaderManager->getKernelFunction(m_rtMono);
   id<MTLArgumentEncoder> argumentEncoder =
-          [fn newArgumentEncoderWithBufferIndex:0];
+          [fn newArgumentEncoderWithBufferIndex:2];
+  /*
   id<MTLFunction> fnFrag =
           m_engine->m_shaderManager->getFragmentFunction(m_shaderHandle);
   id<MTLArgumentEncoder> argumentEncoderFrag =
           [fnFrag newArgumentEncoderWithBufferIndex:0];
+          */
 
   int meshesCount = asset.models.size();
   int buffInstanceSize = argumentEncoder.encodedLength;
-  int buffInstanceSizeFrag = argumentEncoderFrag.encodedLength;
   argBuffer =
           [device newBufferWithLength:buffInstanceSize * meshesCount
                               options:0];
+
+  /*
+  int buffInstanceSizeFrag = argumentEncoderFrag.encodedLength;
   argBufferFrag =
           [device newBufferWithLength:buffInstanceSizeFrag * meshesCount
                               options:0];
@@ -169,6 +175,7 @@ void GraphicsLayer::onAttach(SirMetal::EngineContext *context) {
   samplerDesc.supportArgumentBuffers = YES;
 
   sampler = [device newSamplerStateWithDescriptor:samplerDesc];
+          */
 
 
   for (int i = 0; i < meshesCount; ++i) {
@@ -189,7 +196,10 @@ void GraphicsLayer::onAttach(SirMetal::EngineContext *context) {
                        atIndex:3];
     [argumentEncoder setBuffer:meshData->indexBuffer offset:0 atIndex:4];
 
+    auto *ptrMatrix = [argumentEncoder constantDataAtIndex:5];
+    memcpy(ptrMatrix, &asset.models[i].matrix, sizeof(float) * 16);
 
+    /*
     const auto &material = asset.models[i].material;
     [argumentEncoderFrag setArgumentBuffer:argBufferFrag offset:i * buffInstanceSizeFrag];
     id albedo = m_engine->m_textureManager->getNativeFromHandle(material.colorTexture);
@@ -197,6 +207,7 @@ void GraphicsLayer::onAttach(SirMetal::EngineContext *context) {
     [argumentEncoderFrag setSamplerState:sampler atIndex:1];
     auto *ptr = [argumentEncoderFrag constantDataAtIndex:2];
     memcpy(ptr, &material.colorFactors, sizeof(float) * 4);
+     */
   }
 
   SirMetal::AllocTextureRequest requestDepth{
@@ -238,29 +249,18 @@ void GraphicsLayer::onAttach(SirMetal::EngineContext *context) {
   shadowPipeline = createComputePipeline(
           device,
           m_engine->m_shaderManager->getKernelFunction(m_rtShadowShaderHandle));
+  rtMonoPipeline = createComputePipeline(
+          device,
+          m_engine->m_shaderManager->getKernelFunction(m_rtMono));
 
   // this is to flush the gpu, should figure out why is not actually flushing
   // properly
   m_engine->m_renderingContext->flush();
-  usleep(1000 * 1000 * 2);
 
-  const SirMetal::MeshData *meshData =
-          m_engine->m_meshManager->getMeshData(m_meshes[0]);
 
-  m_accelerationStructure =
-          [[MPSTriangleAccelerationStructure alloc] initWithDevice:device];
-  assert(m_accelerationStructure != nil);
-  assert(meshData->vertexBuffer != nil);
-  assert(meshData->indexBuffer != nil);
-  [m_accelerationStructure setVertexBuffer:meshData->vertexBuffer];
-  [m_accelerationStructure setVertexStride:sizeof(float) * 4];
-  [m_accelerationStructure setIndexBuffer:meshData->indexBuffer];
-  [m_accelerationStructure setIndexType:MPSDataTypeUInt32];
-  [m_accelerationStructure setTriangleCount:meshData->primitivesCount / 3];
-  [m_accelerationStructure rebuild];
+  buildAccellerationStructure();
 
   // m_engine->m_renderingContext->flush();
-  // usleep(1000 * 1000 * 2);
   m_intersector = [[MPSRayIntersector alloc] initWithDevice:device];
   [m_intersector
           setRayDataType:MPSRayDataTypeOriginMinDistanceDirectionMaxDistance];
@@ -359,16 +359,19 @@ void GraphicsLayer::onUpdate() {
   // render
   SirMetal::graphics::DrawTracker tracker{};
   tracker.renderTargets[0] = texture;
-  tracker.depthTarget =
-          m_engine->m_textureManager->getNativeFromHandle(m_depthHandle);
+  tracker.depthTarget = {};
+  //  m_engine->m_textureManager->getNativeFromHandle(m_depthHandle);
 
   SirMetal::PSOCache cache =
           SirMetal::getPSO(m_engine, tracker, SirMetal::Material{"fullscreen", false});
 
   id<MTLCommandBuffer> commandBuffer = [queue commandBuffer];
 
-   //* RT STUFF
+  //* RT STUFF
+  encodeMonoRay(commandBuffer,w,h);
+  /*
   if (m_engine->m_timings.m_totalNumberOfFrames < 9000) {
+
 
     encodePrimaryRay(commandBuffer, w, h);
     // SHADOW RAYS
@@ -377,9 +380,10 @@ void GraphicsLayer::onUpdate() {
     // shading pixel
     encodeShadeRt(commandBuffer, w, h);
   }
+  */
 
   MTLRenderPassDescriptor *passDescriptor =
-  [MTLRenderPassDescriptor renderPassDescriptor];
+          [MTLRenderPassDescriptor renderPassDescriptor];
   passDescriptor.colorAttachments[0].texture = texture;
   passDescriptor.colorAttachments[0].clearColor = {0.2, 0.2, 0.2, 1.0};
   passDescriptor.colorAttachments[0].storeAction = MTLStoreActionStore;
@@ -391,11 +395,11 @@ void GraphicsLayer::onUpdate() {
   passDescriptor.colorAttachments[0].loadAction = MTLLoadActionClear;
 
   id<MTLRenderCommandEncoder> commandEncoder =
-      [commandBuffer renderCommandEncoderWithDescriptor:passDescriptor];
+          [commandBuffer renderCommandEncoderWithDescriptor:passDescriptor];
 
   uint32_t colorIndex = m_engine->m_timings.m_totalNumberOfFrames % 2;
   id<MTLTexture> colorTexture =
-      m_engine->m_textureManager->getNativeFromHandle(m_color[colorIndex]);
+          m_engine->m_textureManager->getNativeFromHandle(m_color[colorIndex]);
 
   [commandEncoder setRenderPipelineState:cache.color];
   [commandEncoder setFrontFacingWinding:MTLWindingCounterClockwise];
@@ -670,6 +674,33 @@ void GraphicsLayer::encodeShadowRay(id<MTLCommandBuffer> commandBuffer, float w,
                           intersectionBufferOffset:0
                                           rayCount:w * h
                              accelerationStructure:m_accelerationStructure];
+
+}
+void GraphicsLayer::encodeMonoRay(id<MTLCommandBuffer> commandBuffer,
+                                     float w, float h) {
+
+  MTLSize threadsPerThreadgroup = MTLSizeMake(8, 8, 1);
+  MTLSize threadgroups = MTLSizeMake(
+          (w + threadsPerThreadgroup.width - 1) / threadsPerThreadgroup.width,
+          (h + threadsPerThreadgroup.height - 1) / threadsPerThreadgroup.height, 1);
+
+  id<MTLComputeCommandEncoder> computeEncoder =
+  [commandBuffer computeCommandEncoder];
+
+  auto bindInfo =
+          m_engine->m_constantBufferManager->getBindInfo(m_engine, m_uniforms);
+  uint32_t colorIndex = m_engine->m_timings.m_totalNumberOfFrames % 2;
+  id<MTLTexture> colorTexture =
+          m_engine->m_textureManager->getNativeFromHandle(m_color[colorIndex]);
+
+  [computeEncoder setAccelerationStructure:instanceAccelerationStructure atBufferIndex:0];
+  [computeEncoder setBuffer:bindInfo.buffer offset:bindInfo.offset atIndex:1];
+  [computeEncoder setBuffer:argBuffer  offset:0 atIndex:2];
+  [computeEncoder setTexture:colorTexture atIndex:0];
+  [computeEncoder setComputePipelineState:rtMonoPipeline];
+  [computeEncoder dispatchThreadgroups:threadgroups
+  threadsPerThreadgroup:MTLSizeMake(8, 8, 1)];
+  [computeEncoder endEncoding];
 }
 void GraphicsLayer::encodePrimaryRay(id<MTLCommandBuffer> commandBuffer,
                                      float w, float h) {
@@ -710,6 +741,200 @@ void GraphicsLayer::encodePrimaryRay(id<MTLCommandBuffer> commandBuffer,
                           intersectionBufferOffset:0
                                           rayCount:w * h
                              accelerationStructure:m_accelerationStructure];
+}
+
+
+id GraphicsLayer::buildPrimitiveAccelerationStructure(
+        MTLAccelerationStructureDescriptor *descriptor) {
+  id<MTLDevice> device = m_engine->m_renderingContext->getDevice();
+  id<MTLCommandQueue> queue = m_engine->m_renderingContext->getQueue();
+  // Create and compact an acceleration structure, given an acceleration structure descriptor.
+  // Query for the sizes needed to store and build the acceleration structure.
+  MTLAccelerationStructureSizes accelSizes = [device accelerationStructureSizesWithDescriptor:descriptor];
+
+  // Allocate an acceleration structure large enough for this descriptor. This doesn't actually
+  // build the acceleration structure, just allocates memory.
+  id<MTLAccelerationStructure> accelerationStructure = [device newAccelerationStructureWithSize:accelSizes.accelerationStructureSize];
+
+  // Allocate scratch space used by Metal to build the acceleration structure.
+  // Use MTLResourceStorageModePrivate for best performance since the sample
+  // doesn't need access to buffer's contents.
+  id<MTLBuffer> scratchBuffer = [device newBufferWithLength:accelSizes.buildScratchBufferSize options:MTLResourceStorageModePrivate];
+
+  // Create a command buffer which will perform the acceleration structure build
+  id<MTLCommandBuffer> commandBuffer = [queue commandBuffer];
+
+  // Create an acceleration structure command encoder.
+  id<MTLAccelerationStructureCommandEncoder> commandEncoder = [commandBuffer accelerationStructureCommandEncoder];
+
+  // Allocate a buffer for Metal to write the compacted accelerated structure's size into.
+  id<MTLBuffer> compactedSizeBuffer = [device newBufferWithLength:sizeof(uint32_t) options:MTLResourceStorageModeShared];
+
+  // Schedule the actual acceleration structure build
+  [commandEncoder buildAccelerationStructure:accelerationStructure
+                                  descriptor:descriptor
+                               scratchBuffer:scratchBuffer
+                         scratchBufferOffset:0];
+
+  // Compute and write the compacted acceleration structure size into the buffer. You
+  // must already have a built accelerated structure because Metal determines the compacted
+  // size based on the final size of the acceleration structure. Compacting an acceleration
+  // structure can potentially reclaim significant amounts of memory since Metal must
+  // create the initial structure using a conservative approach.
+
+  [commandEncoder writeCompactedAccelerationStructureSize:accelerationStructure
+                                                 toBuffer:compactedSizeBuffer
+                                                   offset:0];
+
+  // End encoding and commit the command buffer so the GPU can start building the
+  // acceleration structure.
+  [commandEncoder endEncoding];
+
+  [commandBuffer commit];
+
+  // The sample waits for Metal to finish executing the command buffer so that it can
+  // read back the compacted size.
+
+  // Note: Don't wait for Metal to finish executing the command buffer if you aren't compacting
+  // the acceleration structure, as doing so requires CPU/GPU synchronization. You don't have
+  // to compact acceleration structures, but you should when creating large static acceleration
+  // structures, such as static scene geometry. Avoid compacting acceleration structures that
+  // you rebuild every frame, as the synchronization cost may be significant.
+
+  [commandBuffer waitUntilCompleted];
+
+  uint32_t compactedSize = *(uint32_t *) compactedSizeBuffer.contents;
+
+  // Allocate a smaller acceleration structure based on the returned size.
+  id<MTLAccelerationStructure> compactedAccelerationStructure = [device newAccelerationStructureWithSize:compactedSize];
+
+  // Create another command buffer and encoder.
+  commandBuffer = [queue commandBuffer];
+
+  commandEncoder = [commandBuffer accelerationStructureCommandEncoder];
+
+  // Encode the command to copy and compact the acceleration structure into the
+  // smaller acceleration structure.
+  [commandEncoder copyAndCompactAccelerationStructure:accelerationStructure
+                              toAccelerationStructure:compactedAccelerationStructure];
+
+  // End encoding and commit the command buffer. You don't need to wait for Metal to finish
+  // executing this command buffer as long as you synchronize any ray-intersection work
+  // to run after this command buffer completes. The sample relies on Metal's default
+  // dependency tracking on resources to automatically synchronize access to the new
+  // compacted acceleration structure.
+  [commandEncoder endEncoding];
+  [commandBuffer commit];
+  [commandBuffer waitUntilCompleted];
+
+  return compactedAccelerationStructure;
+};
+
+void GraphicsLayer::buildAccellerationStructure() {
+
+  id<MTLDevice> device = m_engine->m_renderingContext->getDevice();
+  const SirMetal::MeshData *meshData =
+          m_engine->m_meshManager->getMeshData(m_meshes[0]);
+
+  m_accelerationStructure =
+          [[MPSTriangleAccelerationStructure alloc] initWithDevice:device];
+  assert(m_accelerationStructure != nil);
+  assert(meshData->vertexBuffer != nil);
+  assert(meshData->indexBuffer != nil);
+  [m_accelerationStructure setVertexBuffer:meshData->vertexBuffer];
+  [m_accelerationStructure setVertexStride:sizeof(float) * 4];
+  [m_accelerationStructure setIndexBuffer:meshData->indexBuffer];
+  [m_accelerationStructure setIndexType:MPSDataTypeUInt32];
+  [m_accelerationStructure setTriangleCount:meshData->primitivesCount / 3];
+  [m_accelerationStructure rebuild];
+
+
+  MTLResourceOptions options = MTLResourceStorageModeManaged;
+
+  int modelCount = asset.models.size();
+
+  //TODO right now we are not taking into account the concept of instance vs actual mesh, to do so we might need some extra
+  //information in the gltf loader
+  // Allocate a buffer of acceleration structure instance descriptors. Each descriptor represents
+  // an instance of one of the primitive acceleration structures created above, with its own
+  // transformation matrix.
+  instanceBuffer = [device newBufferWithLength:sizeof(MTLAccelerationStructureInstanceDescriptor) * modelCount options:options];
+
+  auto *instanceDescriptors = (MTLAccelerationStructureInstanceDescriptor *) instanceBuffer.contents;
+
+  // Create a primitive acceleration structure for each piece of geometry in the scene.
+  for (NSUInteger i = 0; i < modelCount; ++i) {
+    const SirMetal::Model &mesh = asset.models[i];
+
+    MTLAccelerationStructureTriangleGeometryDescriptor *geometryDescriptor = [MTLAccelerationStructureTriangleGeometryDescriptor descriptor];
+
+    const SirMetal::MeshData *meshData = m_engine->m_meshManager->getMeshData(mesh.mesh);
+    geometryDescriptor.vertexBuffer = meshData->vertexBuffer;
+    geometryDescriptor.vertexStride = sizeof(float)*4;
+    geometryDescriptor.triangleCount = meshData->primitivesCount / 3;
+    geometryDescriptor.indexBuffer = meshData->indexBuffer;
+    geometryDescriptor.indexType = MTLIndexTypeUInt32;
+    geometryDescriptor.indexBufferOffset = 0;
+    geometryDescriptor.vertexBufferOffset= 0;
+
+    // Assign each piece of geometry a consecutive slot in the intersection function table.
+    //geometryDescriptor.intersectionFunctionTableOffset = i;
+
+    // Create a primitive acceleration structure descriptor to contain the single piece
+    // of acceleration structure geometry.
+    MTLPrimitiveAccelerationStructureDescriptor *accelDescriptor = [MTLPrimitiveAccelerationStructureDescriptor descriptor];
+
+    accelDescriptor.geometryDescriptors = @[geometryDescriptor];
+
+    // Build the acceleration structure.
+    id<MTLAccelerationStructure> accelerationStructure = buildPrimitiveAccelerationStructure(accelDescriptor);
+
+    // Add the acceleration structure to the array of primitive acceleration structures.
+    //[primitiveAccelerationStructures addObject:accelerationStructure];
+    primitiveAccelerationStructures.push_back(accelerationStructure);
+
+    // Map the instance to its acceleration structure.
+    instanceDescriptors[i].accelerationStructureIndex = i;
+
+    // Mark the instance as opaque if it doesn't have an intersection function so that the
+    // ray intersector doesn't attempt to execute a function that doesn't exist.
+    //instanceDescriptors[instanceIndex].options = instance.geometry.intersectionFunctionName == nil ? MTLAccelerationStructureInstanceOptionOpaque : 0;
+    instanceDescriptors[i].options = 0;
+
+    // Metal adds the geometry intersection function table offset and instance intersection
+    // function table offset together to determine which intersection function to execute.
+    // The sample mapped geometries directly to their intersection functions above, so it
+    // sets the instance's table offset to 0.
+    instanceDescriptors[i].intersectionFunctionTableOffset = 0;
+
+    // Set the instance mask, which the sample uses to filter out intersections between rays
+    // and geometry. For example, it uses masks to prevent light sources from being visible
+    // to secondary rays, which would result in their contribution being double-counted.
+    instanceDescriptors[i].mask = (uint32_t) 0xFFFFFFFF;
+
+    // Copy the first three rows of the instance transformation matrix. Metal assumes that
+    // the bottom row is (0, 0, 0, 1).
+    // This allows instance descriptors to be tightly packed in memory.
+    for (int column = 0; column < 4; column++)
+      for (int row = 0; row < 3; row++)
+        instanceDescriptors[i].transformationMatrix.columns[column][row] = mesh.matrix.columns[column][row];
+  }
+
+  //update the buffer as modified
+  [instanceBuffer didModifyRange:NSMakeRange(0, instanceBuffer.length)];
+
+  // Create an instance acceleration structure descriptor.
+  MTLInstanceAccelerationStructureDescriptor *accelDescriptor = [MTLInstanceAccelerationStructureDescriptor descriptor];
+
+  //TODO temp
+  NSArray *myArray = [NSArray arrayWithObjects:primitiveAccelerationStructures.data() count:modelCount];
+  accelDescriptor.instancedAccelerationStructures = myArray;
+  accelDescriptor.instanceCount = modelCount;
+  accelDescriptor.instanceDescriptorBuffer = instanceBuffer;
+
+  // Finally, create the instance acceleration structure containing all of the instances
+  // in the scene.
+  instanceAccelerationStructure = buildPrimitiveAccelerationStructure(accelDescriptor);
 }
 
 }// namespace Sandbox
