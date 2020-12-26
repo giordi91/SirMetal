@@ -10,8 +10,6 @@
 #include "SirMetal/resources/handle.h"
 #import <Metal/Metal.h>
 
-#import <MetalPerformanceShaders/MetalPerformanceShaders.h>
-
 struct DirLight {
 
   matrix_float4x4 V;
@@ -55,9 +53,6 @@ class GraphicsLayer final : public SirMetal::Layer {
   SirMetal::ConstantBufferHandle m_uniforms;
   SirMetal::MeshHandle m_meshes[5];
   SirMetal::LibraryHandle m_shaderHandle;
-  SirMetal::LibraryHandle m_rtGenShaderHandle;
-  SirMetal::LibraryHandle m_rtShadeShaderHandle;
-  SirMetal::LibraryHandle m_rtShadowShaderHandle;
   SirMetal::LibraryHandle m_imageFillHandle;
   SirMetal::LibraryHandle m_fullScreenHandle;
   SirMetal::LibraryHandle m_rtMono;
@@ -68,11 +63,6 @@ class GraphicsLayer final : public SirMetal::Layer {
   SirMetal::graphics::FrameTimingsWidget m_timingsWidget;
   SirMetal::graphics::GPUInfoWidget m_gpuInfo;
   DirLight light{};
-  MPSTriangleAccelerationStructure *m_accelerationStructure;
-  MPSRayIntersector *m_intersector;
-  SirMetal::BufferHandle m_tBuff;
-  SirMetal::BufferHandle m_rayBuffer[2]{};
-  SirMetal::BufferHandle m_intersectionBuffer;
   SirMetal::GPUMemoryAllocator m_gpuAllocator;
   id rayPipeline;
   id shadowPipeline;
@@ -88,9 +78,6 @@ class GraphicsLayer final : public SirMetal::Layer {
   std::vector<id>primitiveAccelerationStructures;
   id<MTLBuffer> instanceBuffer;
   id instanceAccelerationStructure;
-
-  void encodeShadowRay(id<MTLCommandBuffer> buffer, float w, float h);
-  void encodePrimaryRay(id<MTLCommandBuffer> commandBuffer, float w, float h);
 
   SirMetal::GLTFAsset asset;
   void buildAccellerationStructure();

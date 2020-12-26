@@ -19,8 +19,6 @@
 #include "SirMetal/resources/meshes/meshManager.h"
 #include "SirMetal/resources/shaderManager.h"
 
-#import <MetalPerformanceShaders/MetalPerformanceShaders.h>
-
 struct RtCamera {
   simd_float4x4 VPinverse;
   vector_float3 position;
@@ -47,9 +45,6 @@ struct Uniforms {
 
 static const size_t rayStride = sizeof(float) * 8;
 // static const size_t rayStride = 48;
-using Ray = MPSRayOriginMinDistanceDirectionMaxDistance;
-using Intersection = MPSIntersectionDistancePrimitiveIndexCoordinates;
-static const size_t intersectionStride = sizeof(Intersection);
 constexpr int kMaxInflightBuffers = 3;
 
 id createComputePipeline(id<MTLDevice> device, id function) {
@@ -132,12 +127,6 @@ void GraphicsLayer::onAttach(SirMetal::EngineContext *context) {
 
   m_shaderHandle =
           m_engine->m_shaderManager->loadShader((base + "/Shaders.metal").c_str());
-  m_rtGenShaderHandle =
-          m_engine->m_shaderManager->loadShader((base + "/rtGen.metal").c_str());
-  m_rtShadeShaderHandle =
-          m_engine->m_shaderManager->loadShader((base + "/rtShade.metal").c_str());
-  m_rtShadowShaderHandle =
-          m_engine->m_shaderManager->loadShader((base + "/rtShadow.metal").c_str());
   m_fullScreenHandle = m_engine->m_shaderManager->loadShader(
           (base + "/fullscreen.metal").c_str());
   m_rtMono = m_engine->m_shaderManager->loadShader(
@@ -222,33 +211,10 @@ void GraphicsLayer::onAttach(SirMetal::EngineContext *context) {
           "depthTexture"};
   m_depthHandle = m_engine->m_textureManager->allocate(device, requestDepth);
 
-  uint32_t w = m_engine->m_config.m_windowConfig.m_width;
-  uint32_t h = m_engine->m_config.m_windowConfig.m_height;
-  uint32_t pixelCount = w * h;
-  uint32_t raysBufferSize = pixelCount * sizeof(Ray);
-  m_rayBuffer[0] = m_gpuAllocator.allocate(
-          raysBufferSize, "raysBuffer1",
-          SirMetal::BUFFER_FLAGS_BITS::BUFFER_FLAG_GPU_ONLY);
-  m_rayBuffer[1] = m_gpuAllocator.allocate(
-          raysBufferSize, "raysBuffer2",
-          SirMetal::BUFFER_FLAGS_BITS::BUFFER_FLAG_GPU_ONLY);
-
-  m_intersectionBuffer = m_gpuAllocator.allocate(
-          pixelCount * intersectionStride * 2, "rayIntersectBuffer",
-          SirMetal::BUFFER_FLAGS_BITS::BUFFER_FLAG_GPU_ONLY);
 
   SirMetal::graphics::initImgui(m_engine);
   frameBoundarySemaphore = dispatch_semaphore_create(kMaxInflightBuffers);
 
-  rayPipeline = createComputePipeline(
-          device,
-          m_engine->m_shaderManager->getKernelFunction(m_rtGenShaderHandle));
-  rayShadePipeline = createComputePipeline(
-          device,
-          m_engine->m_shaderManager->getKernelFunction(m_rtShadeShaderHandle));
-  shadowPipeline = createComputePipeline(
-          device,
-          m_engine->m_shaderManager->getKernelFunction(m_rtShadowShaderHandle));
   rtMonoPipeline = createComputePipeline(
           device,
           m_engine->m_shaderManager->getKernelFunction(m_rtMono));
@@ -259,15 +225,6 @@ void GraphicsLayer::onAttach(SirMetal::EngineContext *context) {
 
 
   buildAccellerationStructure();
-
-  // m_engine->m_renderingContext->flush();
-  m_intersector = [[MPSRayIntersector alloc] initWithDevice:device];
-  [m_intersector
-          setRayDataType:MPSRayDataTypeOriginMinDistanceDirectionMaxDistance];
-  [m_intersector setRayStride:sizeof(Ray)];
-  [m_intersector setIntersectionDataType:
-                         MPSIntersectionDataTypeDistancePrimitiveIndexCoordinates];
-  [m_intersector setIntersectionStride:sizeof(Intersection)];
 
   generateRandomTexture();
 
@@ -572,110 +529,6 @@ void GraphicsLayer::generateRandomTexture() {
   free(randomValues);
 }
 
-void GraphicsLayer::encodeShadeRt(id<MTLCommandBuffer> commandBuffer, float w,
-                                  float h) {
-
-  uint32_t colorIndex = m_engine->m_timings.m_totalNumberOfFrames % 2;
-  id<MTLTexture> colorTexture =
-          m_engine->m_textureManager->getNativeFromHandle(m_color[colorIndex]);
-  colorIndex = (m_engine->m_timings.m_totalNumberOfFrames + 1) % 2;
-  id<MTLTexture> prevColorTexture =
-          m_engine->m_textureManager->getNativeFromHandle(m_color[colorIndex]);
-  SirMetal::BindInfo bindInfo =
-          m_engine->m_constantBufferManager->getBindInfo(m_engine, m_uniforms);
-
-  MTLSize threadsPerThreadgroup = MTLSizeMake(8, 8, 1);
-  MTLSize threadgroups = MTLSizeMake(
-          (w + threadsPerThreadgroup.width - 1) / threadsPerThreadgroup.width,
-          (h + threadsPerThreadgroup.height - 1) / threadsPerThreadgroup.height, 1);
-
-  id intersectionBuffer = m_gpuAllocator.getBuffer(m_intersectionBuffer);
-  id<MTLComputeCommandEncoder> computeEncoder2 =
-          [commandBuffer computeCommandEncoder];
-  [computeEncoder2 setComputePipelineState:rayShadePipeline];
-  [computeEncoder2 setBuffer:intersectionBuffer offset:0 atIndex:0];
-  [computeEncoder2 setTexture:colorTexture atIndex:0];
-  [computeEncoder2 setTexture:prevColorTexture atIndex:1];
-
-  const SirMetal::MeshData *meshData =
-          m_engine->m_meshManager->getMeshData(m_meshes[0]);
-
-  [computeEncoder2 setBuffer:meshData->vertexBuffer
-                      offset:meshData->ranges[0].m_offset
-                     atIndex:1];
-  [computeEncoder2 setBuffer:meshData->vertexBuffer
-                      offset:meshData->ranges[1].m_offset
-                     atIndex:2];
-  [computeEncoder2 setBuffer:meshData->vertexBuffer
-                      offset:meshData->ranges[2].m_offset
-                     atIndex:3];
-  [computeEncoder2 setBuffer:meshData->vertexBuffer
-                      offset:meshData->ranges[3].m_offset
-                     atIndex:4];
-  [computeEncoder2 setBuffer:meshData->indexBuffer offset:0 atIndex:5];
-  [computeEncoder2 setBuffer:bindInfo.buffer offset:bindInfo.offset atIndex:6];
-
-  [computeEncoder2 dispatchThreadgroups:threadgroups
-                  threadsPerThreadgroup:MTLSizeMake(8, 8, 1)];
-  [computeEncoder2 endEncoding];
-}
-void GraphicsLayer::encodeShadowRay(id<MTLCommandBuffer> commandBuffer, float w,
-                                    float h) {
-  MTLSize threadsPerThreadgroup = MTLSizeMake(8, 8, 1);
-  MTLSize threadgroups = MTLSizeMake(
-          (w + threadsPerThreadgroup.width - 1) / threadsPerThreadgroup.width,
-          (h + threadsPerThreadgroup.height - 1) / threadsPerThreadgroup.height, 1);
-
-  id<MTLComputeCommandEncoder> computeEncoder =
-          [commandBuffer computeCommandEncoder];
-
-  id intersectionBuffer = m_gpuAllocator.getBuffer(m_intersectionBuffer);
-  auto bindInfo =
-          m_engine->m_constantBufferManager->getBindInfo(m_engine, m_uniforms);
-
-  [computeEncoder setTexture:_randomTexture atIndex:0];
-  [computeEncoder setBuffer:intersectionBuffer offset:0 atIndex:0];
-
-  // bind the mesh
-  const SirMetal::MeshData *meshData =
-          m_engine->m_meshManager->getMeshData(m_meshes[0]);
-
-  [computeEncoder setBuffer:meshData->vertexBuffer
-                     offset:meshData->ranges[0].m_offset
-                    atIndex:1];
-  [computeEncoder setBuffer:meshData->vertexBuffer
-                     offset:meshData->ranges[1].m_offset
-                    atIndex:2];
-  [computeEncoder setBuffer:meshData->vertexBuffer
-                     offset:meshData->ranges[2].m_offset
-                    atIndex:3];
-  [computeEncoder setBuffer:meshData->vertexBuffer
-                     offset:meshData->ranges[3].m_offset
-                    atIndex:4];
-  [computeEncoder setBuffer:meshData->indexBuffer offset:0 atIndex:5];
-
-  id shadowBuffer = m_gpuAllocator.getBuffer(m_rayBuffer[1]);
-  [computeEncoder setBuffer:shadowBuffer offset:0 atIndex:6];
-  [computeEncoder setBuffer:bindInfo.buffer offset:bindInfo.offset atIndex:7];
-  uint32_t bounce = 1;
-  [computeEncoder setBytes:&bounce length:sizeof(bounce) atIndex:8];
-
-  // dispatch
-  [computeEncoder setComputePipelineState:shadowPipeline];
-  [computeEncoder dispatchThreadgroups:threadgroups
-                 threadsPerThreadgroup:MTLSizeMake(8, 8, 1)];
-  [computeEncoder endEncoding];
-
-  [m_intersector encodeIntersectionToCommandBuffer:commandBuffer
-                                  intersectionType:MPSIntersectionTypeAny
-                                         rayBuffer:shadowBuffer
-                                   rayBufferOffset:0
-                                intersectionBuffer:intersectionBuffer
-                          intersectionBufferOffset:0
-                                          rayCount:w * h
-                             accelerationStructure:m_accelerationStructure];
-
-}
 void GraphicsLayer::encodeMonoRay(id<MTLCommandBuffer> commandBuffer,
                                      float w, float h) {
 
@@ -701,46 +554,6 @@ void GraphicsLayer::encodeMonoRay(id<MTLCommandBuffer> commandBuffer,
   [computeEncoder dispatchThreadgroups:threadgroups
   threadsPerThreadgroup:MTLSizeMake(8, 8, 1)];
   [computeEncoder endEncoding];
-}
-void GraphicsLayer::encodePrimaryRay(id<MTLCommandBuffer> commandBuffer,
-                                     float w, float h) {
-  // We will launch a rectangular grid of threads on the GPU to generate the
-  // rays. Threads are launched in groups called "threadgroups". We need to
-  // align the number of threads to be a multiple of the threadgroup size. We
-  // indicated when compiling the pipeline that the threadgroup size would be
-  // a multiple of the thread execution width (SIMD group size) which is
-  // typically 32 or 64 so 8x8 is a safe threadgroup size which should be
-  // small to be supported on most devices. A more advanced application would
-  // choose the threadgroup size dynamically.
-  MTLSize threadsPerThreadgroup = MTLSizeMake(8, 8, 1);
-  MTLSize threadgroups = MTLSizeMake(
-          (w + threadsPerThreadgroup.width - 1) / threadsPerThreadgroup.width,
-          (h + threadsPerThreadgroup.height - 1) / threadsPerThreadgroup.height, 1);
-
-  // First, we will generate rays on the GPU. We create a compute command
-  // encoder which will be used to add commands to the command buffer.
-  id<MTLComputeCommandEncoder> computeEncoder =
-          [commandBuffer computeCommandEncoder];
-
-  id rayBuffer = m_gpuAllocator.getBuffer(m_rayBuffer[0]);
-  id intersectionBuffer = m_gpuAllocator.getBuffer(m_intersectionBuffer);
-  auto bindInfo =
-          m_engine->m_constantBufferManager->getBindInfo(m_engine, m_uniforms);
-  [computeEncoder setBuffer:rayBuffer offset:0 atIndex:0];
-  [computeEncoder setBuffer:bindInfo.buffer offset:bindInfo.offset atIndex:1];
-  [computeEncoder setComputePipelineState:rayPipeline];
-  [computeEncoder dispatchThreadgroups:threadgroups
-                 threadsPerThreadgroup:MTLSizeMake(8, 8, 1)];
-  [computeEncoder endEncoding];
-
-  [m_intersector encodeIntersectionToCommandBuffer:commandBuffer
-                                  intersectionType:MPSIntersectionTypeNearest
-                                         rayBuffer:rayBuffer
-                                   rayBufferOffset:0
-                                intersectionBuffer:intersectionBuffer
-                          intersectionBufferOffset:0
-                                          rayCount:w * h
-                             accelerationStructure:m_accelerationStructure];
 }
 
 
@@ -833,26 +646,11 @@ id GraphicsLayer::buildPrimitiveAccelerationStructure(
 void GraphicsLayer::buildAccellerationStructure() {
 
   id<MTLDevice> device = m_engine->m_renderingContext->getDevice();
-  const SirMetal::MeshData *meshData =
-          m_engine->m_meshManager->getMeshData(m_meshes[0]);
-
-  m_accelerationStructure =
-          [[MPSTriangleAccelerationStructure alloc] initWithDevice:device];
-  assert(m_accelerationStructure != nil);
-  assert(meshData->vertexBuffer != nil);
-  assert(meshData->indexBuffer != nil);
-  [m_accelerationStructure setVertexBuffer:meshData->vertexBuffer];
-  [m_accelerationStructure setVertexStride:sizeof(float) * 4];
-  [m_accelerationStructure setIndexBuffer:meshData->indexBuffer];
-  [m_accelerationStructure setIndexType:MPSDataTypeUInt32];
-  [m_accelerationStructure setTriangleCount:meshData->primitivesCount / 3];
-  [m_accelerationStructure rebuild];
-
-
   MTLResourceOptions options = MTLResourceStorageModeManaged;
 
   int modelCount = asset.models.size();
 
+  //TODO do i need the instance descriptor at all?
   //TODO right now we are not taking into account the concept of instance vs actual mesh, to do so we might need some extra
   //information in the gltf loader
   // Allocate a buffer of acceleration structure instance descriptors. Each descriptor represents
