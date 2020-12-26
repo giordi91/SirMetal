@@ -110,6 +110,9 @@ void GraphicsLayer::onAttach(SirMetal::EngineContext *context) {
 
   id<MTLDevice> device = m_engine->m_renderingContext->getDevice();
 
+  assert(device.supportsRaytracing == true && "This device does not support raytracing API, you can try samples based on MPS");
+
+
   SirMetal::AllocTextureRequest request{
           m_engine->m_config.m_windowConfig.m_width,
           m_engine->m_config.m_windowConfig.m_height,
@@ -184,9 +187,13 @@ void GraphicsLayer::onAttach(SirMetal::EngineContext *context) {
                         offset:meshData->ranges[3].m_offset
                        atIndex:3];
     [argumentEncoder setBuffer:meshData->indexBuffer offset:0 atIndex:4];
+    const auto &material = asset.models[i].material;
+    id albedo = m_engine->m_textureManager->getNativeFromHandle(material.colorTexture);
+    [argumentEncoder setTexture:albedo atIndex:5];
 
-    auto *ptrMatrix = [argumentEncoder constantDataAtIndex:5];
+    auto *ptrMatrix = [argumentEncoder constantDataAtIndex:6];
     memcpy(ptrMatrix, &asset.models[i].matrix, sizeof(float) * 16);
+    memcpy(((char*)ptrMatrix + sizeof(float)*16), &material.colorFactors, sizeof(float) * 4);
 
     /*
     const auto &material = asset.models[i].material;
@@ -325,7 +332,7 @@ void GraphicsLayer::onUpdate() {
   id<MTLCommandBuffer> commandBuffer = [queue commandBuffer];
 
   //* RT STUFF
-  encodeMonoRay(commandBuffer,w,h);
+  encodeMonoRay(commandBuffer, w, h);
   /*
   if (m_engine->m_timings.m_totalNumberOfFrames < 9000) {
 
@@ -530,7 +537,7 @@ void GraphicsLayer::generateRandomTexture() {
 }
 
 void GraphicsLayer::encodeMonoRay(id<MTLCommandBuffer> commandBuffer,
-                                     float w, float h) {
+                                  float w, float h) {
 
   MTLSize threadsPerThreadgroup = MTLSizeMake(8, 8, 1);
   MTLSize threadgroups = MTLSizeMake(
@@ -538,7 +545,7 @@ void GraphicsLayer::encodeMonoRay(id<MTLCommandBuffer> commandBuffer,
           (h + threadsPerThreadgroup.height - 1) / threadsPerThreadgroup.height, 1);
 
   id<MTLComputeCommandEncoder> computeEncoder =
-  [commandBuffer computeCommandEncoder];
+          [commandBuffer computeCommandEncoder];
 
   auto bindInfo =
           m_engine->m_constantBufferManager->getBindInfo(m_engine, m_uniforms);
@@ -548,11 +555,11 @@ void GraphicsLayer::encodeMonoRay(id<MTLCommandBuffer> commandBuffer,
 
   [computeEncoder setAccelerationStructure:instanceAccelerationStructure atBufferIndex:0];
   [computeEncoder setBuffer:bindInfo.buffer offset:bindInfo.offset atIndex:1];
-  [computeEncoder setBuffer:argBuffer  offset:0 atIndex:2];
+  [computeEncoder setBuffer:argBuffer offset:0 atIndex:2];
   [computeEncoder setTexture:colorTexture atIndex:0];
   [computeEncoder setComputePipelineState:rtMonoPipeline];
   [computeEncoder dispatchThreadgroups:threadgroups
-  threadsPerThreadgroup:MTLSizeMake(8, 8, 1)];
+                 threadsPerThreadgroup:MTLSizeMake(8, 8, 1)];
   [computeEncoder endEncoding];
 }
 
@@ -668,12 +675,12 @@ void GraphicsLayer::buildAccellerationStructure() {
 
     const SirMetal::MeshData *meshData = m_engine->m_meshManager->getMeshData(mesh.mesh);
     geometryDescriptor.vertexBuffer = meshData->vertexBuffer;
-    geometryDescriptor.vertexStride = sizeof(float)*4;
+    geometryDescriptor.vertexStride = sizeof(float) * 4;
     geometryDescriptor.triangleCount = meshData->primitivesCount / 3;
     geometryDescriptor.indexBuffer = meshData->indexBuffer;
     geometryDescriptor.indexType = MTLIndexTypeUInt32;
     geometryDescriptor.indexBufferOffset = 0;
-    geometryDescriptor.vertexBufferOffset= 0;
+    geometryDescriptor.vertexBufferOffset = 0;
 
     // Assign each piece of geometry a consecutive slot in the intersection function table.
     //geometryDescriptor.intersectionFunctionTableOffset = i;
