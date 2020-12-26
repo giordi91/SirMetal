@@ -363,12 +363,11 @@ void GraphicsLayer::onUpdate() {
           m_engine->m_textureManager->getNativeFromHandle(m_depthHandle);
 
   SirMetal::PSOCache cache =
-          SirMetal::getPSO(m_engine, tracker, SirMetal::Material{"Shaders", false});
+          SirMetal::getPSO(m_engine, tracker, SirMetal::Material{"fullscreen", false});
 
   id<MTLCommandBuffer> commandBuffer = [queue commandBuffer];
 
-  /*
-   * RT STUFF
+   //* RT STUFF
   if (m_engine->m_timings.m_totalNumberOfFrames < 9000) {
 
     encodePrimaryRay(commandBuffer, w, h);
@@ -378,6 +377,13 @@ void GraphicsLayer::onUpdate() {
     // shading pixel
     encodeShadeRt(commandBuffer, w, h);
   }
+
+  MTLRenderPassDescriptor *passDescriptor =
+  [MTLRenderPassDescriptor renderPassDescriptor];
+  passDescriptor.colorAttachments[0].texture = texture;
+  passDescriptor.colorAttachments[0].clearColor = {0.2, 0.2, 0.2, 1.0};
+  passDescriptor.colorAttachments[0].storeAction = MTLStoreActionStore;
+  passDescriptor.colorAttachments[0].loadAction = MTLLoadActionClear;
 
   passDescriptor.colorAttachments[0].texture = texture;
   passDescriptor.colorAttachments[0].clearColor = {0.2, 0.2, 0.2, 1.0};
@@ -398,7 +404,7 @@ void GraphicsLayer::onUpdate() {
   [commandEncoder drawPrimitives:MTLPrimitiveTypeTriangle
                      vertexStart:0
                      vertexCount:3];
-  */
+  /*
   // blitting to the swap chain
   MTLRenderPassDescriptor *passDescriptor =
           [MTLRenderPassDescriptor renderPassDescriptor];
@@ -448,6 +454,7 @@ void GraphicsLayer::onUpdate() {
                        vertexCount:meshData->primitivesCount];
     counter++;
   }
+  */
   // render debug
   m_engine->m_debugRenderer->newFrame();
   float data[6]{0, 0, 0, 0, 100, 0};

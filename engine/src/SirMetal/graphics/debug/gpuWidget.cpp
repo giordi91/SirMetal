@@ -20,11 +20,17 @@ void GPUInfoWidget::render(id device) {
     auto argTier = actualDevice.argumentBuffersSupport;
     ImGui::Text("Argument buffers: %s",argTier == MTLArgumentBuffersTier2 ? "Tier2" : "Tier1");
     ImGui::Text ("Max Arg samplers: %d",static_cast<int>(actualDevice.maxArgumentBufferSamplerCount));
+    bool bc= actualDevice.supportsBCTextureCompression;
+    bool dyn = actualDevice.supportsDynamicLibraries;
+    bool ray = actualDevice.supportsRaytracing;
+    bool fnptr = actualDevice.supportsFunctionPointers;
+    ImGui::Checkbox("BC Textures",&bc);
+    ImGui::Checkbox("Dynamic libraries",&dyn);
+    ImGui::Checkbox("Raytracing",&ray);
+    ImGui::Checkbox("Function Pointers",&fnptr);
+
     ImGui::Separator();
-
   }
-
-
 }
 
 }
