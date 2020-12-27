@@ -126,7 +126,7 @@ kernel void rayKernel(
         uint2 size [[threads_per_grid]])
 
 {
-  typename intersector<triangle_data, instancing>::result_type intersection;
+  intersector<triangle_data, instancing>::result_type intersection;
 
   // Since we aligned the thread count to the threadgroup size, the thread index may be out of bounds
   // of the render target size.
@@ -150,9 +150,6 @@ kernel void rayKernel(
   float2 xy = float2(tid.x + 0.5f, tid.y + 0.5f);// center in the middle of the pixel.
   float2 screenPos = xy / float2(uniforms.width, uniforms.height) * 2.0 - 1.0;
 
-  // Invert Y for DirectX-style coordinates.
-  //screenPos.y = -screenPos.y;
-
   // Unproject the pixel coordinate into a ray.
   float4 world = camera.VPinverse * float4(screenPos, 0, 1);
 
@@ -173,66 +170,70 @@ kernel void rayKernel(
   uint primitiveIdx = intersection.primitive_id;
   // Stop if the ray didn't hit anything and has bounced out of the scene.
 
-  device const Mesh &m = meshes[instanceIndex];
-  uint vid0 = m.indices[primitiveIdx * 3 + 0];
-  uint vid1 = m.indices[primitiveIdx * 3 + 1];
-  uint vid2 = m.indices[primitiveIdx * 3 + 2];
-
-  float3 a1 = m.normals[vid0].xyz;
-  float3 a2 = m.normals[vid1].xyz;
-  float3 a3 = m.normals[vid2].xyz;
-
-  float2 bar = intersection.triangle_barycentric_coord;
-  float w = 1.0 - bar.x - bar.y;
-
-  float3 outN = normalize(a1 * w + a2 * bar.x + a3 * bar.y);
-  outN = (m.matrix * float4(outN.x, outN.y, outN.z, 0.0f)).xyz;
 
   constexpr float3 skyColor = float3(53 / 255.0f, 81 / 255.0f, 92 / 255.0f);
   float3 outColor = skyColor;
   if (intersection.type != intersection_type::none) {
 
-    outColor = m.tintColor.xyz;
-    /*
+    i.accept_any_intersection(false);
+    //outColor = m.tintColor.xyz;
+    device const Mesh &m = meshes[instanceIndex];
+    uint vid0 = m.indices[primitiveIdx * 3 + 0];
+    uint vid1 = m.indices[primitiveIdx * 3 + 1];
+    uint vid2 = m.indices[primitiveIdx * 3 + 2];
+
+    float3 a1 = m.normals[vid0].xyz;
+    float3 a2 = m.normals[vid1].xyz;
+    float3 a3 = m.normals[vid2].xyz;
+
+    float2 bar = intersection.triangle_barycentric_coord;
+    float w = 1.0 - bar.x - bar.y;
+
+    float3 outN = normalize(a1 * w + a2 * bar.x + a3 * bar.y);
+    outN = (m.matrix * float4(outN.x, outN.y, outN.z, 0.0f)).xyz;
+
     a1 = m.positions[vid0].xyz;
     a2 = m.positions[vid1].xyz;
     a3 = m.positions[vid2].xyz;
-    float3 outP = normalize(a1 * w + a2 * bar.x + a3 * bar.y);
-    outP = (m.matrix * float4(outN.x, outN.y, outN.z, 1.0f)).xyz;
+    float3 outP = a1 * w + a2 * bar.x + a3 * bar.y;
+    outP = (m.matrix * float4(outP.x, outP.y, outP.z, 1.0f)).xyz;
+    //outColor = float3(w, bar.x, bar.y);
+    //outP = pray.origin + pray.direction * intersection.distance;
+    outColor = 0.0f;
 
-    constexpr int bounces = 1;
+    constexpr int bounces = 5;
     for (int b = 0; b < bounces; ++b) {
       //generate sampling in sphere
       int bounce = b;
       unsigned int offset = randomTex.read(tid).x;
-      float2 r = float2(halton(offset + uniforms.frameIndex, 2 + bounce * 4 + 0),
-                        halton(offset + uniforms.frameIndex, 2 + bounce * 4 + 1));
+      float2 r = float2(halton(offset + uniforms.frameIndex, (2 + bounce * 4 + 0)%16),
+                        halton(offset + uniforms.frameIndex, (2 + bounce * 4 + 1)%16));
       float3 sampleDirection = sampleCosineWeightedHemisphere(r);
       sampleDirection = alignHemisphereWithNormal(sampleDirection, outN);
 
-      ray bRay;
+      struct ray bRay;
       bRay.origin = outP + outN * 1e-3f;//offsetting to avoid self intersection
       bRay.direction = sampleDirection;
-      //ray.direction = outN;
       bRay.min_distance = 0.001f;
-      bRay.max_distance = INFINITY;
+      bRay.max_distance = 200.0f;
       intersection = i.intersect(bRay, accelerationStructure, 0xFFFFFFFF);
 
-      float bounceFactor = (1.0f / (bounce + 1.0f));
+      float bounceFactor = (1.0f / pow(2.0f, (b+ 1.0f)));
       if (intersection.type == intersection_type::none) {
         outColor += bounceFactor * skyColor;
-      } else {
-        instanceIndex = intersection.instance_id;
-        primitiveIdx = intersection.primitive_id;
-        // Stop if the ray didn't hit anything and has bounced out of the scene.
 
-        device const Mesh &mm = meshes[instanceIndex];
-
+      }
+      /*
+      else {
+        //instanceIndex = intersection2.instance_id;
+        //primitiveIdx = intersection2.primitive_id;
+        //// Stop if the ray didn't hit anything and has bounced out of the scene.
+        //device const Mesh &mm = meshes[instanceIndex];
         //outColor += bounceFactor + mm.tintColor.xyz;
-       outColor = float3(0.0f,0.0f,0.0f);
-}
+        //outColor = float3(0.0f, 0.0f, 1.0f);
+      }
+       */
     }
-     */
   }
 
   dstTex.write(float4(outColor.x, outColor.y, outColor.z, 1.0f), tid);
