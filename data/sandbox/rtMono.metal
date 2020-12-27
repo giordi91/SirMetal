@@ -115,6 +115,10 @@ struct Mesh {
   float4 tintColor;
 };
 
+float3 getSkyColor(float3 ray) {
+  float t = 0.5f * (ray.y + 1.0f);
+  return (1.0f - t) * float3(1.0f, 1.0f, 1.0f) + t * float3(0.5f, 0.7f, 1.0f);
+}
 
 kernel void rayKernel(
         instance_acceleration_structure accelerationStructure,
@@ -171,7 +175,8 @@ kernel void rayKernel(
   // Stop if the ray didn't hit anything and has bounced out of the scene.
 
 
-  constexpr float3 skyColor = float3(53 / 255.0f, 81 / 255.0f, 92 / 255.0f);
+  //  constexpr float3 skyColor = float3(53 / 255.0f, 81 / 255.0f, 92 / 255.0f);
+  float3 skyColor = getSkyColor(normalize(pray.direction.xyz));
   float3 outColor = skyColor;
   if (intersection.type != intersection_type::none) {
 
@@ -201,13 +206,14 @@ kernel void rayKernel(
     //outP = pray.origin + pray.direction * intersection.distance;
     outColor = 0.0f;
 
-    constexpr int bounces = 5;
+    constexpr int bounces = 4;
+    float3 currAttenuation = m.tintColor.xyz;
     for (int b = 0; b < bounces; ++b) {
       //generate sampling in sphere
       int bounce = b;
       unsigned int offset = randomTex.read(tid).x;
-      float2 r = float2(halton(offset + uniforms.frameIndex, (2 + bounce * 4 + 0)%16),
-                        halton(offset + uniforms.frameIndex, (2 + bounce * 4 + 1)%16));
+      float2 r = float2(halton(offset + uniforms.frameIndex, (2 + bounce * 4 + 0) % 16),
+                        halton(offset + uniforms.frameIndex, (2 + bounce * 4 + 1) % 16));
       float3 sampleDirection = sampleCosineWeightedHemisphere(r);
       sampleDirection = alignHemisphereWithNormal(sampleDirection, outN);
 
@@ -218,10 +224,15 @@ kernel void rayKernel(
       bRay.max_distance = 200.0f;
       intersection = i.intersect(bRay, accelerationStructure, 0xFFFFFFFF);
 
-      float bounceFactor = (1.0f / pow(2.0f, (b+ 1.0f)));
       if (intersection.type == intersection_type::none) {
-        outColor += bounceFactor * skyColor;
 
+        outColor = currAttenuation * getSkyColor(normalize(bRay.direction.xyz));
+        break;
+      } else {
+        instanceIndex = intersection.instance_id;
+        primitiveIdx = intersection.primitive_id;
+        device const Mesh &mm = meshes[instanceIndex];
+        currAttenuation *= mm.tintColor.xyz;
       }
       /*
       else {
@@ -236,5 +247,6 @@ kernel void rayKernel(
     }
   }
 
+  outColor = sqrt(outColor);
   dstTex.write(float4(outColor.x, outColor.y, outColor.z, 1.0f), tid);
 }
