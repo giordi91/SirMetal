@@ -332,7 +332,9 @@ void GraphicsLayer::onUpdate() {
   id<MTLCommandBuffer> commandBuffer = [queue commandBuffer];
 
   //* RT STUFF
-  encodeMonoRay(commandBuffer, w, h);
+  if (m_engine->m_timings.m_totalNumberOfFrames < 2000) {
+    encodeMonoRay(commandBuffer, w, h);
+  }
   /*
   if (m_engine->m_timings.m_totalNumberOfFrames < 9000) {
 
@@ -552,12 +554,16 @@ void GraphicsLayer::encodeMonoRay(id<MTLCommandBuffer> commandBuffer,
   uint32_t colorIndex = m_engine->m_timings.m_totalNumberOfFrames % 2;
   id<MTLTexture> colorTexture =
           m_engine->m_textureManager->getNativeFromHandle(m_color[colorIndex]);
+  colorIndex = (m_engine->m_timings.m_totalNumberOfFrames +1)% 2;
+  id<MTLTexture> prevTexture =
+          m_engine->m_textureManager->getNativeFromHandle(m_color[colorIndex]);
 
   [computeEncoder setAccelerationStructure:instanceAccelerationStructure atBufferIndex:0];
   [computeEncoder setBuffer:bindInfo.buffer offset:bindInfo.offset atIndex:1];
   [computeEncoder setBuffer:argBuffer offset:0 atIndex:2];
   [computeEncoder setTexture:colorTexture atIndex:0];
   [computeEncoder setTexture:_randomTexture atIndex:1];
+  [computeEncoder setTexture:prevTexture atIndex:2];
   [computeEncoder setComputePipelineState:rtMonoPipeline];
   [computeEncoder dispatchThreadgroups:threadgroups
                  threadsPerThreadgroup:MTLSizeMake(8, 8, 1)];

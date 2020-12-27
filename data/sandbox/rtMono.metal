@@ -79,6 +79,26 @@ inline float3 alignHemisphereWithNormal(float3 sample, float3 normal) {
   // with the normal.
   return sample.x * right + sample.y * up + sample.z * forward;
 }
+float3 hemisphereSample_uniform(float u, float v) {
+  float phi = v * 2.0f * M_PI_F;
+  float cosTheta = 1.0f - u;
+  float sinTheta = sqrt(1.0f - cosTheta * cosTheta);
+  float cos_phi;
+  float sin_phi = sincos(phi, cos_phi);
+  return float3(cos_phi * sinTheta, sin_phi * sinTheta, cosTheta);
+}
+
+float radicalInverse_VdC(uint bits) {
+  bits = (bits << 16u) | (bits >> 16u);
+  bits = ((bits & 0x55555555u) << 1u) | ((bits & 0xAAAAAAAAu) >> 1u);
+  bits = ((bits & 0x33333333u) << 2u) | ((bits & 0xCCCCCCCCu) >> 2u);
+  bits = ((bits & 0x0F0F0F0Fu) << 4u) | ((bits & 0xF0F0F0F0u) >> 4u);
+  bits = ((bits & 0x00FF00FFu) << 8u) | ((bits & 0xFF00FF00u) >> 8u);
+  return float(bits) * 2.3283064365386963e-10;// / 0x100000000
+}
+float2 hammersley2d(uint i, uint N) {
+  return float2(float(i) / float(N), radicalInverse_VdC(i));
+}
 
 struct Camera {
   float4x4 VPinverse;
@@ -120,12 +140,14 @@ float3 getSkyColor(float3 ray) {
   return (1.0f - t) * float3(1.0f, 1.0f, 1.0f) + t * float3(0.5f, 0.7f, 1.0f);
 }
 
+
 kernel void rayKernel(
         instance_acceleration_structure accelerationStructure,
         constant Uniforms &uniforms [[buffer(1)]],
         const device Mesh *meshes [[buffer(2)]],
         texture2d<float, access::write> dstTex [[texture(0)]],
         texture2d<uint> randomTex [[texture(1)]],
+        texture2d<float> prevImage [[texture(2)]],
         uint2 tid [[thread_position_in_grid]],
         uint2 size [[threads_per_grid]])
 
@@ -154,7 +176,7 @@ kernel void rayKernel(
   float2 xy = float2(tid.x + 0.5f, tid.y + 0.5f);// center in the middle of the pixel.
   float2 screenPos = xy / float2(uniforms.width, uniforms.height) * 2.0 - 1.0;
 
-  // Unproject the pixel coordinate into a ray.
+  // Un-project the pixel coordinate into a ray.
   float4 world = camera.VPinverse * float4(screenPos, 0, 1);
 
   world.xyz /= world.w;
@@ -206,22 +228,41 @@ kernel void rayKernel(
     //outP = pray.origin + pray.direction * intersection.distance;
     outColor = 0.0f;
 
-    constexpr int bounces = 4;
+    constexpr int bounces = 2;
     float3 currAttenuation = m.tintColor.xyz;
+    //float3 currAttenuation = m.tintColor.xyz;
     for (int b = 0; b < bounces; ++b) {
       //generate sampling in sphere
       int bounce = b;
-      unsigned int offset = randomTex.read(tid).x;
-      float2 r = float2(halton(offset + uniforms.frameIndex, (2 + bounce * 4 + 0) % 16),
-                        halton(offset + uniforms.frameIndex, (2 + bounce * 4 + 1) % 16));
-      float3 sampleDirection = sampleCosineWeightedHemisphere(r);
-      sampleDirection = alignHemisphereWithNormal(sampleDirection, outN);
-
       struct ray bRay;
       bRay.origin = outP + outN * 1e-3f;//offsetting to avoid self intersection
-      bRay.direction = sampleDirection;
       bRay.min_distance = 0.001f;
       bRay.max_distance = 200.0f;
+      unsigned int offset = randomTex.read(tid).x;
+      if (instanceIndex != 5) {
+        float2 r = float2(halton(offset + uniforms.frameIndex, (2 + bounce * 4 + 0) % 16),
+                          halton(offset + uniforms.frameIndex, (2 + bounce * 4 + 1) % 16));
+        float3 sampleDirection = sampleCosineWeightedHemisphere(r);
+        sampleDirection = alignHemisphereWithNormal(sampleDirection, outN);
+
+        bRay.direction = sampleDirection;
+      } else {
+        float fuzzScale = 0.6f;
+        bRay.direction = reflect(normalize(pray.direction), outN);
+        //float2 r = float2(halton(offset + uniforms.frameIndex, (2 + (bounce + uniforms.frameIndex * 4) + 0) % 16),
+        //                  halton(offset + uniforms.frameIndex, (2 + (bounce + uniforms.frameIndex * 4) + 1) % 16));
+        int setCount = 128;
+        int hp = (offset + uniforms.frameIndex) % setCount;
+        float2 r = hammersley2d(hp, setCount);
+
+        float3 fuzzVec = hemisphereSample_uniform(r.x, r.y);
+        bRay.direction = bRay.direction + fuzzVec * fuzzScale;
+      }
+      float dValue = dot(bRay.direction, outN);
+      if (dValue < 0) {
+        outColor = currAttenuation;
+        break;
+      }
       intersection = i.intersect(bRay, accelerationStructure, 0xFFFFFFFF);
 
       if (intersection.type == intersection_type::none) {
@@ -244,9 +285,19 @@ kernel void rayKernel(
         //outColor = float3(0.0f, 0.0f, 1.0f);
       }
        */
+      pray = bRay;
     }
   }
 
-  outColor = sqrt(outColor);
+  //outColor = sqrt(outColor);
+  //CMA
+  if (uniforms.frameIndex > 1) {
+    float3 color = prevImage.read(tid).xyz;
+    color *= uniforms.frameIndex;
+    color += outColor;
+    color /= (uniforms.frameIndex + 1);
+    outColor = saturate(color);
+  }
+
   dstTex.write(float4(outColor.x, outColor.y, outColor.z, 1.0f), tid);
 }

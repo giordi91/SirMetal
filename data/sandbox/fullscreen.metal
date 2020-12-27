@@ -32,5 +32,7 @@ fragment half4 fragment_flatcolor(OutVertex vertexIn [[stage_in]],
   float2 uv = vertexIn.uv;
   constexpr sampler linearSampler(coord::normalized, filter::nearest);
   float4 c = blitTex.sample(linearSampler, uv);
+  //quick and dirty gamma
+  c = sqrt(c);
   return half4(c.x,c.y,c.z,1.0h);
 }
