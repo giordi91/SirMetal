@@ -557,6 +557,7 @@ void GraphicsLayer::encodeMonoRay(id<MTLCommandBuffer> commandBuffer,
   [computeEncoder setBuffer:bindInfo.buffer offset:bindInfo.offset atIndex:1];
   [computeEncoder setBuffer:argBuffer offset:0 atIndex:2];
   [computeEncoder setTexture:colorTexture atIndex:0];
+  [computeEncoder setTexture:_randomTexture atIndex:1];
   [computeEncoder setComputePipelineState:rtMonoPipeline];
   [computeEncoder dispatchThreadgroups:threadgroups
                  threadsPerThreadgroup:MTLSizeMake(8, 8, 1)];

@@ -80,23 +80,6 @@ inline float3 alignHemisphereWithNormal(float3 sample, float3 normal) {
   return sample.x * right + sample.y * up + sample.z * forward;
 }
 
-
-/*
-struct Intersection{
-    float distance;
-    unsigned int primitiveIndex;
-    float2 coordinates;
-};
-
-struct Ray
-{
-    packed_float3 origin;
-    float minDistance;
-    packed_float3 direction;
-    float maxDistance;
-};
-*/
-
 struct Camera {
   float4x4 VPinverse;
   vector_float3 position;
@@ -129,7 +112,7 @@ struct Mesh {
   device uint *indices [[id(4)]];
   texture2d<float> albedoTex [[id(5)]];
   float4x4 matrix [[id(6)]];
-  float4 tintColor ;
+  float4 tintColor;
 };
 
 
@@ -138,12 +121,9 @@ kernel void rayKernel(
         constant Uniforms &uniforms [[buffer(1)]],
         const device Mesh *meshes [[buffer(2)]],
         texture2d<float, access::write> dstTex [[texture(0)]],
+        texture2d<uint> randomTex [[texture(1)]],
         uint2 tid [[thread_position_in_grid]],
-        uint2 size [[threads_per_grid]]
-/*
-texture2d<uint> randomTex [[texture(0)]],
-*/
-)
+        uint2 size [[threads_per_grid]])
 
 {
   typename intersector<triangle_data, instancing>::result_type intersection;
@@ -158,14 +138,14 @@ texture2d<uint> randomTex [[texture(0)]],
   // Compute linear ray index from 2D position
 
   // Ray we will produce
-  ray ray;
+  ray pray;
 
   constant Camera &camera = uniforms.camera;
 
   // Rays start at the camera position
-  ray.origin = camera.position;
-  ray.min_distance = 0.0f;
-  ray.max_distance = INFINITY;
+  pray.origin = camera.position;
+  pray.min_distance = 0.0f;
+  pray.max_distance = INFINITY;
 
   float2 xy = float2(tid.x + 0.5f, tid.y + 0.5f);// center in the middle of the pixel.
   float2 screenPos = xy / float2(uniforms.width, uniforms.height) * 2.0 - 1.0;
@@ -177,7 +157,7 @@ texture2d<uint> randomTex [[texture(0)]],
   float4 world = camera.VPinverse * float4(screenPos, 0, 1);
 
   world.xyz /= world.w;
-  ray.direction = normalize(world.xyz - ray.origin);
+  pray.direction = normalize(world.xyz - pray.origin);
 
   // Create an intersector to test for intersection between the ray and the geometry in the scene.
   intersector<triangle_data, instancing> i;
@@ -188,7 +168,7 @@ texture2d<uint> randomTex [[texture(0)]],
   //}
   i.accept_any_intersection(false);
 
-  intersection = i.intersect(ray, accelerationStructure, 0xFFFFFFFF);
+  intersection = i.intersect(pray, accelerationStructure, 0xFFFFFFFF);
   int instanceIndex = intersection.instance_id;
   uint primitiveIdx = intersection.primitive_id;
   // Stop if the ray didn't hit anything and has bounced out of the scene.
@@ -208,15 +188,51 @@ texture2d<uint> randomTex [[texture(0)]],
   float3 outN = normalize(a1 * w + a2 * bar.x + a3 * bar.y);
   outN = (m.matrix * float4(outN.x, outN.y, outN.z, 0.0f)).xyz;
 
-  float3 outColor = m.tintColor.xyz;
-  constexpr float3 skyColor  =float3(0.5f, 0.5f, 0.5f);
-  if (intersection.type == intersection_type::none) {
-    outColor = skyColor;
-  }
-  constexpr int bounces = 1;
-  for(int i =0; i < bounces;++i)
-  {
+  constexpr float3 skyColor = float3(53 / 255.0f, 81 / 255.0f, 92 / 255.0f);
+  float3 outColor = skyColor;
+  if (intersection.type != intersection_type::none) {
 
+    outColor = m.tintColor.xyz;
+    /*
+    a1 = m.positions[vid0].xyz;
+    a2 = m.positions[vid1].xyz;
+    a3 = m.positions[vid2].xyz;
+    float3 outP = normalize(a1 * w + a2 * bar.x + a3 * bar.y);
+    outP = (m.matrix * float4(outN.x, outN.y, outN.z, 1.0f)).xyz;
+
+    constexpr int bounces = 1;
+    for (int b = 0; b < bounces; ++b) {
+      //generate sampling in sphere
+      int bounce = b;
+      unsigned int offset = randomTex.read(tid).x;
+      float2 r = float2(halton(offset + uniforms.frameIndex, 2 + bounce * 4 + 0),
+                        halton(offset + uniforms.frameIndex, 2 + bounce * 4 + 1));
+      float3 sampleDirection = sampleCosineWeightedHemisphere(r);
+      sampleDirection = alignHemisphereWithNormal(sampleDirection, outN);
+
+      ray bRay;
+      bRay.origin = outP + outN * 1e-3f;//offsetting to avoid self intersection
+      bRay.direction = sampleDirection;
+      //ray.direction = outN;
+      bRay.min_distance = 0.001f;
+      bRay.max_distance = INFINITY;
+      intersection = i.intersect(bRay, accelerationStructure, 0xFFFFFFFF);
+
+      float bounceFactor = (1.0f / (bounce + 1.0f));
+      if (intersection.type == intersection_type::none) {
+        outColor += bounceFactor * skyColor;
+      } else {
+        instanceIndex = intersection.instance_id;
+        primitiveIdx = intersection.primitive_id;
+        // Stop if the ray didn't hit anything and has bounced out of the scene.
+
+        device const Mesh &mm = meshes[instanceIndex];
+
+        //outColor += bounceFactor + mm.tintColor.xyz;
+       outColor = float3(0.0f,0.0f,0.0f);
+}
+    }
+     */
   }
 
   dstTex.write(float4(outColor.x, outColor.y, outColor.z, 1.0f), tid);
