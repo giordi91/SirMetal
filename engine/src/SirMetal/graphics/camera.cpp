@@ -9,7 +9,7 @@
 
 namespace SirMetal {
 
-void FPSCameraController::update(const CameraManipulationConfig &camConfig,
+bool FPSCameraController::update(const CameraManipulationConfig &camConfig,
                                  Input *input) {
 
   // resetting position
@@ -20,8 +20,10 @@ void FPSCameraController::update(const CameraManipulationConfig &camConfig,
   bool xMoved = input->mouse.position.x != input->mouse.positionPrev.x;
   bool yMoved = input->mouse.position.y != input->mouse.positionPrev.y;
   bool moved = xMoved | yMoved;
+  bool camMoved = false;
   if (input->mouse.buttons[SDL_BUTTON_LEFT] & moved) {
 
+    camMoved = true;
     auto up = simd_float4{0, 1, 0, 0};
     auto xRel= input->mouse.position.xRel;
     float maxV = 5;
@@ -60,29 +62,37 @@ void FPSCameraController::update(const CameraManipulationConfig &camConfig,
   float leftRightFactor =
       camConfig.leftRightMovementDirection * camConfig.movementSpeed;
   pos += side * (-leftRightFactor) * applicationFactor;
+  camMoved |= (applicationFactor > 0.0f);
 
   applicationFactor = input->isKeyDown(SDL_SCANCODE_D);
   pos += side * (leftRightFactor)*applicationFactor;
+  camMoved |= (applicationFactor > 0.0f);
 
   // forward and back
   float fbFactor =
       camConfig.forwardBackMovementDirection * camConfig.movementSpeed;
   applicationFactor = input->isKeyDown(SDL_SCANCODE_W);
   pos += forward * (-fbFactor) * applicationFactor;
+  camMoved |= (applicationFactor > 0.0f);
 
   applicationFactor = input->isKeyDown(SDL_SCANCODE_S);
   pos += forward * fbFactor * applicationFactor;
+  camMoved |= (applicationFactor > 0.0f);
 
   // up and down
   float udFactor = camConfig.upDownMovementDirection * camConfig.movementSpeed;
   applicationFactor = input->isKeyDown(SDL_SCANCODE_Q);
   pos += vector_float4{0, 1, 0, 0} * (applicationFactor) * (-udFactor);
+  camMoved |= (applicationFactor > 0.0f);
 
   applicationFactor = input->isKeyDown(SDL_SCANCODE_E);
   pos += vector_float4{0, 1, 0, 0} * applicationFactor * (udFactor);
+  camMoved |= (applicationFactor > 0.0f);
 
   m_camera->viewMatrix.columns[3] = pos;
   m_camera->viewInverse = simd_inverse(m_camera->viewMatrix);
+
+  return camMoved;
 }
 
 void FPSCameraController::setPosition(float x, float y, float z) {

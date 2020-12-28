@@ -188,7 +188,7 @@ void GraphicsLayer::onAttach(SirMetal::EngineContext *context) {
 
     auto *ptrMatrix = [argumentEncoder constantDataAtIndex:6];
     memcpy(ptrMatrix, &asset.models[i].matrix, sizeof(float) * 16);
-    memcpy(((char*)ptrMatrix + sizeof(float)*16), &material.colorFactors, sizeof(float) * 4);
+    memcpy(((char *) ptrMatrix + sizeof(float) * 16), &material.colorFactors, sizeof(float) * 4);
 
     /*
     const auto &material = asset.models[i].material;
@@ -236,13 +236,14 @@ void GraphicsLayer::onAttach(SirMetal::EngineContext *context) {
 
 void GraphicsLayer::onDetach() {}
 
-void GraphicsLayer::updateUniformsForView(float screenWidth,
+bool GraphicsLayer::updateUniformsForView(float screenWidth,
                                           float screenHeight) {
 
   SirMetal::Input *input = m_engine->m_inputManager;
 
+  bool updated = false;
   if (!ImGui::GetIO().WantCaptureMouse) {
-    m_cameraController.update(m_camConfig, input);
+    updated = m_cameraController.update(m_camConfig, input);
   }
 
   m_cameraController.updateProjection(screenWidth, screenHeight);
@@ -262,12 +263,17 @@ void GraphicsLayer::updateUniformsForView(float screenWidth,
   simd_float4 right = simd_normalize(m_camera.viewMatrix.columns[0]);
   u.camera.right = simd_normalize(simd_float3{right.x, right.y, right.z});
 
-  u.frameIndex = m_engine->m_timings.m_totalNumberOfFrames;
+  if(updated) {
+    rtFrameCounter = 0;
+  }
+  u.frameIndex = rtFrameCounter;
   u.height = m_engine->m_config.m_windowConfig.m_height;
   u.width = m_engine->m_config.m_windowConfig.m_width;
   // TODO add light data
   // u.light ...
   m_engine->m_constantBufferManager->update(m_engine, m_uniforms, &u);
+
+  return updated;
 }
 struct RtCamera {
   vector_float3 position;
@@ -315,6 +321,7 @@ void GraphicsLayer::onUpdate() {
   updateUniformsForView(w, h);
   updateLightData();
 
+
   // render
   SirMetal::graphics::DrawTracker tracker{};
   tracker.renderTargets[0] = texture;
@@ -326,22 +333,7 @@ void GraphicsLayer::onUpdate() {
 
   id<MTLCommandBuffer> commandBuffer = [queue commandBuffer];
 
-  //* RT STUFF
-  if (m_engine->m_timings.m_totalNumberOfFrames < 2000) {
-    encodeMonoRay(commandBuffer, w, h);
-  }
-  /*
-  if (m_engine->m_timings.m_totalNumberOfFrames < 9000) {
-
-
-    encodePrimaryRay(commandBuffer, w, h);
-    // SHADOW RAYS
-    encodeShadowRay(commandBuffer, w, h);
-
-    // shading pixel
-    encodeShadeRt(commandBuffer, w, h);
-  }
-  */
+  encodeMonoRay(commandBuffer, w, h);
 
   MTLRenderPassDescriptor *passDescriptor =
           [MTLRenderPassDescriptor renderPassDescriptor];
@@ -443,6 +435,7 @@ void GraphicsLayer::onUpdate() {
   [commandBuffer presentDrawable:surface];
   [commandBuffer commit];
 
+  ++rtFrameCounter;
   //}
 }
 
@@ -549,7 +542,7 @@ void GraphicsLayer::encodeMonoRay(id<MTLCommandBuffer> commandBuffer,
   uint32_t colorIndex = m_engine->m_timings.m_totalNumberOfFrames % 2;
   id<MTLTexture> colorTexture =
           m_engine->m_textureManager->getNativeFromHandle(m_color[colorIndex]);
-  colorIndex = (m_engine->m_timings.m_totalNumberOfFrames +1)% 2;
+  colorIndex = (m_engine->m_timings.m_totalNumberOfFrames + 1) % 2;
   id<MTLTexture> prevTexture =
           m_engine->m_textureManager->getNativeFromHandle(m_color[colorIndex]);
 

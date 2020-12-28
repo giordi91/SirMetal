@@ -33,7 +33,7 @@ class GraphicsLayer final : public SirMetal::Layer {
   void clear() override;
 
   private:
-  void updateUniformsForView(float screenWidth, float screenHeight);
+  bool updateUniformsForView(float screenWidth, float screenHeight);
   void updateLightData();
   void renderDebugWindow();
   void generateRandomTexture();
@@ -75,5 +75,6 @@ class GraphicsLayer final : public SirMetal::Layer {
   id instanceAccelerationStructure;
 
   SirMetal::GLTFAsset asset;
+  uint32_t rtFrameCounter = 0;
 };
 }// namespace Sandbox

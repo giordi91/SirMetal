@@ -33,7 +33,7 @@ class CameraController {
 public:
   void setCamera(Camera *camera) { m_camera = camera; }
 
-  virtual void update(const CameraManipulationConfig &camConfig,
+  virtual bool update(const CameraManipulationConfig &camConfig,
                       Input *input) = 0;
   virtual void updateProjection(float screenWidth, float screenHeight) = 0;
 
@@ -45,7 +45,7 @@ protected:
 
 class FPSCameraController : public CameraController {
 public:
-  void update(const CameraManipulationConfig &camConfig, Input *input) override;
+  bool update(const CameraManipulationConfig &camConfig, Input *input) override;
   void updateProjection(float screenWidth, float screenHeight) override;
   void setPosition(float x, float y, float z) override;
 };

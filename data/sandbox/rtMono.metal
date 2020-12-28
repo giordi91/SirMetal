@@ -140,7 +140,7 @@ float3 getSkyColor(float3 ray) {
   return (1.0f - t) * float3(1.0f, 1.0f, 1.0f) + t * float3(0.5f, 0.7f, 1.0f);
 }
 
-ray getCameraRay(constant Uniforms &uniforms,uint2 tid ) {// Ray we will produce
+ray getCameraRay(constant Uniforms &uniforms, uint2 tid) {// Ray we will produce
   ray pray;
 
   constant Camera &camera = uniforms.camera;
@@ -161,31 +161,13 @@ ray getCameraRay(constant Uniforms &uniforms,uint2 tid ) {// Ray we will produce
   return pray;
 }
 
-
-kernel void rayKernel(
-        instance_acceleration_structure accelerationStructure,
-        constant Uniforms &uniforms [[buffer(1)]],
-        const device Mesh *meshes [[buffer(2)]],
-        texture2d<float, access::write> dstTex [[texture(0)]],
-        texture2d<uint> randomTex [[texture(1)]],
-        texture2d<float> prevImage [[texture(2)]],
-        uint2 tid [[thread_position_in_grid]],
-        uint2 size [[threads_per_grid]])
-
-{
-  intersector<triangle_data, instancing>::result_type intersection;
-
-  // Since we aligned the thread count to the threadgroup size, the thread index may be out of bounds
-  // of the render target size.
-  // Since we aligned the thread count to the threadgroup size, the thread index may be out of bounds
-  // of the render target size.
-  if ((tid.x >= uniforms.width) | (tid.y >= uniforms.height)) {
-    return;
-  }
-  // Compute linear ray index from 2D position
-  ray pray = getCameraRay(uniforms,tid);
-
-
+float3 shootRayInWorld(instance_acceleration_structure accelerationStructure,
+                       ray pray,
+                       int bounces,
+                       const device Mesh *meshes,
+                       texture2d<uint> randomTex,
+                       constant Uniforms &uniforms,
+                       uint2 tid) {
   // Create an intersector to test for intersection between the ray and the geometry in the scene.
   intersector<triangle_data, instancing> i;
 
@@ -195,48 +177,43 @@ kernel void rayKernel(
   //}
   i.accept_any_intersection(false);
 
-  intersection = i.intersect(pray, accelerationStructure, 0xFFFFFFFF);
-  int instanceIndex = intersection.instance_id;
-  uint primitiveIdx = intersection.primitive_id;
-  // Stop if the ray didn't hit anything and has bounced out of the scene.
-
-
   //  constexpr float3 skyColor = float3(53 / 255.0f, 81 / 255.0f, 92 / 255.0f);
-  float3 skyColor = getSkyColor(normalize(pray.direction.xyz));
-  float3 outColor = skyColor;
-  if (intersection.type != intersection_type::none) {
+  float3 outColor = 0;
+  float3 currAttenuation = 1.0f;
 
-    i.accept_any_intersection(false);
-    //outColor = m.tintColor.xyz;
-    device const Mesh &m = meshes[instanceIndex];
-    uint vid0 = m.indices[primitiveIdx * 3 + 0];
-    uint vid1 = m.indices[primitiveIdx * 3 + 1];
-    uint vid2 = m.indices[primitiveIdx * 3 + 2];
+  for (int b = 0; b < bounces; ++b) {
 
-    float3 a1 = m.normals[vid0].xyz;
-    float3 a2 = m.normals[vid1].xyz;
-    float3 a3 = m.normals[vid2].xyz;
+    intersector<triangle_data, instancing>::result_type intersection;
+    intersection = i.intersect(pray, accelerationStructure, 0xFFFFFFFF);
 
-    float2 bar = intersection.triangle_barycentric_coord;
-    float w = 1.0 - bar.x - bar.y;
+    if (intersection.type == intersection_type::none) {
+      outColor = currAttenuation * getSkyColor(normalize(pray.direction.xyz));
+      break;
+    } else {
 
-    float3 outN = normalize(a1 * w + a2 * bar.x + a3 * bar.y);
-    outN = (m.matrix * float4(outN.x, outN.y, outN.z, 0.0f)).xyz;
+      int instanceIndex = intersection.instance_id;
+      int primitiveIdx = intersection.primitive_id;
 
-    a1 = m.positions[vid0].xyz;
-    a2 = m.positions[vid1].xyz;
-    a3 = m.positions[vid2].xyz;
-    float3 outP = a1 * w + a2 * bar.x + a3 * bar.y;
-    outP = (m.matrix * float4(outP.x, outP.y, outP.z, 1.0f)).xyz;
-    //outColor = float3(w, bar.x, bar.y);
-    //outP = pray.origin + pray.direction * intersection.distance;
-    outColor = 0.0f;
+      device const Mesh &m = meshes[instanceIndex];
+      currAttenuation *= m.tintColor.xyz;
 
-    constexpr int bounces = 2;
-    float3 currAttenuation = m.tintColor.xyz;
-    //float3 currAttenuation = m.tintColor.xyz;
-    for (int b = 0; b < bounces; ++b) {
-      //generate sampling in sphere
+      uint vid0 = m.indices[primitiveIdx * 3 + 0];
+      uint vid1 = m.indices[primitiveIdx * 3 + 1];
+      uint vid2 = m.indices[primitiveIdx * 3 + 2];
+
+      float3 a1 = m.normals[vid0].xyz;
+      float3 a2 = m.normals[vid1].xyz;
+      float3 a3 = m.normals[vid2].xyz;
+
+      float2 bar = intersection.triangle_barycentric_coord;
+      float w = 1.0 - bar.x - bar.y;
+      float3 outN = (m.matrix * float4(normalize(a1 * w + a2 * bar.x + a3 * bar.y), 0.0f)).xyz;
+
+      //we don't have to interpolate the position in the same way we do for the normals, we can get it cheaply
+      //by using the ray
+      float3 outP = pray.origin + pray.direction * intersection.distance;
+
+      //scatter
       int bounce = b;
       struct ray bRay;
       bRay.origin = outP + outN * 1e-3f;//offsetting to avoid self intersection
@@ -262,38 +239,41 @@ kernel void rayKernel(
         float3 fuzzVec = hemisphereSample_uniform(r.x, r.y);
         bRay.direction = bRay.direction + fuzzVec * fuzzScale;
       }
+
       float dValue = dot(bRay.direction, outN);
       if (dValue < 0) {
         outColor = currAttenuation;
         break;
       }
-      intersection = i.intersect(bRay, accelerationStructure, 0xFFFFFFFF);
-
-      if (intersection.type == intersection_type::none) {
-
-        outColor = currAttenuation * getSkyColor(normalize(bRay.direction.xyz));
-        break;
-      } else {
-        instanceIndex = intersection.instance_id;
-        primitiveIdx = intersection.primitive_id;
-        device const Mesh &mm = meshes[instanceIndex];
-        currAttenuation *= mm.tintColor.xyz;
-      }
-      /*
-      else {
-        //instanceIndex = intersection2.instance_id;
-        //primitiveIdx = intersection2.primitive_id;
-        //// Stop if the ray didn't hit anything and has bounced out of the scene.
-        //device const Mesh &mm = meshes[instanceIndex];
-        //outColor += bounceFactor + mm.tintColor.xyz;
-        //outColor = float3(0.0f, 0.0f, 1.0f);
-      }
-       */
       pray = bRay;
     }
   }
+  return outColor;
+}
 
-  //outColor = sqrt(outColor);
+kernel void rayKernel(
+        instance_acceleration_structure accelerationStructure,
+        constant Uniforms &uniforms [[buffer(1)]],
+        const device Mesh *meshes [[buffer(2)]],
+        texture2d<float, access::write> dstTex [[texture(0)]],
+        texture2d<uint> randomTex [[texture(1)]],
+        texture2d<float> prevImage [[texture(2)]],
+        uint2 tid [[thread_position_in_grid]],
+        uint2 size [[threads_per_grid]])
+
+{
+
+  // Since we aligned the thread count to the threadgroup size, the thread index may be out of bounds
+  // of the render target size.
+  if ((tid.x >= uniforms.width) | (tid.y >= uniforms.height)) {
+    return;
+  }
+  // Compute linear ray index from 2D position
+  ray pray = getCameraRay(uniforms, tid);
+
+  constexpr int bounces = 3;
+  float3 outColor = shootRayInWorld(accelerationStructure, pray, bounces, meshes, randomTex, uniforms, tid);
+
   //CMA
   if (uniforms.frameIndex > 1) {
     float3 color = prevImage.read(tid).xyz;
