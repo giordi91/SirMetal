@@ -103,11 +103,6 @@ void GraphicsLayer::onAttach(SirMetal::EngineContext *context) {
           m_engine, (base + +"/test.glb").c_str(), asset,
           SirMetal::GLTFLoadFlags::GLTF_LOAD_FLAGS_FLATTEN_HIERARCHY);
 
-  const char *names[1] = {"/rt.obj"};
-  for (int i = 0; i < 1; ++i) {
-    m_meshes[i] = m_engine->m_meshManager->loadMesh(base + names[i]);
-  }
-
   id<MTLDevice> device = m_engine->m_renderingContext->getDevice();
 
   assert(device.supportsRaytracing == true && "This device does not support raytracing API, you can try samples based on MPS");

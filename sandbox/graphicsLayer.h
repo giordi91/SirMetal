@@ -37,8 +37,8 @@ class GraphicsLayer final : public SirMetal::Layer {
   void updateLightData();
   void renderDebugWindow();
   void generateRandomTexture();
-  void encodeShadeRt(id<MTLCommandBuffer> commandBuffer, float w, float h);
   void encodeMonoRay(id<MTLCommandBuffer> commandBuffer, float w, float h);
+  void buildAccellerationStructure();
 
   id buildPrimitiveAccelerationStructure(
           MTLAccelerationStructureDescriptor *descriptor);
@@ -51,9 +51,7 @@ class GraphicsLayer final : public SirMetal::Layer {
   SirMetal::ConstantBufferHandle m_camUniformHandle;
   SirMetal::ConstantBufferHandle m_lightHandle;
   SirMetal::ConstantBufferHandle m_uniforms;
-  SirMetal::MeshHandle m_meshes[5];
   SirMetal::LibraryHandle m_shaderHandle;
-  SirMetal::LibraryHandle m_imageFillHandle;
   SirMetal::LibraryHandle m_fullScreenHandle;
   SirMetal::LibraryHandle m_rtMono;
   SirMetal::TextureHandle m_color[2];
@@ -64,9 +62,6 @@ class GraphicsLayer final : public SirMetal::Layer {
   SirMetal::graphics::GPUInfoWidget m_gpuInfo;
   DirLight light{};
   SirMetal::GPUMemoryAllocator m_gpuAllocator;
-  id rayPipeline;
-  id shadowPipeline;
-  id rayShadePipeline;
   id rtMonoPipeline;
 
   id _randomTexture;
@@ -75,11 +70,10 @@ class GraphicsLayer final : public SirMetal::Layer {
   id argBufferFrag;
   id sampler;
 
-  std::vector<id>primitiveAccelerationStructures;
+  std::vector<id> primitiveAccelerationStructures;
   id<MTLBuffer> instanceBuffer;
   id instanceAccelerationStructure;
 
   SirMetal::GLTFAsset asset;
-  void buildAccellerationStructure();
 };
 }// namespace Sandbox

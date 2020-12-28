@@ -140,6 +140,27 @@ float3 getSkyColor(float3 ray) {
   return (1.0f - t) * float3(1.0f, 1.0f, 1.0f) + t * float3(0.5f, 0.7f, 1.0f);
 }
 
+ray getCameraRay(constant Uniforms &uniforms,uint2 tid ) {// Ray we will produce
+  ray pray;
+
+  constant Camera &camera = uniforms.camera;
+
+  // Rays start at the camera position
+  pray.origin = camera.position;
+  pray.min_distance = 0.0f;
+  pray.max_distance = INFINITY;
+
+  float2 xy = float2(tid.x + 0.5f, tid.y + 0.5f);// center in the middle of the pixel.
+  float2 screenPos = xy / float2(uniforms.width, uniforms.height) * 2.0 - 1.0;
+
+  // Un-project the pixel coordinate into a ray.
+  float4 world = camera.VPinverse * float4(screenPos, 0, 1);
+
+  world.xyz /= world.w;
+  pray.direction = normalize(world.xyz - pray.origin);
+  return pray;
+}
+
 
 kernel void rayKernel(
         instance_acceleration_structure accelerationStructure,
@@ -158,29 +179,12 @@ kernel void rayKernel(
   // of the render target size.
   // Since we aligned the thread count to the threadgroup size, the thread index may be out of bounds
   // of the render target size.
-  if (tid.x >= uniforms.width || tid.y >= uniforms.height) {
+  if ((tid.x >= uniforms.width) | (tid.y >= uniforms.height)) {
     return;
   }
   // Compute linear ray index from 2D position
+  ray pray = getCameraRay(uniforms,tid);
 
-  // Ray we will produce
-  ray pray;
-
-  constant Camera &camera = uniforms.camera;
-
-  // Rays start at the camera position
-  pray.origin = camera.position;
-  pray.min_distance = 0.0f;
-  pray.max_distance = INFINITY;
-
-  float2 xy = float2(tid.x + 0.5f, tid.y + 0.5f);// center in the middle of the pixel.
-  float2 screenPos = xy / float2(uniforms.width, uniforms.height) * 2.0 - 1.0;
-
-  // Un-project the pixel coordinate into a ray.
-  float4 world = camera.VPinverse * float4(screenPos, 0, 1);
-
-  world.xyz /= world.w;
-  pray.direction = normalize(world.xyz - pray.origin);
 
   // Create an intersector to test for intersection between the ray and the geometry in the scene.
   intersector<triangle_data, instancing> i;
