@@ -435,6 +435,8 @@ void GraphicsLayer::onUpdate() {
   [commandBuffer presentDrawable:surface];
   [commandBuffer commit];
 
+
+  SDL_RenderPresent(m_engine->m_renderingContext->getRenderer());
   ++rtFrameCounter;
   //}
 }

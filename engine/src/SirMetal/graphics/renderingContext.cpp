@@ -3,13 +3,16 @@
 #include "SirMetal/engine.h"
 #import <Metal/Metal.h>
 #include <SDL_render.h>
+#include <SDL_hints.h>
 
 namespace SirMetal::graphics {
 
 bool RenderingContext::initialize(const EngineConfig &config,
                                   SDL_Window *window) {
 
-  m_renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_PRESENTVSYNC);
+
+  SDL_SetHint(SDL_HINT_RENDER_VSYNC,0);
+  m_renderer = SDL_CreateRenderer(window, -1,0 );
   m_swapchain = (__bridge CAMetalLayer *)SDL_RenderGetMetalLayer(m_renderer);
   //m_swapchain.displaySyncEnabled = false;
   m_swapchain.device = MTLCreateSystemDefaultDevice();
@@ -35,5 +38,8 @@ void RenderingContext::flush() {
 
   //wait semaphore
   dispatch_semaphore_wait(block_semaphore, DISPATCH_TIME_FOREVER);
+}
+SDL_Renderer *RenderingContext::getRenderer() {
+  return m_renderer;
 }
 } // namespace SirMetal::graphics

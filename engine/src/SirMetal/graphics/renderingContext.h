@@ -71,7 +71,9 @@ public:
 
   void flush();
 
-private:
+  SDL_Renderer *getRenderer();
+
+  private:
   id m_gpu{};
   id m_queue{};
   CAMetalLayer *m_swapchain{};
