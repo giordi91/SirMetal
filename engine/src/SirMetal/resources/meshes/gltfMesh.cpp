@@ -186,6 +186,8 @@ bool loadGltfMesh(MeshLoadResult &outMesh, const void *gltfMesh) {
       outMesh.indices.push_back(source[idx]);
     }
   }
+  std::vector<uint32_t> inIndices = outMesh.indices;
+  SirMetal::optimizeVertexCache(outMesh.indices,inIndices,outMesh.indices.size(),fullMeshData[0].size());
 
   // TODO vertex cache optimization
   // merge the buffer into a single one

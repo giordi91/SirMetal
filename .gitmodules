@@ -13,3 +13,6 @@
 [submodule "vendors/stb"]
 	path = vendors/stb
 	url = https://github.com/nothings/stb.git
+[submodule "vendors/xatlas"]
+	path = vendors/xatlas
+	url = https://github.com/cpp-pm/xatlas.git

@@ -7,6 +7,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(COMMON_CXX_FLAGS "${COMMON_CXX_FLAGS}  -Wall -pedantic -Wextra -m64  -mfma -ffast-math")
 
 add_subdirectory(vendors/meshoptimizer)
+add_subdirectory(vendors/xatlas)
 add_subdirectory(engine)
 add_subdirectory(sandbox)
 add_subdirectory(tests)

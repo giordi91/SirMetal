@@ -21,6 +21,9 @@ struct MapperData
 };
 
 void optimizeRawDeinterleavedMesh( const MapperData& data);
+void optimizeVertexCache(std::vector<uint32_t> &outIndices, const std::vector<uint32_t> &inIndices,
+                         uint32_t indexCount, uint32_t vertexCount);
+
 void mergeRawMeshBuffers(
     const std::vector<float>& pos,
     const std::vector<float>& normals,
