@@ -63,8 +63,7 @@ id createComputePipeline(id<MTLDevice> device, id function) {
                                                    reflection:nil
                                                         error:&error];
 
-  if (!toReturn)
-    NSLog(@"Failed to create pipeline state: %@", error);
+  if (!toReturn) NSLog(@"Failed to create pipeline state: %@", error);
 
   return toReturn;
 }
@@ -99,42 +98,40 @@ void GraphicsLayer::onAttach(SirMetal::EngineContext *context) {
 
   const std::string base = m_engine->m_config.m_dataSourcePath + "/sandbox";
   // let us load the gltf file
-  SirMetal::loadGLTF(
-          m_engine, (base + +"/test.glb").c_str(), asset,
-          SirMetal::GLTFLoadFlags::GLTF_LOAD_FLAGS_FLATTEN_HIERARCHY);
+  SirMetal::loadGLTF(m_engine, (base + +"/test.glb").c_str(), asset,
+                     SirMetal::GLTFLoadFlags::GLTF_LOAD_FLAGS_FLATTEN_HIERARCHY |
+                             SirMetal::GLTF_LOAD_FLAGS_GENERATE_LIGHT_MAP_UVS);
 
   id<MTLDevice> device = m_engine->m_renderingContext->getDevice();
 
-  assert(device.supportsRaytracing == true && "This device does not support raytracing API, you can try samples based on MPS");
+  assert(device.supportsRaytracing == true &&
+         "This device does not support raytracing API, you can try samples based on MPS");
 
 
-  SirMetal::AllocTextureRequest request{
-          m_engine->m_config.m_windowConfig.m_width,
-          m_engine->m_config.m_windowConfig.m_height,
-          1,
-          MTLTextureType2D,
-          MTLPixelFormatRGBA32Float,
-          MTLTextureUsageRenderTarget | MTLTextureUsageShaderRead |
-                  MTLTextureUsageShaderWrite,
-          MTLStorageModePrivate,
-          1,
-          "colorRayTracing"};
+  SirMetal::AllocTextureRequest request{m_engine->m_config.m_windowConfig.m_width,
+                                        m_engine->m_config.m_windowConfig.m_height,
+                                        1,
+                                        MTLTextureType2D,
+                                        MTLPixelFormatRGBA32Float,
+                                        MTLTextureUsageRenderTarget |
+                                                MTLTextureUsageShaderRead |
+                                                MTLTextureUsageShaderWrite,
+                                        MTLStorageModePrivate,
+                                        1,
+                                        "colorRayTracing"};
   m_color[0] = m_engine->m_textureManager->allocate(device, request);
   request.name = "colorRayTracing2";
   m_color[1] = m_engine->m_textureManager->allocate(device, request);
 
   m_shaderHandle =
           m_engine->m_shaderManager->loadShader((base + "/Shaders.metal").c_str());
-  m_fullScreenHandle = m_engine->m_shaderManager->loadShader(
-          (base + "/fullscreen.metal").c_str());
-  m_rtMono = m_engine->m_shaderManager->loadShader(
-          (base + "/rtMono.metal").c_str());
+  m_fullScreenHandle =
+          m_engine->m_shaderManager->loadShader((base + "/fullscreen.metal").c_str());
+  m_rtMono = m_engine->m_shaderManager->loadShader((base + "/rtMono.metal").c_str());
 
   // args buffer
-  id<MTLFunction> fn =
-          m_engine->m_shaderManager->getKernelFunction(m_rtMono);
-  id<MTLArgumentEncoder> argumentEncoder =
-          [fn newArgumentEncoderWithBufferIndex:2];
+  id<MTLFunction> fn = m_engine->m_shaderManager->getKernelFunction(m_rtMono);
+  id<MTLArgumentEncoder> argumentEncoder = [fn newArgumentEncoderWithBufferIndex:2];
   /*
   id<MTLFunction> fnFrag =
           m_engine->m_shaderManager->getFragmentFunction(m_shaderHandle);
@@ -144,9 +141,7 @@ void GraphicsLayer::onAttach(SirMetal::EngineContext *context) {
 
   int meshesCount = asset.models.size();
   int buffInstanceSize = argumentEncoder.encodedLength;
-  argBuffer =
-          [device newBufferWithLength:buffInstanceSize * meshesCount
-                              options:0];
+  argBuffer = [device newBufferWithLength:buffInstanceSize * meshesCount options:0];
 
   /*
   int buffInstanceSizeFrag = argumentEncoderFrag.encodedLength;
@@ -167,8 +162,7 @@ void GraphicsLayer::onAttach(SirMetal::EngineContext *context) {
 
   for (int i = 0; i < meshesCount; ++i) {
     [argumentEncoder setArgumentBuffer:argBuffer offset:i * buffInstanceSize];
-    const auto *meshData =
-            m_engine->m_meshManager->getMeshData(asset.models[i].mesh);
+    const auto *meshData = m_engine->m_meshManager->getMeshData(asset.models[i].mesh);
     [argumentEncoder setBuffer:meshData->vertexBuffer
                         offset:meshData->ranges[0].m_offset
                        atIndex:0];
@@ -188,7 +182,8 @@ void GraphicsLayer::onAttach(SirMetal::EngineContext *context) {
 
     auto *ptrMatrix = [argumentEncoder constantDataAtIndex:6];
     memcpy(ptrMatrix, &asset.models[i].matrix, sizeof(float) * 16);
-    memcpy(((char *) ptrMatrix + sizeof(float) * 16), &material.colorFactors, sizeof(float) * 4);
+    memcpy(((char *) ptrMatrix + sizeof(float) * 16), &material.colorFactors,
+           sizeof(float) * 4);
 
     /*
     const auto &material = asset.models[i].material;
@@ -201,16 +196,16 @@ void GraphicsLayer::onAttach(SirMetal::EngineContext *context) {
      */
   }
 
-  SirMetal::AllocTextureRequest requestDepth{
-          m_engine->m_config.m_windowConfig.m_width,
-          m_engine->m_config.m_windowConfig.m_height,
-          1,
-          MTLTextureType2D,
-          MTLPixelFormatDepth32Float_Stencil8,
-          MTLTextureUsageRenderTarget | MTLTextureUsageShaderRead,
-          MTLStorageModePrivate,
-          1,
-          "depthTexture"};
+  SirMetal::AllocTextureRequest requestDepth{m_engine->m_config.m_windowConfig.m_width,
+                                             m_engine->m_config.m_windowConfig.m_height,
+                                             1,
+                                             MTLTextureType2D,
+                                             MTLPixelFormatDepth32Float_Stencil8,
+                                             MTLTextureUsageRenderTarget |
+                                                     MTLTextureUsageShaderRead,
+                                             MTLStorageModePrivate,
+                                             1,
+                                             "depthTexture"};
   m_depthHandle = m_engine->m_textureManager->allocate(device, requestDepth);
 
 
@@ -218,8 +213,7 @@ void GraphicsLayer::onAttach(SirMetal::EngineContext *context) {
   frameBoundarySemaphore = dispatch_semaphore_create(kMaxInflightBuffers);
 
   rtMonoPipeline = createComputePipeline(
-          device,
-          m_engine->m_shaderManager->getKernelFunction(m_rtMono));
+          device, m_engine->m_shaderManager->getKernelFunction(m_rtMono));
 
   // this is to flush the gpu, should figure out why is not actually flushing
   // properly
@@ -228,7 +222,7 @@ void GraphicsLayer::onAttach(SirMetal::EngineContext *context) {
 
   buildAccellerationStructure();
 
-  generateRandomTexture();
+  generateRandomTexture(1280u, 720u);
 
   MTLArgumentBuffersTier tier = [device argumentBuffersSupport];
   assert(tier == MTLArgumentBuffersTier2);
@@ -236,8 +230,7 @@ void GraphicsLayer::onAttach(SirMetal::EngineContext *context) {
 
 void GraphicsLayer::onDetach() {}
 
-bool GraphicsLayer::updateUniformsForView(float screenWidth,
-                                          float screenHeight) {
+bool GraphicsLayer::updateUniformsForView(float screenWidth, float screenHeight) {
 
   SirMetal::Input *input = m_engine->m_inputManager;
 
@@ -247,8 +240,7 @@ bool GraphicsLayer::updateUniformsForView(float screenWidth,
   }
 
   m_cameraController.updateProjection(screenWidth, screenHeight);
-  m_engine->m_constantBufferManager->update(m_engine, m_camUniformHandle,
-                                            &m_camera);
+  m_engine->m_constantBufferManager->update(m_engine, m_camUniformHandle, &m_camera);
 
   // update rt uniform
   Uniforms u{};
@@ -263,9 +255,7 @@ bool GraphicsLayer::updateUniformsForView(float screenWidth,
   simd_float4 right = simd_normalize(m_camera.viewMatrix.columns[0]);
   u.camera.right = simd_normalize(simd_float3{right.x, right.y, right.z});
 
-  if(updated) {
-    rtFrameCounter = 0;
-  }
+  if (updated) { rtFrameCounter = 0; }
   u.frameIndex = rtFrameCounter;
   u.height = m_engine->m_config.m_windowConfig.m_height;
   u.width = m_engine->m_config.m_windowConfig.m_width;
@@ -358,9 +348,7 @@ void GraphicsLayer::onUpdate() {
   [commandEncoder setFrontFacingWinding:MTLWindingCounterClockwise];
   [commandEncoder setCullMode:MTLCullModeBack];
   [commandEncoder setFragmentTexture:colorTexture atIndex:0];
-  [commandEncoder drawPrimitives:MTLPrimitiveTypeTriangle
-                     vertexStart:0
-                     vertexCount:3];
+  [commandEncoder drawPrimitives:MTLPrimitiveTypeTriangle vertexStart:0 vertexCount:3];
   /*
   // blitting to the swap chain
   MTLRenderPassDescriptor *passDescriptor =
@@ -417,8 +405,8 @@ void GraphicsLayer::onUpdate() {
   float data[6]{0, 0, 0, 0, 100, 0};
   m_engine->m_debugRenderer->drawLines(data, sizeof(float) * 6,
                                        vector_float4{1, 0, 0, 1});
-  m_engine->m_debugRenderer->render(m_engine, commandEncoder, tracker,
-                                    m_camUniformHandle, 300, 300);
+  m_engine->m_debugRenderer->render(m_engine, commandEncoder, tracker, m_camUniformHandle,
+                                    300, 300);
 
   // ui
   SirMetal::graphics::imguiNewFrame(m_engine, passDescriptor);
@@ -473,12 +461,8 @@ void GraphicsLayer::updateLightData() {
 void GraphicsLayer::renderDebugWindow() {
 
   static bool p_open = false;
-  if (m_engine->m_inputManager->isKeyReleased(SDL_SCANCODE_GRAVE)) {
-    p_open = !p_open;
-  }
-  if (!p_open) {
-    return;
-  }
+  if (m_engine->m_inputManager->isKeyReleased(SDL_SCANCODE_GRAVE)) { p_open = !p_open; }
+  if (!p_open) { return; }
   ImGui::SetNextWindowPos(ImVec2(0, 0), ImGuiCond_Once);
   if (ImGui::Begin("Debug", &p_open, 0)) {
     m_gpuInfo.render(m_engine->m_renderingContext->getDevice());
@@ -487,15 +471,11 @@ void GraphicsLayer::renderDebugWindow() {
   ImGui::End();
 }
 
-void GraphicsLayer::generateRandomTexture() {
+void GraphicsLayer::generateRandomTexture(uint32_t w, uint32_t h) {
 
-  // fix this
-  uint32_t w = 1280;
-  uint32_t h = 720;
 
   // Create a render target which the shading kernel can write to
-  MTLTextureDescriptor *renderTargetDescriptor =
-          [[MTLTextureDescriptor alloc] init];
+  MTLTextureDescriptor *renderTargetDescriptor = [[MTLTextureDescriptor alloc] init];
 
   renderTargetDescriptor.textureType = MTLTextureType2D;
   renderTargetDescriptor.width = w;
@@ -514,11 +494,9 @@ void GraphicsLayer::generateRandomTexture() {
   _randomTexture = [m_engine->m_renderingContext->getDevice()
           newTextureWithDescriptor:renderTargetDescriptor];
 
-  auto *randomValues =
-          static_cast<uint32_t *>(malloc(sizeof(uint32_t) * w * h));
+  auto *randomValues = static_cast<uint32_t *>(malloc(sizeof(uint32_t) * w * h));
 
-  for (NSUInteger i = 0; i < w * h; i++)
-    randomValues[i] = rand() % (1024 * 1024);
+  for (NSUInteger i = 0; i < w * h; i++) randomValues[i] = rand() % (1024 * 1024);
 
   [_randomTexture replaceRegion:MTLRegionMake2D(0, 0, w, h)
                     mipmapLevel:0
@@ -528,19 +506,16 @@ void GraphicsLayer::generateRandomTexture() {
   free(randomValues);
 }
 
-void GraphicsLayer::encodeMonoRay(id<MTLCommandBuffer> commandBuffer,
-                                  float w, float h) {
+void GraphicsLayer::encodeMonoRay(id<MTLCommandBuffer> commandBuffer, float w, float h) {
 
   MTLSize threadsPerThreadgroup = MTLSizeMake(8, 8, 1);
   MTLSize threadgroups = MTLSizeMake(
           (w + threadsPerThreadgroup.width - 1) / threadsPerThreadgroup.width,
           (h + threadsPerThreadgroup.height - 1) / threadsPerThreadgroup.height, 1);
 
-  id<MTLComputeCommandEncoder> computeEncoder =
-          [commandBuffer computeCommandEncoder];
+  id<MTLComputeCommandEncoder> computeEncoder = [commandBuffer computeCommandEncoder];
 
-  auto bindInfo =
-          m_engine->m_constantBufferManager->getBindInfo(m_engine, m_uniforms);
+  auto bindInfo = m_engine->m_constantBufferManager->getBindInfo(m_engine, m_uniforms);
   uint32_t colorIndex = m_engine->m_timings.m_totalNumberOfFrames % 2;
   id<MTLTexture> colorTexture =
           m_engine->m_textureManager->getNativeFromHandle(m_color[colorIndex]);
@@ -567,25 +542,32 @@ id GraphicsLayer::buildPrimitiveAccelerationStructure(
   id<MTLCommandQueue> queue = m_engine->m_renderingContext->getQueue();
   // Create and compact an acceleration structure, given an acceleration structure descriptor.
   // Query for the sizes needed to store and build the acceleration structure.
-  MTLAccelerationStructureSizes accelSizes = [device accelerationStructureSizesWithDescriptor:descriptor];
+  MTLAccelerationStructureSizes accelSizes =
+          [device accelerationStructureSizesWithDescriptor:descriptor];
 
   // Allocate an acceleration structure large enough for this descriptor. This doesn't actually
   // build the acceleration structure, just allocates memory.
-  id<MTLAccelerationStructure> accelerationStructure = [device newAccelerationStructureWithSize:accelSizes.accelerationStructureSize];
+  id<MTLAccelerationStructure> accelerationStructure =
+          [device newAccelerationStructureWithSize:accelSizes.accelerationStructureSize];
 
   // Allocate scratch space used by Metal to build the acceleration structure.
   // Use MTLResourceStorageModePrivate for best performance since the sample
   // doesn't need access to buffer's contents.
-  id<MTLBuffer> scratchBuffer = [device newBufferWithLength:accelSizes.buildScratchBufferSize options:MTLResourceStorageModePrivate];
+  id<MTLBuffer> scratchBuffer =
+          [device newBufferWithLength:accelSizes.buildScratchBufferSize
+                              options:MTLResourceStorageModePrivate];
 
   // Create a command buffer which will perform the acceleration structure build
   id<MTLCommandBuffer> commandBuffer = [queue commandBuffer];
 
   // Create an acceleration structure command encoder.
-  id<MTLAccelerationStructureCommandEncoder> commandEncoder = [commandBuffer accelerationStructureCommandEncoder];
+  id<MTLAccelerationStructureCommandEncoder> commandEncoder =
+          [commandBuffer accelerationStructureCommandEncoder];
 
   // Allocate a buffer for Metal to write the compacted accelerated structure's size into.
-  id<MTLBuffer> compactedSizeBuffer = [device newBufferWithLength:sizeof(uint32_t) options:MTLResourceStorageModeShared];
+  id<MTLBuffer> compactedSizeBuffer =
+          [device newBufferWithLength:sizeof(uint32_t)
+                              options:MTLResourceStorageModeShared];
 
   // Schedule the actual acceleration structure build
   [commandEncoder buildAccelerationStructure:accelerationStructure
@@ -623,7 +605,8 @@ id GraphicsLayer::buildPrimitiveAccelerationStructure(
   uint32_t compactedSize = *(uint32_t *) compactedSizeBuffer.contents;
 
   // Allocate a smaller acceleration structure based on the returned size.
-  id<MTLAccelerationStructure> compactedAccelerationStructure = [device newAccelerationStructureWithSize:compactedSize];
+  id<MTLAccelerationStructure> compactedAccelerationStructure =
+          [device newAccelerationStructureWithSize:compactedSize];
 
   // Create another command buffer and encoder.
   commandBuffer = [queue commandBuffer];
@@ -660,15 +643,20 @@ void GraphicsLayer::buildAccellerationStructure() {
   // Allocate a buffer of acceleration structure instance descriptors. Each descriptor represents
   // an instance of one of the primitive acceleration structures created above, with its own
   // transformation matrix.
-  instanceBuffer = [device newBufferWithLength:sizeof(MTLAccelerationStructureInstanceDescriptor) * modelCount options:options];
+  instanceBuffer =
+          [device newBufferWithLength:sizeof(MTLAccelerationStructureInstanceDescriptor) *
+                                      modelCount
+                              options:options];
 
-  auto *instanceDescriptors = (MTLAccelerationStructureInstanceDescriptor *) instanceBuffer.contents;
+  auto *instanceDescriptors =
+          (MTLAccelerationStructureInstanceDescriptor *) instanceBuffer.contents;
 
   // Create a primitive acceleration structure for each piece of geometry in the scene.
   for (NSUInteger i = 0; i < modelCount; ++i) {
     const SirMetal::Model &mesh = asset.models[i];
 
-    MTLAccelerationStructureTriangleGeometryDescriptor *geometryDescriptor = [MTLAccelerationStructureTriangleGeometryDescriptor descriptor];
+    MTLAccelerationStructureTriangleGeometryDescriptor *geometryDescriptor =
+            [MTLAccelerationStructureTriangleGeometryDescriptor descriptor];
 
     const SirMetal::MeshData *meshData = m_engine->m_meshManager->getMeshData(mesh.mesh);
     geometryDescriptor.vertexBuffer = meshData->vertexBuffer;
@@ -684,12 +672,14 @@ void GraphicsLayer::buildAccellerationStructure() {
 
     // Create a primitive acceleration structure descriptor to contain the single piece
     // of acceleration structure geometry.
-    MTLPrimitiveAccelerationStructureDescriptor *accelDescriptor = [MTLPrimitiveAccelerationStructureDescriptor descriptor];
+    MTLPrimitiveAccelerationStructureDescriptor *accelDescriptor =
+            [MTLPrimitiveAccelerationStructureDescriptor descriptor];
 
     accelDescriptor.geometryDescriptors = @[geometryDescriptor];
 
     // Build the acceleration structure.
-    id<MTLAccelerationStructure> accelerationStructure = buildPrimitiveAccelerationStructure(accelDescriptor);
+    id<MTLAccelerationStructure> accelerationStructure =
+            buildPrimitiveAccelerationStructure(accelDescriptor);
 
     // Add the acceleration structure to the array of primitive acceleration structures.
     //[primitiveAccelerationStructures addObject:accelerationStructure];
@@ -719,17 +709,20 @@ void GraphicsLayer::buildAccellerationStructure() {
     // This allows instance descriptors to be tightly packed in memory.
     for (int column = 0; column < 4; column++)
       for (int row = 0; row < 3; row++)
-        instanceDescriptors[i].transformationMatrix.columns[column][row] = mesh.matrix.columns[column][row];
+        instanceDescriptors[i].transformationMatrix.columns[column][row] =
+                mesh.matrix.columns[column][row];
   }
 
   //update the buffer as modified
   [instanceBuffer didModifyRange:NSMakeRange(0, instanceBuffer.length)];
 
   // Create an instance acceleration structure descriptor.
-  MTLInstanceAccelerationStructureDescriptor *accelDescriptor = [MTLInstanceAccelerationStructureDescriptor descriptor];
+  MTLInstanceAccelerationStructureDescriptor *accelDescriptor =
+          [MTLInstanceAccelerationStructureDescriptor descriptor];
 
   //TODO temp
-  NSArray *myArray = [NSArray arrayWithObjects:primitiveAccelerationStructures.data() count:modelCount];
+  NSArray *myArray = [NSArray arrayWithObjects:primitiveAccelerationStructures.data()
+                                         count:modelCount];
   accelDescriptor.instancedAccelerationStructures = myArray;
   accelDescriptor.instanceCount = modelCount;
   accelDescriptor.instanceDescriptorBuffer = instanceBuffer;

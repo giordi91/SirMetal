@@ -5,6 +5,8 @@
 #include <cgltf/cgltf.h>
 #include <xatlas/xatlas.h>
 
+#include <chrono>
+
 namespace SirMetal {
 static cgltf_size component_size(cgltf_component_type component_type) {
   switch (component_type) {
@@ -106,7 +108,6 @@ bool loadGltfMesh(MeshLoadResult &outMesh, const void *gltfMesh, uint32_t flags)
                MESH_ATTRIBUTES[attrIdx]);
         assert(uniqueVerticesCount != -1);
         uint32_t sizeInFloats = MESH_ATTRIBUTE_SIZE_IN_BYTES[attrIdx] / sizeof(float);
-        assert(attrIdx == 4);
         fullMeshData[attrIdx].resize(uniqueVerticesCount * sizeInFloats);
         memset(fullMeshData[attrIdx].data(), 0,
                fullMeshData[attrIdx].size() * sizeof(float));
@@ -129,7 +130,7 @@ bool loadGltfMesh(MeshLoadResult &outMesh, const void *gltfMesh, uint32_t flags)
     uniqueVerticesCount = uniqueVerticesCount == -1 ? accessorCount : uniqueVerticesCount;
     if (uniqueVerticesCount != accessorCount) {
       printf("[ERROR] Mismatched mesh attribute count for index %i. Required "
-             "%i but got %i",
+             "%i but got %i\n",
              attrIdx, uniqueVerticesCount, accessorCount);
       return {};
     }
@@ -142,23 +143,23 @@ bool loadGltfMesh(MeshLoadResult &outMesh, const void *gltfMesh, uint32_t flags)
     int datatypeSize = component_size(accessor->component_type);
     if (datatypeSize != 4) {
       printf("Vertex attribute with index %i has unexpected component width. "
-             "Expected 4, got %i",
+             "Expected 4, got %i\n",
              attrIdx, datatypeSize);
       return {};
     }
     int componentCount = component_count(accessor->type);
-    strides[attrIdx] = MESH_ATTRIBUTE_SIZE_IN_BYTES[attrIdx]/4;
+    strides[attrIdx] = MESH_ATTRIBUTE_SIZE_IN_BYTES[attrIdx] / 4;
 
     // we are normalizing the data to float4 or float2, this means we will need
     // to fill a value if we get a vec3, we use a different filler per attribute
     float filler = attrIdx == 0 ? 1.0f : 0.0f;
 
     for (int idx = 0; idx < uniqueVerticesCount; ++idx) {
-      meshData.push_back(dataToCopy[idx * componentCount+ 0]);
-      meshData.push_back(dataToCopy[idx * componentCount+ 1]);
+      meshData.push_back(dataToCopy[idx * componentCount + 0]);
+      meshData.push_back(dataToCopy[idx * componentCount + 1]);
       if (attrIdx != MESH_ATTRIBUTE_TYPE_UV) {
         // if is not a UV (float2) we push in the 3rd parameter plus filler
-        meshData.push_back(dataToCopy[idx * componentCount+ 2]);
+        meshData.push_back(dataToCopy[idx * componentCount + 2]);
         meshData.push_back(filler);
       }
     }
@@ -208,7 +209,7 @@ bool loadGltfMesh(MeshLoadResult &outMesh, const void *gltfMesh, uint32_t flags)
     }
   } else {
     if (componentSize != 2) {
-      printf("Mesh index buffer needs to be either 4 or 2 bytes, got %lu", componentSize);
+      printf("Mesh index buffer needs to be either 4 or 2 bytes, got %lu\n", componentSize);
       return {};
     }
     const auto *source = reinterpret_cast<uint16_t const *>((char *) view->buffer->data +
@@ -220,6 +221,8 @@ bool loadGltfMesh(MeshLoadResult &outMesh, const void *gltfMesh, uint32_t flags)
 
   bool generateLightUVs = (gltfFlags & GLTF_LOAD_FLAGS_GENERATE_LIGHT_MAP_UVS) > 0;
   if (generateLightUVs) {
+    auto t1 = std::chrono::high_resolution_clock::now();
+
     //let us generate the uvs for lightmapping
     //Atlas_Dim dim;
     xatlas::Atlas *atlas = xatlas::Create();
@@ -264,7 +267,7 @@ bool loadGltfMesh(MeshLoadResult &outMesh, const void *gltfMesh, uint32_t flags)
       std::vector<float> anorm(atlasMesh.vertexCount * 4);
       std::vector<float> auv(atlasMesh.vertexCount * 2);
       std::vector<float> atan(atlasMesh.vertexCount * 4);
-      fullMeshData[MESH_ATTRIBUTE_TYPE_UV_LIGHTMAP].resize(atlasMesh.vertexCount*2);
+      fullMeshData[MESH_ATTRIBUTE_TYPE_UV_LIGHTMAP].resize(atlasMesh.vertexCount * 2);
 
 
       for (uint32_t j = 0; j < atlasMesh.indexCount; ++j) {
@@ -296,9 +299,8 @@ bool loadGltfMesh(MeshLoadResult &outMesh, const void *gltfMesh, uint32_t flags)
         atan[vid + 2] = fullMeshData[3][vidSrc + 2];
         atan[vid + 3] = fullMeshData[3][vidSrc + 3];
 
-        fullMeshData[4][ind * 2 + 0] = v.uv[0]/float(aw);
-        fullMeshData[4][ind * 2 + 1] = v.uv[1]/float(ah);
-
+        fullMeshData[4][ind * 2 + 0] = v.uv[0] / float(aw);
+        fullMeshData[4][ind * 2 + 1] = v.uv[1] / float(ah);
       }
       fullMeshData[MESH_ATTRIBUTE_TYPE_POSITION] = apos;
       fullMeshData[MESH_ATTRIBUTE_TYPE_NORMAL] = anorm;
@@ -306,7 +308,14 @@ bool loadGltfMesh(MeshLoadResult &outMesh, const void *gltfMesh, uint32_t flags)
       fullMeshData[MESH_ATTRIBUTE_TYPE_TANGENT] = atan;
 
       //setting the stride for the uvs
-      strides[MESH_ATTRIBUTE_TYPE_UV_LIGHTMAP] = static_cast<float>(MESH_ATTRIBUTE_SIZE_IN_BYTES[MESH_ATTRIBUTE_TYPE_UV_LIGHTMAP]/4u);
+      strides[MESH_ATTRIBUTE_TYPE_UV_LIGHTMAP] = static_cast<float>(
+              MESH_ATTRIBUTE_SIZE_IN_BYTES[MESH_ATTRIBUTE_TYPE_UV_LIGHTMAP] / 4u);
+
+      auto t2 = std::chrono::high_resolution_clock::now();
+      auto secs= std::chrono::duration_cast<std::chrono::seconds>(t2 - t1);
+      printf("Generating atlas for mesh %s took %llds\n",outMesh.name.c_str(),secs.count());
+
+
     }
   }
 
@@ -323,7 +332,6 @@ bool loadGltfMesh(MeshLoadResult &outMesh, const void *gltfMesh, uint32_t flags)
                                 outMesh.ranges);
 
   outMesh.name = mesh->name;
-
 
   return true;
 }

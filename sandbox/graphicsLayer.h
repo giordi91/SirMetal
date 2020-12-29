@@ -36,7 +36,7 @@ class GraphicsLayer final : public SirMetal::Layer {
   bool updateUniformsForView(float screenWidth, float screenHeight);
   void updateLightData();
   void renderDebugWindow();
-  void generateRandomTexture();
+  void generateRandomTexture(uint32_t w,uint32_t h);
   void encodeMonoRay(id<MTLCommandBuffer> commandBuffer, float w, float h);
   void buildAccellerationStructure();
 

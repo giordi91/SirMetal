@@ -7,7 +7,6 @@
 
 #import <Metal/Metal.h>
 
-#import "../../../../../../../../../Library/Developer/CommandLineTools/SDKs/MacOSX11.1.sdk/System/Library/Frameworks/Metal.framework/Headers/MTLPixelFormat.h"
 #include "SirMetal/resources/handle.h"
 #include "SirMetal/resources/resourceTypes.h"
 #import "gltfLoader.h"
