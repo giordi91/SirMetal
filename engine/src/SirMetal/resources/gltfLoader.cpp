@@ -64,7 +64,7 @@ GLTFMaterial loadMaterial(EngineContext *context,
 }
 
 void loadNode(EngineContext *context, const cgltf_node *node,
-              GLTFAsset &outAsset, GLTFLoadFlags flags,
+              GLTFAsset &outAsset, uint32_t flags,
               simd_float4x4 parentMatrix) {
   Model model{};
   if (node->mesh != nullptr) {
@@ -72,9 +72,10 @@ void loadNode(EngineContext *context, const cgltf_node *node,
     assert(node->mesh->primitives_count == 1 &&
            "gltf loader does not support multiple primitives per mesh yet");
     model.mesh = context->m_meshManager->loadFromMemory(
-            node->mesh, LOAD_MESH_TYPE::GLTF_MESH);
+            node->mesh, LOAD_MESH_TYPE::GLTF_MESH, static_cast<uint32_t>(flags));
 
     assert(node->mesh->primitives_count == 1);
+
     if (node->mesh->primitives[0].material != nullptr) {
       model.material =
               loadMaterial(context, node->mesh->primitives[0].material);
@@ -97,7 +98,7 @@ void loadNode(EngineContext *context, const cgltf_node *node,
 }
 
 bool loadGLTF(EngineContext *context, const char *path, GLTFAsset &outAsset,
-              GLTFLoadFlags flags) {
+              uint32_t flags) {
   assert(((flags & GLTF_LOAD_FLAGS_FLATTEN_HIERARCHY) > 0) &&
          "only flatten hierarchy supported for now");
   assert(fileExists(path));

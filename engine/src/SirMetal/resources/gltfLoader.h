@@ -1,8 +1,8 @@
 #pragma once
 #include "SirMetal/resources/handle.h"
 #include <simd/simd.h>
-#include <vector>
 #include <string>
+#include <vector>
 
 namespace SirMetal {
 struct EngineContext;
@@ -12,7 +12,6 @@ struct GLTFMaterial {
   simd_float4 colorFactors;
   TextureHandle colorTexture;
   bool doubleSided;
-
 };
 
 struct Model {
@@ -24,12 +23,13 @@ struct GLTFAsset {
   std::vector<Model> models;
 };
 
-enum GLTFLoadFlags {
+enum GLTFLoadFlags : uint32_t {
   GLTF_LOAD_FLAGS_NONE = 0,
-  GLTF_LOAD_FLAGS_FLATTEN_HIERARCHY
+  GLTF_LOAD_FLAGS_FLATTEN_HIERARCHY = 1,
+  GLTF_LOAD_FLAGS_GENERATE_LIGHT_MAP_UVS = 2,
 };
 
 bool loadGLTF(EngineContext *context, const char *path, GLTFAsset &outAsset,
-              GLTFLoadFlags flags = GLTF_LOAD_FLAGS_NONE);
+              uint32_t flags = GLTF_LOAD_FLAGS_NONE);
 
-} // namespace SirMetal
+}// namespace SirMetal

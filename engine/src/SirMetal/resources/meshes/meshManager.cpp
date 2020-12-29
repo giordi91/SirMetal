@@ -60,7 +60,7 @@ namespace SirMetal {
 
     void MeshManager::cleanup() {}
 
-    MeshHandle MeshManager::loadFromMemory(const void *data, LOAD_MESH_TYPE type) {
+    MeshHandle MeshManager::loadFromMemory(const void *data, LOAD_MESH_TYPE type,uint32_t flags) {
 
         MeshLoadResult result;
         switch (type) {
@@ -70,7 +70,7 @@ namespace SirMetal {
                 break;
             }
             case LOAD_MESH_TYPE::GLTF_MESH: {
-                loadGltfMesh(result, data);
+                loadGltfMesh(result, data,flags);
             }
         }
 

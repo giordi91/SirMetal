@@ -36,7 +36,7 @@ struct MeshData {
 class MeshManager {
 public:
   MeshHandle loadMesh(const std::string &path);
-  MeshHandle loadFromMemory(const void *data, LOAD_MESH_TYPE type);
+  MeshHandle loadFromMemory(const void *data, LOAD_MESH_TYPE type,uint32_t flags);
 
   void initialize(id device, id queue) {
     m_allocator.initialize(device,queue);

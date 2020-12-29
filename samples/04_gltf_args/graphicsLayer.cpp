@@ -14,8 +14,8 @@
 #include "SirMetal/graphics/materialManager.h"
 #include "SirMetal/graphics/renderingContext.h"
 #include "SirMetal/resources/meshes/meshManager.h"
-#include <SirMetal/resources/textureManager.h>
 #include "SirMetal/resources/shaderManager.h"
+#include <SirMetal/resources/textureManager.h>
 
 
 constexpr int kMaxInflightBuffers = 3;
@@ -51,9 +51,9 @@ void GraphicsLayer::onAttach(SirMetal::EngineContext *context) {
   const std::string base = m_engine->m_config.m_dataSourcePath;
   const std::string baseSample = base + "/04_gltf_args";
   // let us load the gltf file
-  SirMetal::loadGLTF(
-          m_engine, (baseSample + +"/test.glb").c_str(), asset,
-          SirMetal::GLTFLoadFlags::GLTF_LOAD_FLAGS_FLATTEN_HIERARCHY);
+  auto flags = SirMetal::GLTFLoadFlags::GLTF_LOAD_FLAGS_FLATTEN_HIERARCHY |
+               SirMetal::GLTFLoadFlags::GLTF_LOAD_FLAGS_GENERATE_LIGHT_MAP_UVS;
+  SirMetal::loadGLTF(m_engine, (baseSample + +"/test.glb").c_str(), asset, flags);
 
   m_shaderHandle =
           m_engine->m_shaderManager->loadShader((baseSample + "/Shaders.metal").c_str());
@@ -65,12 +65,9 @@ void GraphicsLayer::onAttach(SirMetal::EngineContext *context) {
   id<MTLDevice> device = m_engine->m_renderingContext->getDevice();
   //arguments encoders are created from a shader function targeting a specific buffer
   //here we create one for the frag and one for the vert shader
-  id<MTLFunction> fn =
-          m_engine->m_shaderManager->getVertexFunction(m_shaderHandle);
-  id<MTLArgumentEncoder> argumentEncoder =
-          [fn newArgumentEncoderWithBufferIndex:0];
-  id<MTLFunction> fnFrag =
-          m_engine->m_shaderManager->getFragmentFunction(m_shaderHandle);
+  id<MTLFunction> fn = m_engine->m_shaderManager->getVertexFunction(m_shaderHandle);
+  id<MTLArgumentEncoder> argumentEncoder = [fn newArgumentEncoderWithBufferIndex:0];
+  id<MTLFunction> fnFrag = m_engine->m_shaderManager->getFragmentFunction(m_shaderHandle);
   id<MTLArgumentEncoder> argumentEncoderFrag =
           [fnFrag newArgumentEncoderWithBufferIndex:0];
 
@@ -80,12 +77,9 @@ void GraphicsLayer::onAttach(SirMetal::EngineContext *context) {
   int buffInstanceSize = argumentEncoder.encodedLength;
   int buffInstanceSizeFrag = argumentEncoderFrag.encodedLength;
   //we allocate enough memory in the buffer to store the full data for all the meshes
-  argBuffer =
-          [device newBufferWithLength:buffInstanceSize * meshesCount
-                              options:0];
+  argBuffer = [device newBufferWithLength:buffInstanceSize * meshesCount options:0];
   argBufferFrag =
-          [device newBufferWithLength:buffInstanceSizeFrag * meshesCount
-                              options:0];
+          [device newBufferWithLength:buffInstanceSizeFrag * meshesCount options:0];
 
   //create a single sampler that we will set on every material, technically this
   //can come from a gltf aswell
@@ -103,8 +97,7 @@ void GraphicsLayer::onAttach(SirMetal::EngineContext *context) {
 
     //first we set the buffer offsetting by the size and the id
     [argumentEncoder setArgumentBuffer:argBuffer offset:i * buffInstanceSize];
-    const auto *meshData =
-            m_engine->m_meshManager->getMeshData(asset.models[i].mesh);
+    const auto *meshData = m_engine->m_meshManager->getMeshData(asset.models[i].mesh);
     //next we set all the buffers, to note that there is a call to set multiple
     //buffers in one go to make it even more efficient, might be worth changing the
     //way I store ranges to have SOA layout and re-use the arrays to set them in bulk
@@ -136,16 +129,16 @@ void GraphicsLayer::onAttach(SirMetal::EngineContext *context) {
     memcpy(ptr, &material.colorFactors, sizeof(float) * 4);
   }
 
-  SirMetal::AllocTextureRequest requestDepth{
-          m_engine->m_config.m_windowConfig.m_width,
-          m_engine->m_config.m_windowConfig.m_height,
-          1,
-          MTLTextureType2D,
-          MTLPixelFormatDepth32Float_Stencil8,
-          MTLTextureUsageRenderTarget | MTLTextureUsageShaderRead,
-          MTLStorageModePrivate,
-          1,
-          "depthTexture"};
+  SirMetal::AllocTextureRequest requestDepth{m_engine->m_config.m_windowConfig.m_width,
+                                             m_engine->m_config.m_windowConfig.m_height,
+                                             1,
+                                             MTLTextureType2D,
+                                             MTLPixelFormatDepth32Float_Stencil8,
+                                             MTLTextureUsageRenderTarget |
+                                                     MTLTextureUsageShaderRead,
+                                             MTLStorageModePrivate,
+                                             1,
+                                             "depthTexture"};
   m_depthHandle = m_engine->m_textureManager->allocate(device, requestDepth);
 
   SirMetal::graphics::initImgui(m_engine);
@@ -160,18 +153,14 @@ void GraphicsLayer::onAttach(SirMetal::EngineContext *context) {
 
 void GraphicsLayer::onDetach() {}
 
-void GraphicsLayer::updateUniformsForView(float screenWidth,
-                                          float screenHeight) {
+void GraphicsLayer::updateUniformsForView(float screenWidth, float screenHeight) {
 
   SirMetal::Input *input = m_engine->m_inputManager;
 
-  if (!ImGui::GetIO().WantCaptureMouse) {
-    m_cameraController.update(m_camConfig, input);
-  }
+  if (!ImGui::GetIO().WantCaptureMouse) { m_cameraController.update(m_camConfig, input); }
 
   m_cameraController.updateProjection(screenWidth, screenHeight);
-  m_engine->m_constantBufferManager->update(m_engine, m_camUniformHandle,
-                                            &m_camera);
+  m_engine->m_constantBufferManager->update(m_engine, m_camUniformHandle, &m_camera);
 }
 
 void GraphicsLayer::onUpdate() {
@@ -200,8 +189,7 @@ void GraphicsLayer::onUpdate() {
   // render
   SirMetal::graphics::DrawTracker tracker{};
   tracker.renderTargets[0] = texture;
-  tracker.depthTarget =
-          m_engine->m_textureManager->getNativeFromHandle(m_depthHandle);
+  tracker.depthTarget = m_engine->m_textureManager->getNativeFromHandle(m_depthHandle);
 
   SirMetal::PSOCache cache =
           SirMetal::getPSO(m_engine, tracker, SirMetal::Material{"Shaders", false});
@@ -216,7 +204,8 @@ void GraphicsLayer::onUpdate() {
   passDescriptor.colorAttachments[0].storeAction = MTLStoreActionStore;
   passDescriptor.colorAttachments[0].loadAction = MTLLoadActionClear;
 
-  MTLRenderPassDepthAttachmentDescriptor *depthAttachment = passDescriptor.depthAttachment;
+  MTLRenderPassDepthAttachmentDescriptor *depthAttachment =
+          passDescriptor.depthAttachment;
   depthAttachment.texture =
           m_engine->m_textureManager->getNativeFromHandle(m_depthHandle);
   depthAttachment.clearDepth = 1.0;
@@ -232,11 +221,10 @@ void GraphicsLayer::onUpdate() {
   [commandEncoder setCullMode:MTLCullModeBack];
 
   //first we set the uniform buffers like the camera and the light
-  SirMetal::BindInfo info = m_engine->m_constantBufferManager->getBindInfo(
-          m_engine, m_camUniformHandle);
+  SirMetal::BindInfo info =
+          m_engine->m_constantBufferManager->getBindInfo(m_engine, m_camUniformHandle);
   [commandEncoder setVertexBuffer:info.buffer offset:info.offset atIndex:4];
-  info =
-          m_engine->m_constantBufferManager->getBindInfo(m_engine, m_lightHandle);
+  info = m_engine->m_constantBufferManager->getBindInfo(m_engine, m_lightHandle);
   [commandEncoder setFragmentBuffer:info.buffer offset:info.offset atIndex:5];
 
   //next, setting the arguments buffer, to note we set them once outside the loop
@@ -260,8 +248,7 @@ void GraphicsLayer::onUpdate() {
     [commandEncoder setVertexBytes:&counter length:4 atIndex:6];
 
     //we still need to access the the mesh to know how many triangles to render.
-    const SirMetal::MeshData *meshData =
-            m_engine->m_meshManager->getMeshData(mesh.mesh);
+    const SirMetal::MeshData *meshData = m_engine->m_meshManager->getMeshData(mesh.mesh);
     [commandEncoder drawPrimitives:MTLPrimitiveTypeTriangle
                        vertexStart:0
                        vertexCount:meshData->primitivesCount];
@@ -318,16 +305,10 @@ void GraphicsLayer::updateLightData() {
 void GraphicsLayer::renderDebugWindow() {
 
   static bool p_open = false;
-  if (m_engine->m_inputManager->isKeyReleased(SDL_SCANCODE_GRAVE)) {
-    p_open = !p_open;
-  }
-  if (!p_open) {
-    return;
-  }
+  if (m_engine->m_inputManager->isKeyReleased(SDL_SCANCODE_GRAVE)) { p_open = !p_open; }
+  if (!p_open) { return; }
   ImGui::SetNextWindowPos(ImVec2(0, 0), ImGuiCond_Once);
-  if (ImGui::Begin("Debug", &p_open, 0)) {
-    m_timingsWidget.render(m_engine);
-  }
+  if (ImGui::Begin("Debug", &p_open, 0)) { m_timingsWidget.render(m_engine); }
   ImGui::End();
 }
 }// namespace Sandbox
