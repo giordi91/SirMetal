@@ -272,10 +272,8 @@ bool loadGltfMesh(MeshLoadResult &outMesh, const void *gltfMesh, uint32_t flags)
         const xatlas::Vertex &v = atlasMesh.vertexArray[ind];
         assert(j < outMesh.indices.size());
         outMesh.indices[j] = ind;
-        //atlas[ind].x = v.uv[0] / float(aw.width);
-        //atlas[ind].y = v.uv[1] / float(ah.height);
-        int vid = ind * 4;
-        int vidSrc = v.xref * 4;
+        uint32_t vid = ind * 4u;
+        uint32_t vidSrc = v.xref * 4u;
         assert(vid < apos.size());
         assert(vidSrc < fullMeshData[0].size());
         apos[vid + 0] = fullMeshData[0][vidSrc + 0];
