@@ -35,7 +35,8 @@ struct Mesh {
   device float4 *normals [[id(1)]];
   device float2 *uvs [[id(2)]];
   device float4 *tangents [[id(3)]];
-  device uint *indices [[id(4)]];
+  device float2 *lightMapUvs[[id(4)]];
+  device uint *indices [[id(5)]];
 };
 
 struct Material {
@@ -56,10 +57,12 @@ vertex OutVertex vertex_project(
   device const Mesh &m = meshes[meshIdx];
   uint vid = m.indices[vertexCount];
   float4 p = m.positions[vid];
-  vertexOut.position = camera->VP * (modelMatrix * p);
+  float2 luv = m.lightMapUvs[vid];
+  //vertexOut.position = camera->VP * (modelMatrix * p);
+  vertexOut.position = float4(luv* 2 -1.0f,0.5f,1);
   vertexOut.worldPos = p;
   vertexOut.normal = modelMatrix * m.normals[vid];
-  vertexOut.uv = m.uvs[vid];
+  vertexOut.uv = luv;
   vertexOut.id = meshIdx;
   return vertexOut;
 }
@@ -75,8 +78,8 @@ fragment half4 fragment_flatcolor(OutVertex vertexIn [[stage_in]],
   float2 uv = vertexIn.uv;
   float4 albedo =
           mat.albedoTex.sample(mat.sampler, uv);
-  float4 color = mat.tintColor * albedo;
-  color*=  saturate(dot(n.xyz,light->lightDir.xyz));
+  //float4 color = mat.tintColor * albedo;
+  //color*=  saturate(dot(n.xyz,light->lightDir.xyz));
 
-  return half4(color.x, color.y, color.z, 1.0h);
+  return half4(uv.x,uv.y,0.0h, 1.0h);
 }

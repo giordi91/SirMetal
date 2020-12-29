@@ -209,7 +209,8 @@ bool loadGltfMesh(MeshLoadResult &outMesh, const void *gltfMesh, uint32_t flags)
     }
   } else {
     if (componentSize != 2) {
-      printf("Mesh index buffer needs to be either 4 or 2 bytes, got %lu\n", componentSize);
+      printf("Mesh index buffer needs to be either 4 or 2 bytes, got %lu\n",
+             componentSize);
       return {};
     }
     const auto *source = reinterpret_cast<uint16_t const *>((char *) view->buffer->data +
@@ -250,6 +251,7 @@ bool loadGltfMesh(MeshLoadResult &outMesh, const void *gltfMesh, uint32_t flags)
     {
       xatlas::ChartOptions chartoptions;
       xatlas::PackOptions packoptions;
+      packoptions.padding = 8;
 
       packoptions.resolution = 2048;
       packoptions.blockAlign = true;
@@ -312,10 +314,9 @@ bool loadGltfMesh(MeshLoadResult &outMesh, const void *gltfMesh, uint32_t flags)
               MESH_ATTRIBUTE_SIZE_IN_BYTES[MESH_ATTRIBUTE_TYPE_UV_LIGHTMAP] / 4u);
 
       auto t2 = std::chrono::high_resolution_clock::now();
-      auto secs= std::chrono::duration_cast<std::chrono::seconds>(t2 - t1);
-      printf("Generating atlas for mesh %s took %llds\n",outMesh.name.c_str(),secs.count());
-
-
+      auto secs = std::chrono::duration_cast<std::chrono::seconds>(t2 - t1);
+      printf("Generating atlas for mesh %s took %llds\n", outMesh.name.c_str(),
+             secs.count());
     }
   }
 
