@@ -23,6 +23,27 @@ static cgltf_size component_size(cgltf_component_type component_type) {
   }
 }
 
+static cgltf_size component_count(cgltf_type type) {
+  switch (type) {
+    case cgltf_type_scalar:
+      return 1;
+    case cgltf_type_vec2:
+      return 2;
+    case cgltf_type_vec3:
+      return 3;
+    case cgltf_type_vec4:
+    case cgltf_type_mat2:
+      return 4;
+    case cgltf_type_mat3:
+      return 9;
+    case cgltf_type_mat4:
+      return 16;
+    case cgltf_type_invalid:
+      assert(0 && "invalid cgltf type size");
+      return 0;
+  }
+}
+
 bool loadGltfMesh(MeshLoadResult &outMesh, const void *gltfMesh, uint32_t flags) {
   const auto *mesh = reinterpret_cast<const cgltf_mesh *>(gltfMesh);
 
@@ -50,8 +71,8 @@ bool loadGltfMesh(MeshLoadResult &outMesh, const void *gltfMesh, uint32_t flags)
   bool found = false;
   int foundIdx = 0;
 
-  // std::vector<float> meshData;
-  std::vector<float> fullMeshData[4];
+  std::vector<float> fullMeshData[MESH_ATTRIBUTE_TYPE_COUNT];
+  float strides[MESH_ATTRIBUTE_TYPE_COUNT] = {};
 
   for (int attrIdx = 0; attrIdx < MESH_ATTRIBUTE_TYPE_COUNT; ++attrIdx) {
     const char *attribute = MESH_ATTRIBUTES[attrIdx];
@@ -66,6 +87,8 @@ bool loadGltfMesh(MeshLoadResult &outMesh, const void *gltfMesh, uint32_t flags)
 
     // if attribute is not found we patch in dummy data
     if (!found) {
+      bool required = MESH_ATTRIBUTE_REQUIRED[attrIdx];
+
       // we just make sure we know how many unique vertices we have
       // this should never trigger because if we don't have position is useless
       // data
@@ -75,11 +98,19 @@ bool loadGltfMesh(MeshLoadResult &outMesh, const void *gltfMesh, uint32_t flags)
         return {};
       }
 
-      printf("[WARN] Could not find %s attribute in gltf file, filling with "
-             "zeroes",
-             MESH_ATTRIBUTES[attrIdx]);
-      // TODO properly implement attribute patching
-      assert(0);
+      //if the attribute is required we fill it with zero and print a warning
+      //if not we simply continue
+      if (required) {
+        printf("[ERROR] Could not find %s attribute in gltf file, and is a required one"
+               "... filling with zeroes\n",
+               MESH_ATTRIBUTES[attrIdx]);
+        assert(uniqueVerticesCount != -1);
+        uint32_t sizeInFloats = MESH_ATTRIBUTE_SIZE_IN_BYTES[attrIdx] / sizeof(float);
+        assert(attrIdx == 4);
+        fullMeshData[attrIdx].resize(uniqueVerticesCount * sizeInFloats);
+        memset(fullMeshData[attrIdx].data(), 0,
+               fullMeshData[attrIdx].size() * sizeof(float));
+      }
       continue;
     }
 
@@ -115,18 +146,19 @@ bool loadGltfMesh(MeshLoadResult &outMesh, const void *gltfMesh, uint32_t flags)
              attrIdx, datatypeSize);
       return {};
     }
-    int componentInType = accessor->type;
+    int componentCount = component_count(accessor->type);
+    strides[attrIdx] = MESH_ATTRIBUTE_SIZE_IN_BYTES[attrIdx]/4;
 
     // we are normalizing the data to float4 or float2, this means we will need
     // to fill a value if we get a vec3, we use a different filler per attribute
-    float filler = MESH_ATTRIBUTES_COMPONENT_FILLER[attrIdx];
+    float filler = attrIdx == 0 ? 1.0f : 0.0f;
 
     for (int idx = 0; idx < uniqueVerticesCount; ++idx) {
-      meshData.push_back(dataToCopy[idx * componentInType + 0]);
-      meshData.push_back(dataToCopy[idx * componentInType + 1]);
+      meshData.push_back(dataToCopy[idx * componentCount+ 0]);
+      meshData.push_back(dataToCopy[idx * componentCount+ 1]);
       if (attrIdx != MESH_ATTRIBUTE_TYPE_UV) {
         // if is not a UV (float2) we push in the 3rd parameter plus filler
-        meshData.push_back(dataToCopy[idx * componentInType + 2]);
+        meshData.push_back(dataToCopy[idx * componentCount+ 2]);
         meshData.push_back(filler);
       }
     }
@@ -186,7 +218,8 @@ bool loadGltfMesh(MeshLoadResult &outMesh, const void *gltfMesh, uint32_t flags)
     }
   }
 
-  if ((gltfFlags & GLTF_LOAD_FLAGS_GENERATE_LIGHT_MAP_UVS) > 0) {
+  bool generateLightUVs = (gltfFlags & GLTF_LOAD_FLAGS_GENERATE_LIGHT_MAP_UVS) > 0;
+  if (generateLightUVs) {
     //let us generate the uvs for lightmapping
     //Atlas_Dim dim;
     xatlas::Atlas *atlas = xatlas::Create();
@@ -231,6 +264,7 @@ bool loadGltfMesh(MeshLoadResult &outMesh, const void *gltfMesh, uint32_t flags)
       std::vector<float> anorm(atlasMesh.vertexCount * 4);
       std::vector<float> auv(atlasMesh.vertexCount * 2);
       std::vector<float> atan(atlasMesh.vertexCount * 4);
+      fullMeshData[MESH_ATTRIBUTE_TYPE_UV_LIGHTMAP].resize(atlasMesh.vertexCount*2);
 
 
       for (uint32_t j = 0; j < atlasMesh.indexCount; ++j) {
@@ -241,7 +275,7 @@ bool loadGltfMesh(MeshLoadResult &outMesh, const void *gltfMesh, uint32_t flags)
         //atlas[ind].x = v.uv[0] / float(aw.width);
         //atlas[ind].y = v.uv[1] / float(ah.height);
         int vid = ind * 4;
-        int vidSrc = v.xref* 4;
+        int vidSrc = v.xref * 4;
         assert(vid < apos.size());
         assert(vidSrc < fullMeshData[0].size());
         apos[vid + 0] = fullMeshData[0][vidSrc + 0];
@@ -254,8 +288,8 @@ bool loadGltfMesh(MeshLoadResult &outMesh, const void *gltfMesh, uint32_t flags)
         anorm[vid + 2] = fullMeshData[1][vidSrc + 2];
         anorm[vid + 3] = fullMeshData[1][vidSrc + 3];
 
-        assert((ind*2)< apos.size());
-        assert((v.xref*2)< fullMeshData[2].size());
+        assert((ind * 2) < apos.size());
+        assert((v.xref * 2) < fullMeshData[2].size());
         auv[ind * 2 + 0] = fullMeshData[2][v.xref * 2 + 0];
         auv[ind * 2 + 1] = fullMeshData[2][v.xref * 2 + 1];
 
@@ -263,11 +297,18 @@ bool loadGltfMesh(MeshLoadResult &outMesh, const void *gltfMesh, uint32_t flags)
         atan[vid + 1] = fullMeshData[3][vidSrc + 1];
         atan[vid + 2] = fullMeshData[3][vidSrc + 2];
         atan[vid + 3] = fullMeshData[3][vidSrc + 3];
+
+        fullMeshData[4][ind * 2 + 0] = v.uv[0]/float(aw);
+        fullMeshData[4][ind * 2 + 1] = v.uv[1]/float(ah);
+
       }
-      fullMeshData[0] = apos;
-      fullMeshData[1] = anorm;
-      fullMeshData[2] = auv;
-      fullMeshData[3] = atan;
+      fullMeshData[MESH_ATTRIBUTE_TYPE_POSITION] = apos;
+      fullMeshData[MESH_ATTRIBUTE_TYPE_NORMAL] = anorm;
+      fullMeshData[MESH_ATTRIBUTE_TYPE_UV] = auv;
+      fullMeshData[MESH_ATTRIBUTE_TYPE_TANGENT] = atan;
+
+      //setting the stride for the uvs
+      strides[MESH_ATTRIBUTE_TYPE_UV_LIGHTMAP] = static_cast<float>(MESH_ATTRIBUTE_SIZE_IN_BYTES[MESH_ATTRIBUTE_TYPE_UV_LIGHTMAP]/4u);
     }
   }
 
@@ -276,10 +317,12 @@ bool loadGltfMesh(MeshLoadResult &outMesh, const void *gltfMesh, uint32_t flags)
   SirMetal::optimizeVertexCache(outMesh.indices, inIndices, outMesh.indices.size(),
                                 fullMeshData[0].size());
 
-  // TODO vertex cache optimization
   // merge the buffer into a single one
-  SirMetal::mergeRawMeshBuffers(fullMeshData[0], fullMeshData[1], fullMeshData[2],
-                                fullMeshData[3], outMesh.vertices, outMesh.ranges);
+  int attributesCount = 4;
+  //if we have the uv maps we have an extra attributes. this is good enough until we have skinning, then it will be trickier
+  attributesCount += generateLightUVs ? 1 : 0;
+  SirMetal::mergeRawMeshBuffers(fullMeshData, strides, attributesCount, outMesh.vertices,
+                                outMesh.ranges);
 
   outMesh.name = mesh->name;
 

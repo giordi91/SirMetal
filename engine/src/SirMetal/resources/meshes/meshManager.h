@@ -26,7 +26,7 @@ struct MeshData {
   id vertexBuffer;
   id indexBuffer;
   std::string name;
-  MemoryRange ranges[4];
+  MemoryRange ranges[MESH_ATTRIBUTE_TYPE_COUNT];
   uint32_t primitivesCount;
   BufferHandle m_vertexHandle;
   BufferHandle m_indexHandle;

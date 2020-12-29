@@ -14,8 +14,7 @@ namespace SirMetal {
 bool loadMeshObj(MeshLoadResult &result, const char *path) {
 
   ObjFile file;
-  if (!objParseFile(file, path))
-    return false;
+  if (!objParseFile(file, path)) return false;
 
   size_t index_count = file.f_size / 3;
 
@@ -26,9 +25,7 @@ bool loadMeshObj(MeshLoadResult &result, const char *path) {
   std::vector<float> uvs(index_count * 2);
   std::vector<float> tangents(index_count * 4);
 
-  for (int i = 0; i < index_count * 2; ++i) {
-    uvs[i] = 0.0f;
-  }
+  for (int i = 0; i < index_count * 2; ++i) { uvs[i] = 0.0f; }
   for (int i = 0; i < index_count * 4; ++i) {
     tangents[i] = 0.0f;
     normals[i] = 0.0f;
@@ -84,10 +81,12 @@ bool loadMeshObj(MeshLoadResult &result, const char *path) {
   SirMetal::optimizeRawDeinterleavedMesh(mapper);
 
   // merge the buffer into a single one
-  SirMetal::mergeRawMeshBuffers(posOut, nOut, uvOut, tOut, result.vertices,
-                                result.ranges);
+
+  std::vector<float> attributes[4] = {posOut, nOut, uvOut, tOut};
+  float strides[4]{4, 4, 2, 4};
+  SirMetal::mergeRawMeshBuffers(attributes, strides, 4, result.vertices, result.ranges);
 
   return true;
 }
 
-} // namespace SirMetal
+}// namespace SirMetal

@@ -5,7 +5,7 @@ namespace SirMetal {
 uint64_t alignSize(const uint64_t sizeInBytes, const uint64_t boundaryInByte,
                    uint64_t &offset) {
   uint64_t modulus = sizeInBytes % boundaryInByte;
-  offset = boundaryInByte - modulus;
+  offset = modulus != 0 ? boundaryInByte - modulus : 0;
   return sizeInBytes + offset;
 }
 
@@ -45,83 +45,73 @@ void optimizeRawDeinterleavedMesh(const MapperData &data) {
 
   std::vector<uint32_t> tmp(data.indexCount);
   //remapping index buffer and optimize for vertex cache reuse
-  meshopt_remapIndexBuffer(tmp.data(), nullptr, data.indexCount,
-                           remap.data());
+  meshopt_remapIndexBuffer(tmp.data(), nullptr, data.indexCount, remap.data());
 
-  meshopt_optimizeVertexCache(data.outIndex->data(), tmp.data(),
-                              data.indexCount, vertex_count);
+  meshopt_optimizeVertexCache(data.outIndex->data(), tmp.data(), data.indexCount,
+                              vertex_count);
 }
-void mergeRawMeshBuffers(
-        const std::vector<float> &pos,
-        const std::vector<float> &normals,
-        const std::vector<float> &uvs,
-        const std::vector<float> &tans,
-        std::vector<float> &outData, MemoryRange *ranges) {
+void mergeRawMeshBuffers(const std::vector<float> *attributes, float *strides,
+                         uint32_t count, std::vector<float> &outData,
+                         MemoryRange *ranges) {
+
+
   // now I need to merge the data and generate the memory ranges
   // lets compute all the alignment offsets
   constexpr uint32_t alignRequirement = 256;// in bytes
-  uint64_t pointSizeInByte = pos.size() * sizeof(float);
-  uint64_t normalPointerOffset = 0;
-  uint64_t normalsOffsetByte =
-          alignSize(pointSizeInByte, alignRequirement, normalPointerOffset);
+  uint64_t totalRequiredAlignmentFloats = 0;
+  uint64_t prevSize = 0;
+  uint64_t offsetByte = 0;
+  uint64_t floatsPerVertex = 0;
 
-  uint64_t normalsSize = normals.size() * sizeof(float);
-  uint64_t uvPointerOffset = 0;
-  uint64_t uvOffsetByte = alignSize(normalsOffsetByte + normalsSize,
-                                    alignRequirement, uvPointerOffset);
+  //we iterate all the attributes, accumulating required padding  for aligment
+  //and recording actual final memory ranges
+  for (int i = 0; i < count; ++i) {
+    const std::vector<float> &attribute = attributes[i];
+    uint64_t currSize = attribute.size() * sizeof(float);
+    uint64_t pointerOffset = 0;
 
-  uint64_t uvSize = uvs.size() * sizeof(float);
-  uint64_t tangentsPointerOffset = 0;
-  uint64_t tangentsOffsetByte =
-          alignSize(uvOffsetByte + uvSize, alignRequirement, tangentsPointerOffset);
+    //this function computes the aligment, it returns the aligment offset and also how much
+    //we had to align for.
+    offsetByte = alignSize(prevSize + offsetByte, alignRequirement, pointerOffset);
+    //we accumulate all the required alignment such that later on we can compute the required total memory
+    totalRequiredAlignmentFloats += pointerOffset;
 
-  uint64_t totalRequiredAlignmentBytes =
-          normalPointerOffset + uvPointerOffset + tangentsPointerOffset;
-  uint64_t totalRequiredAlignmentFloats = totalRequiredAlignmentBytes / 4;
 
-  // generating the memory ranges
-  // pos
-  ranges[0].m_offset = 0;
-  ranges[0].m_size = static_cast<uint32_t>(pointSizeInByte);
-  // normals
-  ranges[1].m_offset = static_cast<uint32_t>(normalsOffsetByte);
-  ranges[1].m_size = static_cast<uint32_t>(normalsSize);
-  // uvs
-  ranges[2].m_offset = static_cast<uint32_t>(uvOffsetByte);
-  ranges[2].m_size = static_cast<uint32_t>(uvSize);
-  // tans
-  ranges[3].m_offset = static_cast<uint32_t>(tangentsOffsetByte);
-  ranges[3].m_size = static_cast<uint32_t>(tans.size() * sizeof(float));
+    //recording the memory range for this attribute
+    ranges[i].m_offset = offsetByte;
+    ranges[i].m_size = currSize;
 
-  // lets do the memcopies
-  // positions : vec4
-  // normals : vec4
-  // uvs : vec2
-  // tangents vec4
-  uint32_t vertex_count = pos.size() / 4;
-  uint64_t floatsPerVertex = 4 + 4 + 2 + 4;
+    prevSize =  currSize;
+    floatsPerVertex += strides[i];
+  }
+  //we need the size in floats since the output buffer is a float buffer
+  totalRequiredAlignmentFloats/=4;
+
+  // lets do the mem-copies
+  uint32_t vertexCount = attributes[0].size() / 4;
+  //allocating enough memory
   uint64_t totalRequiredMemoryInFloats =
-          (vertex_count * floatsPerVertex) + totalRequiredAlignmentFloats;
-
+          (vertexCount * floatsPerVertex) + totalRequiredAlignmentFloats;
   outData.resize(totalRequiredMemoryInFloats);
-  memcpy((char *) outData.data(), pos.data(),
-         ranges[0].m_size);
-  memcpy(((char *) outData.data()) + ranges[1].m_offset,
-         normals.data(), ranges[1].m_size);
-  memcpy(((char *) outData.data()) + ranges[2].m_offset,
-         uvs.data(), ranges[2].m_size);
-  memcpy(((char *) outData.data()) + ranges[3].m_offset,
-         tans.data(), ranges[3].m_size);
+
+  //here we compare that what we got from the memory ranges actually matches what we exect
+  //in the allocation size
   [[maybe_unused]] auto totalComputedBuffer =
-          (((char *) outData.data()) + ranges[3].m_offset +
-           ranges[3].m_size);
-  [[maybe_unused]] auto arraySize =
-          (char *) (outData.data()) + (outData.size() * 4);
+          (((char *) outData.data()) + ranges[count - 1].m_offset +
+           ranges[count - 1].m_size);
+  [[maybe_unused]] auto arraySize = (char *) (outData.data()) + (outData.size() * 4);
   assert(totalComputedBuffer == arraySize);
+
+  //perform the copies
+  for (int i = 0; i < count; ++i) {
+    memcpy(((char *) outData.data()) + ranges[i].m_offset, attributes[i].data(),
+           ranges[i].m_size);
+  }
 }
-void optimizeVertexCache(std::vector<uint32_t> &outIndices, const std::vector<uint32_t> &inIndices,
-                         uint32_t indexCount, uint32_t vertexCount) {
-  meshopt_optimizeVertexCache(outIndices.data(), inIndices.data(),
-                              indexCount, vertexCount);
+void optimizeVertexCache(std::vector<uint32_t> &outIndices,
+                         const std::vector<uint32_t> &inIndices, uint32_t indexCount,
+                         uint32_t vertexCount) {
+  meshopt_optimizeVertexCache(outIndices.data(), inIndices.data(), indexCount,
+                              vertexCount);
 }
 }// namespace SirMetal

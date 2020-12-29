@@ -25,11 +25,9 @@ void optimizeVertexCache(std::vector<uint32_t> &outIndices, const std::vector<ui
                          uint32_t indexCount, uint32_t vertexCount);
 
 void mergeRawMeshBuffers(
-    const std::vector<float>& pos,
-    const std::vector<float>& normals,
-    const std::vector<float>& uvs,
-    const std::vector<float>& tans,
-    std::vector<float>& outData, MemoryRange *ranges);
+        const std::vector<float> *attributes, float *strides,
+        uint32_t count, std::vector<float> &outData,
+        MemoryRange *ranges);
 
 
 }
