@@ -46,10 +46,6 @@ struct Material {
 
 vertex OutVertex vertex_project(
         const device Mesh *meshes [[buffer(0)]],
-        //const device float4 *positions [[buffer(0)]],
-        //const device float4 *normals [[buffer(1)]],
-        //const device float2 *uvs [[buffer(2)]],
-        //const device float4 *tangents [[buffer(3)]],
         constant Camera *camera [[buffer(4)]],
         constant float4x4 &modelMatrix [[buffer(5)]],
         constant uint &meshIdx [[buffer(6)]],

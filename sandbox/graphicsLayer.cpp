@@ -129,72 +129,8 @@ void GraphicsLayer::onAttach(SirMetal::EngineContext *context) {
           m_engine->m_shaderManager->loadShader((base + "/fullscreen.metal").c_str());
   m_rtMono = m_engine->m_shaderManager->loadShader((base + "/rtMono.metal").c_str());
 
-  // args buffer
-  id<MTLFunction> fn = m_engine->m_shaderManager->getKernelFunction(m_rtMono);
-  id<MTLArgumentEncoder> argumentEncoder = [fn newArgumentEncoderWithBufferIndex:2];
-  /*
-  id<MTLFunction> fnFrag =
-          m_engine->m_shaderManager->getFragmentFunction(m_shaderHandle);
-  id<MTLArgumentEncoder> argumentEncoderFrag =
-          [fnFrag newArgumentEncoderWithBufferIndex:0];
-          */
-
-  int meshesCount = asset.models.size();
-  int buffInstanceSize = argumentEncoder.encodedLength;
-  argBuffer = [device newBufferWithLength:buffInstanceSize * meshesCount options:0];
-
-  /*
-  int buffInstanceSizeFrag = argumentEncoderFrag.encodedLength;
-  argBufferFrag =
-          [device newBufferWithLength:buffInstanceSizeFrag * meshesCount
-                              options:0];
-
-  MTLSamplerDescriptor *samplerDesc = [MTLSamplerDescriptor new];
-  samplerDesc.minFilter = MTLSamplerMinMagFilterLinear;
-  samplerDesc.magFilter = MTLSamplerMinMagFilterLinear;
-  samplerDesc.mipFilter = MTLSamplerMipFilterNotMipmapped;
-  samplerDesc.normalizedCoordinates = YES;
-  samplerDesc.supportArgumentBuffers = YES;
-
-  sampler = [device newSamplerStateWithDescriptor:samplerDesc];
-          */
-
-
-  for (int i = 0; i < meshesCount; ++i) {
-    [argumentEncoder setArgumentBuffer:argBuffer offset:i * buffInstanceSize];
-    const auto *meshData = m_engine->m_meshManager->getMeshData(asset.models[i].mesh);
-    [argumentEncoder setBuffer:meshData->vertexBuffer
-                        offset:meshData->ranges[0].m_offset
-                       atIndex:0];
-    [argumentEncoder setBuffer:meshData->vertexBuffer
-                        offset:meshData->ranges[1].m_offset
-                       atIndex:1];
-    [argumentEncoder setBuffer:meshData->vertexBuffer
-                        offset:meshData->ranges[2].m_offset
-                       atIndex:2];
-    [argumentEncoder setBuffer:meshData->vertexBuffer
-                        offset:meshData->ranges[3].m_offset
-                       atIndex:3];
-    [argumentEncoder setBuffer:meshData->indexBuffer offset:0 atIndex:4];
-    const auto &material = asset.models[i].material;
-    id albedo = m_engine->m_textureManager->getNativeFromHandle(material.colorTexture);
-    [argumentEncoder setTexture:albedo atIndex:5];
-
-    auto *ptrMatrix = [argumentEncoder constantDataAtIndex:6];
-    memcpy(ptrMatrix, &asset.models[i].matrix, sizeof(float) * 16);
-    memcpy(((char *) ptrMatrix + sizeof(float) * 16), &material.colorFactors,
-           sizeof(float) * 4);
-
-    /*
-    const auto &material = asset.models[i].material;
-    [argumentEncoderFrag setArgumentBuffer:argBufferFrag offset:i * buffInstanceSizeFrag];
-    id albedo = m_engine->m_textureManager->getNativeFromHandle(material.colorTexture);
-    [argumentEncoderFrag setTexture:albedo atIndex:0];
-    [argumentEncoderFrag setSamplerState:sampler atIndex:1];
-    auto *ptr = [argumentEncoderFrag constantDataAtIndex:2];
-    memcpy(ptr, &material.colorFactors, sizeof(float) * 4);
-     */
-  }
+  recordRTArgBuffer();
+  recordRasterArgBuffer();
 
   SirMetal::AllocTextureRequest requestDepth{m_engine->m_config.m_windowConfig.m_width,
                                              m_engine->m_config.m_windowConfig.m_height,
@@ -311,8 +247,10 @@ void GraphicsLayer::onUpdate() {
   updateUniformsForView(w, h);
   updateLightData();
 
+  id<MTLCommandBuffer> commandBuffer = [queue commandBuffer];
 
-  // render
+  //RT STUFF
+  /*
   SirMetal::graphics::DrawTracker tracker{};
   tracker.renderTargets[0] = texture;
   tracker.depthTarget = {};
@@ -321,7 +259,6 @@ void GraphicsLayer::onUpdate() {
   SirMetal::PSOCache cache =
           SirMetal::getPSO(m_engine, tracker, SirMetal::Material{"fullscreen", false});
 
-  id<MTLCommandBuffer> commandBuffer = [queue commandBuffer];
 
   encodeMonoRay(commandBuffer, w, h);
 
@@ -349,7 +286,17 @@ void GraphicsLayer::onUpdate() {
   [commandEncoder setCullMode:MTLCullModeBack];
   [commandEncoder setFragmentTexture:colorTexture atIndex:0];
   [commandEncoder drawPrimitives:MTLPrimitiveTypeTriangle vertexStart:0 vertexCount:3];
-  /*
+   */
+
+  //RASTER
+  SirMetal::graphics::DrawTracker tracker{};
+  tracker.renderTargets[0] = texture;
+  tracker.depthTarget = {};
+  //  m_engine->m_textureManager->getNativeFromHandle(m_depthHandle);
+
+  SirMetal::PSOCache cache =
+          SirMetal::getPSO(m_engine, tracker, SirMetal::Material{"Shaders", false});
+
   // blitting to the swap chain
   MTLRenderPassDescriptor *passDescriptor =
           [MTLRenderPassDescriptor renderPassDescriptor];
@@ -358,18 +305,20 @@ void GraphicsLayer::onUpdate() {
   passDescriptor.colorAttachments[0].storeAction = MTLStoreActionStore;
   passDescriptor.colorAttachments[0].loadAction = MTLLoadActionClear;
 
+    /*
   MTLRenderPassDepthAttachmentDescriptor* depthAttachment = passDescriptor.depthAttachment;
   depthAttachment.texture =
           m_engine->m_textureManager->getNativeFromHandle(m_depthHandle);
   depthAttachment.clearDepth = 1.0;
   depthAttachment.storeAction = MTLStoreActionDontCare;
   depthAttachment.loadAction = MTLLoadActionClear;
+     */
 
   id<MTLRenderCommandEncoder> commandEncoder =
           [commandBuffer renderCommandEncoderWithDescriptor:passDescriptor];
 
   [commandEncoder setRenderPipelineState:cache.color];
-  [commandEncoder setDepthStencilState:cache.depth];
+  //[commandEncoder setDepthStencilState:cache.depth];
   [commandEncoder setFrontFacingWinding:MTLWindingCounterClockwise];
   [commandEncoder setCullMode:MTLCullModeBack];
 
@@ -399,7 +348,8 @@ void GraphicsLayer::onUpdate() {
                        vertexCount:meshData->primitivesCount];
     counter++;
   }
-  */
+
+
   // render debug
   m_engine->m_debugRenderer->newFrame();
   float data[6]{0, 0, 0, 0, 100, 0};
@@ -525,7 +475,7 @@ void GraphicsLayer::encodeMonoRay(id<MTLCommandBuffer> commandBuffer, float w, f
 
   [computeEncoder setAccelerationStructure:instanceAccelerationStructure atBufferIndex:0];
   [computeEncoder setBuffer:bindInfo.buffer offset:bindInfo.offset atIndex:1];
-  [computeEncoder setBuffer:argBuffer offset:0 atIndex:2];
+  [computeEncoder setBuffer:argRtBuffer offset:0 atIndex:2];
   [computeEncoder setTexture:colorTexture atIndex:0];
   [computeEncoder setTexture:_randomTexture atIndex:1];
   [computeEncoder setTexture:prevTexture atIndex:2];
@@ -730,6 +680,135 @@ void GraphicsLayer::buildAccellerationStructure() {
   // Finally, create the instance acceleration structure containing all of the instances
   // in the scene.
   instanceAccelerationStructure = buildPrimitiveAccelerationStructure(accelDescriptor);
+}
+void GraphicsLayer::recordRTArgBuffer() {
+  id<MTLDevice> device = m_engine->m_renderingContext->getDevice();
+
+  // args buffer
+  id<MTLFunction> fn = m_engine->m_shaderManager->getKernelFunction(m_rtMono);
+  id<MTLArgumentEncoder> argumentEncoder = [fn newArgumentEncoderWithBufferIndex:2];
+  /*
+  id<MTLFunction> fnFrag =
+          m_engine->m_shaderManager->getFragmentFunction(m_shaderHandle);
+  id<MTLArgumentEncoder> argumentEncoderFrag =
+          [fnFrag newArgumentEncoderWithBufferIndex:0];
+          */
+
+  int meshesCount = asset.models.size();
+  int buffInstanceSize = argumentEncoder.encodedLength;
+  argRtBuffer = [device newBufferWithLength:buffInstanceSize * meshesCount options:0];
+
+  /*
+  int buffInstanceSizeFrag = argumentEncoderFrag.encodedLength;
+  argBufferFrag =
+          [device newBufferWithLength:buffInstanceSizeFrag * meshesCount
+                              options:0];
+
+  MTLSamplerDescriptor *samplerDesc = [MTLSamplerDescriptor new];
+  samplerDesc.minFilter = MTLSamplerMinMagFilterLinear;
+  samplerDesc.magFilter = MTLSamplerMinMagFilterLinear;
+  samplerDesc.mipFilter = MTLSamplerMipFilterNotMipmapped;
+  samplerDesc.normalizedCoordinates = YES;
+  samplerDesc.supportArgumentBuffers = YES;
+
+  sampler = [device newSamplerStateWithDescriptor:samplerDesc];
+  */
+
+
+  for (int i = 0; i < meshesCount; ++i) {
+    [argumentEncoder setArgumentBuffer:argRtBuffer offset:i * buffInstanceSize];
+    const auto *meshData = m_engine->m_meshManager->getMeshData(asset.models[i].mesh);
+    [argumentEncoder setBuffer:meshData->vertexBuffer
+    offset:meshData->ranges[0].m_offset
+    atIndex:0];
+    [argumentEncoder setBuffer:meshData->vertexBuffer
+    offset:meshData->ranges[1].m_offset
+    atIndex:1];
+    [argumentEncoder setBuffer:meshData->vertexBuffer
+    offset:meshData->ranges[2].m_offset
+    atIndex:2];
+    [argumentEncoder setBuffer:meshData->vertexBuffer
+    offset:meshData->ranges[3].m_offset
+    atIndex:3];
+    [argumentEncoder setBuffer:meshData->indexBuffer offset:0 atIndex:4];
+    const auto &material = asset.models[i].material;
+    id albedo = m_engine->m_textureManager->getNativeFromHandle(material.colorTexture);
+    [argumentEncoder setTexture:albedo atIndex:5];
+
+    auto *ptrMatrix = [argumentEncoder constantDataAtIndex:6];
+    memcpy(ptrMatrix, &asset.models[i].matrix, sizeof(float) * 16);
+    memcpy(((char *) ptrMatrix + sizeof(float) * 16), &material.colorFactors,
+           sizeof(float) * 4);
+
+    /*
+    const auto &material = asset.models[i].material;
+    [argumentEncoderFrag setArgumentBuffer:argBufferFrag offset:i * buffInstanceSizeFrag];
+    id albedo = m_engine->m_textureManager->getNativeFromHandle(material.colorTexture);
+    [argumentEncoderFrag setTexture:albedo atIndex:0];
+    [argumentEncoderFrag setSamplerState:sampler atIndex:1];
+    auto *ptr = [argumentEncoderFrag constantDataAtIndex:2];
+    memcpy(ptr, &material.colorFactors, sizeof(float) * 4);
+     */
+  }
+
+}
+void GraphicsLayer::recordRasterArgBuffer() {
+  id<MTLDevice> device = m_engine->m_renderingContext->getDevice();
+
+  // args buffer
+  id<MTLFunction> fn = m_engine->m_shaderManager->getVertexFunction(m_shaderHandle);
+  id<MTLArgumentEncoder> argumentEncoder = [fn newArgumentEncoderWithBufferIndex:0];
+
+  id<MTLFunction> fnFrag =
+          m_engine->m_shaderManager->getFragmentFunction(m_shaderHandle);
+  id<MTLArgumentEncoder> argumentEncoderFrag =
+          [fnFrag newArgumentEncoderWithBufferIndex:0];
+
+  int meshesCount = asset.models.size();
+  int buffInstanceSize = argumentEncoder.encodedLength;
+  argBuffer = [device newBufferWithLength:buffInstanceSize * meshesCount options:0];
+
+  int buffInstanceSizeFrag = argumentEncoderFrag.encodedLength;
+  argBufferFrag =
+          [device newBufferWithLength:buffInstanceSizeFrag * meshesCount
+                              options:0];
+
+  MTLSamplerDescriptor *samplerDesc = [MTLSamplerDescriptor new];
+  samplerDesc.minFilter = MTLSamplerMinMagFilterLinear;
+  samplerDesc.magFilter = MTLSamplerMinMagFilterLinear;
+  samplerDesc.mipFilter = MTLSamplerMipFilterNotMipmapped;
+  samplerDesc.normalizedCoordinates = YES;
+  samplerDesc.supportArgumentBuffers = YES;
+
+  sampler = [device newSamplerStateWithDescriptor:samplerDesc];
+
+
+  for (int i = 0; i < meshesCount; ++i) {
+    [argumentEncoder setArgumentBuffer:argBuffer offset:i * buffInstanceSize];
+    const auto *meshData = m_engine->m_meshManager->getMeshData(asset.models[i].mesh);
+    [argumentEncoder setBuffer:meshData->vertexBuffer
+    offset:meshData->ranges[0].m_offset
+    atIndex:0];
+    [argumentEncoder setBuffer:meshData->vertexBuffer
+    offset:meshData->ranges[1].m_offset
+    atIndex:1];
+    [argumentEncoder setBuffer:meshData->vertexBuffer
+    offset:meshData->ranges[2].m_offset
+    atIndex:2];
+    [argumentEncoder setBuffer:meshData->vertexBuffer
+    offset:meshData->ranges[3].m_offset
+    atIndex:3];
+    [argumentEncoder setBuffer:meshData->indexBuffer offset:0 atIndex:4];
+
+    const auto &material = asset.models[i].material;
+    [argumentEncoderFrag setArgumentBuffer:argBufferFrag offset:i * buffInstanceSizeFrag];
+    id albedo = m_engine->m_textureManager->getNativeFromHandle(material.colorTexture);
+    [argumentEncoderFrag setTexture:albedo atIndex:0];
+    [argumentEncoderFrag setSamplerState:sampler atIndex:1];
+    auto *ptr = [argumentEncoderFrag constantDataAtIndex:2];
+    memcpy(ptr, &material.colorFactors, sizeof(float) * 4);
+  }
+
 }
 
 }// namespace Sandbox

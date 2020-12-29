@@ -39,6 +39,8 @@ class GraphicsLayer final : public SirMetal::Layer {
   void generateRandomTexture(uint32_t w,uint32_t h);
   void encodeMonoRay(id<MTLCommandBuffer> commandBuffer, float w, float h);
   void buildAccellerationStructure();
+  void recordRTArgBuffer();
+  void recordRasterArgBuffer();
 
   id buildPrimitiveAccelerationStructure(
           MTLAccelerationStructureDescriptor *descriptor);
@@ -66,6 +68,7 @@ class GraphicsLayer final : public SirMetal::Layer {
 
   id _randomTexture;
 
+  id argRtBuffer;
   id argBuffer;
   id argBufferFrag;
   id sampler;
