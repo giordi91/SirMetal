@@ -36,7 +36,6 @@ struct Mesh {
   device float2 *uvs [[id(2)]];
   device float4 *tangents [[id(3)]];
   device float2 *lightMapUvs[[id(4)]];
-  device uint *indices [[id(5)]];
 };
 
 struct Material {
@@ -50,12 +49,11 @@ vertex OutVertex vertex_project(
         constant Camera *camera [[buffer(4)]],
         constant float4x4 &modelMatrix [[buffer(5)]],
         constant uint &meshIdx [[buffer(6)]],
-        uint vertexCount [[vertex_id]]) {
+        uint vid [[vertex_id]]) {
 
 
   OutVertex vertexOut;
   device const Mesh &m = meshes[meshIdx];
-  uint vid = m.indices[vertexCount];
   float4 p = m.positions[vid];
   float2 luv = m.lightMapUvs[vid];
   //vertexOut.position = camera->VP * (modelMatrix * p);

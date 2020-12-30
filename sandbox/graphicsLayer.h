@@ -10,6 +10,7 @@
 #include "SirMetal/resources/handle.h"
 #import <Metal/Metal.h>
 
+#define RT 0
 struct DirLight {
 
   matrix_float4x4 V;
@@ -38,12 +39,14 @@ class GraphicsLayer final : public SirMetal::Layer {
   void renderDebugWindow();
   void generateRandomTexture(uint32_t w,uint32_t h);
   void encodeMonoRay(id<MTLCommandBuffer> commandBuffer, float w, float h);
-  void buildAccellerationStructure();
   void recordRTArgBuffer();
   void recordRasterArgBuffer();
 
+#if RT
+  void buildAccellerationStructure();
   id buildPrimitiveAccelerationStructure(
           MTLAccelerationStructureDescriptor *descriptor);
+#endif
 
   private:
   SirMetal::Camera m_camera;
@@ -54,9 +57,11 @@ class GraphicsLayer final : public SirMetal::Layer {
   SirMetal::ConstantBufferHandle m_lightHandle;
   SirMetal::ConstantBufferHandle m_uniforms;
   SirMetal::LibraryHandle m_shaderHandle;
+  SirMetal::LibraryHandle m_gbuffHandle;
   SirMetal::LibraryHandle m_fullScreenHandle;
   SirMetal::LibraryHandle m_rtMono;
   SirMetal::TextureHandle m_color[2];
+  SirMetal::TextureHandle m_gbuff[3];
   SirMetal::TextureHandle m_depthHandle;
   dispatch_semaphore_t frameBoundarySemaphore;
 
@@ -79,5 +84,7 @@ class GraphicsLayer final : public SirMetal::Layer {
 
   SirMetal::GLTFAsset asset;
   uint32_t rtFrameCounter = 0;
+  void allocateGBufferTexture(int size);
+  void doGBufferPass(id<MTLCommandBuffer> commandBuffer);
 };
 }// namespace Sandbox
