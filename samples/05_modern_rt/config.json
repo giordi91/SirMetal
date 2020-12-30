@@ -1,0 +1,9 @@
+{
+
+  "dataSource" : "../../../data/",
+  "startFullScreen" :  false,
+  "windowTitle": "Modern RT",
+  "windowWidth":1280,
+  "windowHeight" : 720,
+  "frameBufferingCount" : 3
+}

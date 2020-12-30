@@ -467,14 +467,14 @@ void GraphicsLayer::generateRandomTexture(uint32_t w, uint32_t h) {
   // Generate a texture containing a random integer value for each pixel. This
   // value will be used to decorrelate pixels while drawing pseudorandom numbers
   // from the Halton sequence.
-  _randomTexture = [m_engine->m_renderingContext->getDevice()
+  m_randomTexture = [m_engine->m_renderingContext->getDevice()
           newTextureWithDescriptor:renderTargetDescriptor];
 
   auto *randomValues = static_cast<uint32_t *>(malloc(sizeof(uint32_t) * w * h));
 
   for (NSUInteger i = 0; i < w * h; i++) randomValues[i] = rand() % (1024 * 1024);
 
-  [_randomTexture replaceRegion:MTLRegionMake2D(0, 0, w, h)
+  [m_randomTexture replaceRegion:MTLRegionMake2D(0, 0, w, h)
                     mipmapLevel:0
                       withBytes:randomValues
                     bytesPerRow:sizeof(uint32_t) * w];
@@ -503,7 +503,7 @@ void GraphicsLayer::encodeMonoRay(id<MTLCommandBuffer> commandBuffer, float w, f
   [computeEncoder setBuffer:bindInfo.buffer offset:bindInfo.offset atIndex:1];
   [computeEncoder setBuffer:argRtBuffer offset:0 atIndex:2];
   [computeEncoder setTexture:colorTexture atIndex:0];
-  [computeEncoder setTexture:_randomTexture atIndex:1];
+  [computeEncoder setTexture:m_randomTexture atIndex:1];
   [computeEncoder setTexture:prevTexture atIndex:2];
   [computeEncoder setComputePipelineState:rtMonoPipeline];
   [computeEncoder dispatchThreadgroups:threadgroups

@@ -46,6 +46,7 @@ to the resource folder.
 - [Shadows PCF and PCSS](#shadow)
 - [Basic raytracing plumbing](#basicrt)
 - [GLTF scene + argument buffers](#gltf)
+- [Modern RT](#rt)
 
 ### Jump flooding selection. <a name="jump"/>
 This is an implementation of jump flooding algorithm used to generate a thick outline, 
@@ -81,6 +82,17 @@ This sample shows the use of the gltf loader and the use of arguments buffer fea
 All data is loaded and indexed through arguments buffers, both geometry and materials
 
 ![basic](./docs/images/samples04.png "gltf")
+
+### Modern RT  <a name="rt">
+This sample builds on top of the previous one where we load a GLTF scene as source data for the 
+raytracer, compared to the 3rd samples, this sample used the
+[newly release Metal Raytracing API](https://developer.apple.com/videos/play/wwdc2020/10012/) as opposed to the 
+Metal Performance Shader framework.
+To note this is a basic sample where metallic material is hardcoded in the shader, you can 
+change the geometry index to change which object is metallic. In the future I will be reading
+more properly material data from the GLTF file. 
+
+![basic](./docs/images/samples05.gif "rt")
 
 ## What this project used to be!
 This project used to be a start of a game editor, but then due to reasons I decided

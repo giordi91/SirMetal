@@ -381,7 +381,7 @@ void GraphicsLayer::generateRandomTexture() {
   // Generate a texture containing a random integer value for each pixel. This
   // value will be used to decorrelate pixels while drawing pseudorandom numbers
   // from the Halton sequence.
-  _randomTexture = [m_engine->m_renderingContext->getDevice()
+  m_randomTexture = [m_engine->m_renderingContext->getDevice()
       newTextureWithDescriptor:renderTargetDescriptor];
 
   auto *randomValues =
@@ -390,7 +390,7 @@ void GraphicsLayer::generateRandomTexture() {
   for (NSUInteger i = 0; i < w * h; i++)
     randomValues[i] = rand() % (1024 * 1024);
 
-  [_randomTexture replaceRegion:MTLRegionMake2D(0, 0, w, h)
+  [m_randomTexture replaceRegion:MTLRegionMake2D(0, 0, w, h)
                     mipmapLevel:0
                       withBytes:randomValues
                     bytesPerRow:sizeof(uint32_t) * w];
@@ -461,7 +461,7 @@ void GraphicsLayer::encodeShadowRay(id<MTLCommandBuffer> commandBuffer, float w,
   auto bindInfo =
       m_engine->m_constantBufferManager->getBindInfo(m_engine, m_uniforms);
 
-  [computeEncoder setTexture:_randomTexture atIndex:0];
+  [computeEncoder setTexture:m_randomTexture atIndex:0];
   [computeEncoder setBuffer:intersectionBuffer offset:0 atIndex:0];
 
   // bind the mesh

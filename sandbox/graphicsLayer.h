@@ -71,7 +71,7 @@ class GraphicsLayer final : public SirMetal::Layer {
   SirMetal::GPUMemoryAllocator m_gpuAllocator;
   id rtMonoPipeline;
 
-  id _randomTexture;
+  id m_randomTexture;
 
   id argRtBuffer;
   id argBuffer;

@@ -66,7 +66,7 @@ private:
   id shadowPipeline;
   id rayShadePipeline;
 
-  id _randomTexture;
+  id m_randomTexture;
 
 };
 } // namespace Sandbox
