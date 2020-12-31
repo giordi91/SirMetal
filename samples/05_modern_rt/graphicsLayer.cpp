@@ -18,6 +18,8 @@
 #include "SirMetal/graphics/renderingContext.h"
 #include "SirMetal/resources/meshes/meshManager.h"
 #include "SirMetal/resources/shaderManager.h"
+#include "../../sandbox/graphicsLayer.h"
+
 
 struct RtCamera {
   simd_float4x4 VPinverse;

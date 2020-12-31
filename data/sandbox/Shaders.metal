@@ -56,8 +56,7 @@ vertex OutVertex vertex_project(
   device const Mesh &m = meshes[meshIdx];
   float4 p = m.positions[vid];
   float2 luv = m.lightMapUvs[vid];
-  //vertexOut.position = camera->VP * (modelMatrix * p);
-  vertexOut.position = float4(luv* 2 -1.0f,0.5f,1);
+  vertexOut.position = camera->VP * (modelMatrix * p);
   vertexOut.worldPos = p;
   vertexOut.normal = modelMatrix * m.normals[vid];
   vertexOut.uv = luv;
@@ -76,8 +75,8 @@ fragment half4 fragment_flatcolor(OutVertex vertexIn [[stage_in]],
   float2 uv = vertexIn.uv;
   float4 albedo =
           mat.albedoTex.sample(mat.sampler, uv);
-  //float4 color = mat.tintColor * albedo;
-  //color*=  saturate(dot(n.xyz,light->lightDir.xyz));
+  float4 color = mat.tintColor * albedo;
+  color*=  saturate(dot(n.xyz,light->lightDir.xyz));
 
-  return half4(uv.x,uv.y,0.0h, 1.0h);
+  return half4(color.x,color.y,color.z, 1.0h);
 }

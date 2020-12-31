@@ -9,6 +9,7 @@
 #include "SirMetal/resources/gltfLoader.h"
 #include "SirMetal/resources/handle.h"
 #import <Metal/Metal.h>
+#include <SirMetal/graphics/PSOGenerator.h>
 
 #define RT 1
 struct DirLight {
@@ -37,15 +38,14 @@ class GraphicsLayer final : public SirMetal::Layer {
   bool updateUniformsForView(float screenWidth, float screenHeight);
   void updateLightData();
   void renderDebugWindow();
-  void generateRandomTexture(uint32_t w,uint32_t h);
+  void generateRandomTexture(uint32_t w, uint32_t h);
   void encodeMonoRay(id<MTLCommandBuffer> commandBuffer, float w, float h);
   void recordRTArgBuffer();
   void recordRasterArgBuffer();
 
 #if RT
   void buildAccellerationStructure();
-  id buildPrimitiveAccelerationStructure(
-          MTLAccelerationStructureDescriptor *descriptor);
+  id buildPrimitiveAccelerationStructure(MTLAccelerationStructureDescriptor *descriptor);
 #endif
 
   private:
@@ -90,5 +90,7 @@ class GraphicsLayer final : public SirMetal::Layer {
   void allocateGBufferTexture(int size);
   void doGBufferPass(id<MTLCommandBuffer> commandBuffer, int index);
   void doLightmapBake(id<MTLCommandBuffer> buffer, int index);
+  void doRasterRender(id<MTLRenderCommandEncoder> commandEncoder,
+                      const SirMetal::PSOCache &cache);
 };
 }// namespace Sandbox

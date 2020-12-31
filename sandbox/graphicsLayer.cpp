@@ -259,49 +259,11 @@ void GraphicsLayer::onUpdate() {
 
   id<MTLCommandBuffer> commandBuffer = [queue commandBuffer];
 
-  //RT STUFF
-  /*
-  SirMetal::graphics::DrawTracker tracker{};
-  tracker.renderTargets[0] = texture;
-  tracker.depthTarget = {};
-  //  m_engine->m_textureManager->getNativeFromHandle(m_depthHandle);
-
-  SirMetal::PSOCache cache =
-          SirMetal::getPSO(m_engine, tracker, SirMetal::Material{"fullscreen", false});
-
-
-  encodeMonoRay(commandBuffer, w, h);
-
-  MTLRenderPassDescriptor *passDescriptor =
-          [MTLRenderPassDescriptor renderPassDescriptor];
-  passDescriptor.colorAttachments[0].texture = texture;
-  passDescriptor.colorAttachments[0].clearColor = {0.2, 0.2, 0.2, 1.0};
-  passDescriptor.colorAttachments[0].storeAction = MTLStoreActionStore;
-  passDescriptor.colorAttachments[0].loadAction = MTLLoadActionClear;
-
-  passDescriptor.colorAttachments[0].texture = texture;
-  passDescriptor.colorAttachments[0].clearColor = {0.2, 0.2, 0.2, 1.0};
-  passDescriptor.colorAttachments[0].storeAction = MTLStoreActionStore;
-  passDescriptor.colorAttachments[0].loadAction = MTLLoadActionClear;
-
-  id<MTLRenderCommandEncoder> commandEncoder =
-          [commandBuffer renderCommandEncoderWithDescriptor:passDescriptor];
-
-  uint32_t colorIndex = m_engine->m_timings.m_totalNumberOfFrames % 2;
-  id<MTLTexture> colorTexture =
-          m_engine->m_textureManager->getNativeFromHandle(m_color[colorIndex]);
-
-  [commandEncoder setRenderPipelineState:cache.color];
-  [commandEncoder setFrontFacingWinding:MTLWindingCounterClockwise];
-  [commandEncoder setCullMode:MTLCullModeBack];
-  [commandEncoder setFragmentTexture:colorTexture atIndex:0];
-  [commandEncoder drawPrimitives:MTLPrimitiveTypeTriangle vertexStart:0 vertexCount:3];
-   */
 
   //RASTER
   //since we cannot shoot rays from the fragment shader we are going to make a gbuffer pass
   //storing world position, uvs and normals
-  uint32_t index = 1;
+  uint32_t index = 0;
   doGBufferPass(commandBuffer, index);
 
   //now that we have that we can actually kick a raytracing shader which uses the gbuffer information
@@ -309,15 +271,13 @@ void GraphicsLayer::onUpdate() {
   doLightmapBake(commandBuffer,index);
 
 
-
-  /*
   SirMetal::graphics::DrawTracker tracker{};
   tracker.renderTargets[0] = texture;
-  tracker.depthTarget = {};
-  //  m_engine->m_textureManager->getNativeFromHandle(m_depthHandle);
+  tracker.depthTarget =
+    m_engine->m_textureManager->getNativeFromHandle(m_depthHandle);
 
   SirMetal::PSOCache cache =
-          SirMetal::getPSO(m_engine, tracker, SirMetal::Material{"fullscreen", false});
+          SirMetal::getPSO(m_engine, tracker, SirMetal::Material{"Shaders", false});
 
   // blitting to the swap chain
   MTLRenderPassDescriptor *passDescriptor =
@@ -327,47 +287,19 @@ void GraphicsLayer::onUpdate() {
   passDescriptor.colorAttachments[0].storeAction = MTLStoreActionStore;
   passDescriptor.colorAttachments[0].loadAction = MTLLoadActionClear;
 
-  //MTLRenderPassDepthAttachmentDescriptor* depthAttachment = passDescriptor.depthAttachment;
-  //depthAttachment.texture =
-  //        m_engine->m_textureManager->getNativeFromHandle(m_depthHandle);
-  //depthAttachment.clearDepth = 1.0;
-  //depthAttachment.storeAction = MTLStoreActionDontCare;
-  //depthAttachment.loadAction = MTLLoadActionClear;
+  MTLRenderPassDepthAttachmentDescriptor* depthAttachment = passDescriptor.depthAttachment;
+  depthAttachment.texture =
+          m_engine->m_textureManager->getNativeFromHandle(m_depthHandle);
+  depthAttachment.clearDepth = 1.0;
+  depthAttachment.storeAction = MTLStoreActionDontCare;
+  depthAttachment.loadAction = MTLLoadActionClear;
 
   id<MTLRenderCommandEncoder> commandEncoder =
           [commandBuffer renderCommandEncoderWithDescriptor:passDescriptor];
 
-  [commandEncoder setRenderPipelineState:cache.color];
-  //[commandEncoder setDepthStencilState:cache.depth];
-  [commandEncoder setFrontFacingWinding:MTLWindingCounterClockwise];
-  [commandEncoder setCullMode:MTLCullModeNone];
+  doRasterRender(commandEncoder,cache);
 
-  SirMetal::BindInfo info =
-          m_engine->m_constantBufferManager->getBindInfo(m_engine, m_camUniformHandle);
-  [commandEncoder setVertexBuffer:info.buffer offset:info.offset atIndex:4];
-  info = m_engine->m_constantBufferManager->getBindInfo(m_engine, m_lightHandle);
-  [commandEncoder setFragmentBuffer:info.buffer offset:info.offset atIndex:5];
-
-  //setting the arguments buffer
-  [commandEncoder setVertexBuffer:argBuffer offset:0 atIndex:0];
-  [commandEncoder setFragmentBuffer:argBufferFrag offset:0 atIndex:0];
-
-  //int counter = 0;
-  //for (auto &mesh : asset.models) {
-  //  if (!mesh.mesh.isHandleValid())
-  //    continue;
-  //  const SirMetal::MeshData *meshData =
-  //          m_engine->m_meshManager->getMeshData(mesh.mesh);
-  //  auto *data = (void *) (&mesh.matrix);
-  //  //[commandEncoder useResource: m_engine->m_textureManager->getNativeFromHandle(mesh.material.colorTexture) usage:MTLResourceUsageSample];
-  //  [commandEncoder setVertexBytes:data length:16 * 4 atIndex:5];
-  //  [commandEncoder setVertexBytes:&counter length:4 atIndex:6];
-  //  [commandEncoder drawPrimitives:MTLPrimitiveTypeTriangle
-  //                     vertexStart:0
-  //                     vertexCount:meshData->primitivesCount];
-  //  counter++;
-  //}
-
+  /*
   int counter = 1;
   const auto &mesh = asset.models[counter];
   const SirMetal::MeshData *meshData = m_engine->m_meshManager->getMeshData(mesh.mesh);
@@ -383,8 +315,9 @@ void GraphicsLayer::onUpdate() {
                               indexType:MTLIndexTypeUInt32
                             indexBuffer:meshData->indexBuffer
                       indexBufferOffset:0];
-  */
+                      */
 
+  /*
   SirMetal::graphics::DrawTracker tracker{};
   tracker.renderTargets[0] = texture;
   tracker.depthTarget = {};
@@ -417,6 +350,7 @@ void GraphicsLayer::onUpdate() {
   [commandEncoder setCullMode:MTLCullModeBack];
   [commandEncoder setFragmentTexture:colorTexture atIndex:0];
   [commandEncoder drawPrimitives:MTLPrimitiveTypeTriangle vertexStart:0 vertexCount:3];
+  */
 
   // render debug
   m_engine->m_debugRenderer->newFrame();
@@ -1033,6 +967,7 @@ void GraphicsLayer::doLightmapBake(id<MTLCommandBuffer> commandBuffer , int inde
   [computeEncoder setAccelerationStructure:instanceAccelerationStructure atBufferIndex:0];
   [computeEncoder setBuffer:bindInfo.buffer offset:bindInfo.offset atIndex:1];
   [computeEncoder setBuffer:argRtBuffer offset:0 atIndex:2];
+  [computeEncoder setBytes :&index length:4 atIndex:3];
   [computeEncoder setTexture:colorTexture atIndex:0];
   [computeEncoder setTexture:m_randomTexture atIndex:1];
   [computeEncoder setTexture:prevTexture atIndex:2];
@@ -1043,6 +978,45 @@ void GraphicsLayer::doLightmapBake(id<MTLCommandBuffer> commandBuffer , int inde
   [computeEncoder dispatchThreadgroups:threadgroups
   threadsPerThreadgroup:MTLSizeMake(8, 8, 1)];
   [computeEncoder endEncoding];
+
+}
+
+void GraphicsLayer::doRasterRender(id<MTLRenderCommandEncoder> commandEncoder, const SirMetal::PSOCache& cache)
+{
+  [commandEncoder setRenderPipelineState:cache.color];
+  [commandEncoder setDepthStencilState:cache.depth];
+  [commandEncoder setFrontFacingWinding:MTLWindingCounterClockwise];
+  [commandEncoder setCullMode:MTLCullModeNone];
+
+  SirMetal::BindInfo info =
+          m_engine->m_constantBufferManager->getBindInfo(m_engine, m_camUniformHandle);
+  [commandEncoder setVertexBuffer:info.buffer offset:info.offset atIndex:4];
+  info = m_engine->m_constantBufferManager->getBindInfo(m_engine, m_lightHandle);
+  [commandEncoder setFragmentBuffer:info.buffer offset:info.offset atIndex:5];
+
+  //setting the arguments buffer
+  [commandEncoder setVertexBuffer:argBuffer offset:0 atIndex:0];
+  [commandEncoder setFragmentBuffer:argBufferFrag offset:0 atIndex:0];
+
+  int counter = 0;
+  for (auto &mesh : asset.models) {
+    if (!mesh.mesh.isHandleValid())
+      continue;
+    const SirMetal::MeshData *meshData =
+            m_engine->m_meshManager->getMeshData(mesh.mesh);
+    auto *data = (void *) (&mesh.matrix);
+    //[commandEncoder useResource: m_engine->m_textureManager->getNativeFromHandle(mesh.material.colorTexture) usage:MTLResourceUsageSample];
+    [commandEncoder setVertexBytes:data length:16 * 4 atIndex:5];
+    [commandEncoder setVertexBytes:&counter length:4 atIndex:6];
+    [commandEncoder drawIndexedPrimitives:MTLPrimitiveTypeTriangle
+    indexCount:meshData->primitivesCount
+    indexType:MTLIndexTypeUInt32
+    indexBuffer:meshData->indexBuffer
+    indexBufferOffset:0];
+    counter++;
+  }
+
+
 
 }
 

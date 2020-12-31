@@ -163,7 +163,7 @@ float3 shootRayInWorld(instance_acceleration_structure accelerationStructure, ra
   //float3 currAttenuation = 1.0f;
   float3 currAttenuation = color;
 
-for (int b = 0; b < bounces; ++b) {
+  for (int b = 0; b < bounces; ++b) {
 
     intersector<triangle_data, instancing>::result_type intersection;
     intersection = i.intersect(pray, accelerationStructure, 0xFFFFFFFF);
@@ -213,11 +213,11 @@ for (int b = 0; b < bounces; ++b) {
       } else {
         float fuzzScale = 0.6f;
         bRay.direction = reflect(normalize(pray.direction), outN);
-        //float2 r = float2(halton(offset + uniforms.frameIndex, (2 + (bounce + uniforms.frameIndex * 4) + 0) % 16),
-        //                  halton(offset + uniforms.frameIndex, (2 + (bounce + uniforms.frameIndex * 4) + 1) % 16));
-        int setCount = 256;
-        int hp = (offset + uniforms.frameIndex) % setCount;
-        float2 r = hammersley2d(hp, setCount);
+        float2 r = float2(halton(offset + uniforms.frameIndex, (2 + (bounce + uniforms.frameIndex * 4) + 0) % 16),
+                          halton(offset + uniforms.frameIndex, (2 + (bounce + uniforms.frameIndex * 4) + 1) % 16));
+        //int setCount = 256;
+        //int hp = (offset + uniforms.frameIndex) % setCount;
+        //float2 r = hammersley2d(hp, setCount);
 
         float3 fuzzVec = hemisphereSample_uniform(r.x, r.y);
         bRay.direction = bRay.direction + fuzzVec * fuzzScale;
@@ -243,19 +243,20 @@ ray getLightMapRay(constant Uniforms &uniforms, uint2 tid, texture2d<float> gbuf
 
   ray pray;
 
-  pray.origin = pos + norm* 1e-3f;;
+  pray.origin = pos + norm * 1e-3f;
+  ;
   pray.min_distance = 0.001f;
   pray.max_distance = INFINITY;
 
-  int bounce = 10;
+  int bounce = 3;
   unsigned int offset = randomTex.read(tid).x;
-  //float2 r = float2(halton(offset + uniforms.frameIndex, (2 + bounce * 4 + 0) % 16),
-  //                  halton(offset + uniforms.frameIndex, (2 + bounce * 4 + 1) % 16));
+  float2 r = float2(halton(offset + uniforms.frameIndex, (2 + bounce * 4 + 0) % 16),
+                    halton(offset + uniforms.frameIndex, (2 + bounce * 4 + 1) % 16));
 
-  int setCount = 256;
-  int hp = (offset + uniforms.frameIndex) % setCount;
-  float2 r = hammersley2d(hp, setCount);
-float3 sampleDirection = sampleCosineWeightedHemisphere(r);
+  //int setCount = 256;
+  //int hp = (offset + uniforms.frameIndex) % setCount;
+  //float2 r = hammersley2d(hp, setCount);
+  float3 sampleDirection = sampleCosineWeightedHemisphere(r);
   sampleDirection = alignHemisphereWithNormal(sampleDirection, norm);
   pray.direction = sampleDirection;
   //pray.direction = norm;
@@ -265,6 +266,7 @@ float3 sampleDirection = sampleCosineWeightedHemisphere(r);
 kernel void rayKernel(instance_acceleration_structure accelerationStructure,
                       constant Uniforms &uniforms [[buffer(1)]],
                       const device Mesh *meshes [[buffer(2)]],
+                      constant uint &instanceIndex [[buffer(3)]],
                       texture2d<float, access::write> dstTex [[texture(0)]],
                       texture2d<uint> randomTex [[texture(1)]],
                       texture2d<float> prevImage [[texture(2)]],
@@ -281,14 +283,13 @@ kernel void rayKernel(instance_acceleration_structure accelerationStructure,
   if ((tid.x >= 2048) | (tid.y >= 2048)) { return; }
   // Compute linear ray index from 2D position
   //    ray pray = getCameraRay(uniforms, tid);
-  ray pray = getLightMapRay(uniforms, tid, gbuffPos, gbuffUV, gbuffNorm,randomTex);
+  ray pray = getLightMapRay(uniforms, tid, gbuffPos, gbuffUV, gbuffNorm, randomTex);
 
 
-  int instanceIndex = 1;
   device const Mesh &m = meshes[instanceIndex];
   constexpr int bounces = 3;
   float3 outColor = shootRayInWorld(accelerationStructure, pray, bounces, meshes,
-                                    randomTex, uniforms, tid,m.tintColor.xyz);
+                                    randomTex, uniforms, tid, m.tintColor.xyz);
 
   //CMA
   if (uniforms.frameIndex > 1) {
