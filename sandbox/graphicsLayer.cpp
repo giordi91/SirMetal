@@ -301,7 +301,7 @@ void GraphicsLayer::onUpdate() {
   //RASTER
   //since we cannot shoot rays from the fragment shader we are going to make a gbuffer pass
   //storing world position, uvs and normals
-  uint32_t index = 5;
+  uint32_t index = 1;
   doGBufferPass(commandBuffer, index);
 
   //now that we have that we can actually kick a raytracing shader which uses the gbuffer information

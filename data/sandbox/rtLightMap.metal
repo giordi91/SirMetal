@@ -284,7 +284,7 @@ kernel void rayKernel(instance_acceleration_structure accelerationStructure,
   ray pray = getLightMapRay(uniforms, tid, gbuffPos, gbuffUV, gbuffNorm,randomTex);
 
 
-  int instanceIndex = 5;
+  int instanceIndex = 1;
   device const Mesh &m = meshes[instanceIndex];
   constexpr int bounces = 3;
   float3 outColor = shootRayInWorld(accelerationStructure, pray, bounces, meshes,
