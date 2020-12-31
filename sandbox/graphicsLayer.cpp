@@ -132,6 +132,7 @@ void GraphicsLayer::onAttach(SirMetal::EngineContext *context) {
   m_fullScreenHandle =
           m_engine->m_shaderManager->loadShader((base + "/fullscreen.metal").c_str());
   m_rtMono = m_engine->m_shaderManager->loadShader((base + "/rtMono.metal").c_str());
+  m_rtLightMap = m_engine->m_shaderManager->loadShader((base + "/rtLightMap.metal").c_str());
 
   recordRTArgBuffer();
   recordRasterArgBuffer();
@@ -155,6 +156,8 @@ void GraphicsLayer::onAttach(SirMetal::EngineContext *context) {
   rtMonoPipeline = createComputePipeline(
           device, m_engine->m_shaderManager->getKernelFunction(m_rtMono));
 
+  rtLightmapPipeline= createComputePipeline(
+          device, m_engine->m_shaderManager->getKernelFunction(m_rtLightMap));
   // this is to flush the gpu, should figure out why is not actually flushing
   // properly
   m_engine->m_renderingContext->flush();
@@ -164,7 +167,8 @@ void GraphicsLayer::onAttach(SirMetal::EngineContext *context) {
   buildAccellerationStructure();
 #endif
 
-  generateRandomTexture(1280u, 720u);
+  //generateRandomTexture(1280u, 720u);
+  generateRandomTexture(2048u, 2048u);
 
   MTLArgumentBuffersTier tier = [device argumentBuffersSupport];
   assert(tier == MTLArgumentBuffersTier2);
@@ -295,14 +299,25 @@ void GraphicsLayer::onUpdate() {
    */
 
   //RASTER
-  doGBufferPass(commandBuffer);
+  //since we cannot shoot rays from the fragment shader we are going to make a gbuffer pass
+  //storing world position, uvs and normals
+  uint32_t index = 5;
+  doGBufferPass(commandBuffer, index);
+
+  //now that we have that we can actually kick a raytracing shader which uses the gbuffer information
+  //forthe first ray
+  doLightmapBake(commandBuffer,index);
+
+
+
+  /*
   SirMetal::graphics::DrawTracker tracker{};
   tracker.renderTargets[0] = texture;
   tracker.depthTarget = {};
   //  m_engine->m_textureManager->getNativeFromHandle(m_depthHandle);
 
   SirMetal::PSOCache cache =
-          SirMetal::getPSO(m_engine, tracker, SirMetal::Material{"Shaders", false});
+          SirMetal::getPSO(m_engine, tracker, SirMetal::Material{"fullscreen", false});
 
   // blitting to the swap chain
   MTLRenderPassDescriptor *passDescriptor =
@@ -312,14 +327,12 @@ void GraphicsLayer::onUpdate() {
   passDescriptor.colorAttachments[0].storeAction = MTLStoreActionStore;
   passDescriptor.colorAttachments[0].loadAction = MTLLoadActionClear;
 
-  /*
-  MTLRenderPassDepthAttachmentDescriptor* depthAttachment = passDescriptor.depthAttachment;
-  depthAttachment.texture =
-          m_engine->m_textureManager->getNativeFromHandle(m_depthHandle);
-  depthAttachment.clearDepth = 1.0;
-  depthAttachment.storeAction = MTLStoreActionDontCare;
-  depthAttachment.loadAction = MTLLoadActionClear;
-     */
+  //MTLRenderPassDepthAttachmentDescriptor* depthAttachment = passDescriptor.depthAttachment;
+  //depthAttachment.texture =
+  //        m_engine->m_textureManager->getNativeFromHandle(m_depthHandle);
+  //depthAttachment.clearDepth = 1.0;
+  //depthAttachment.storeAction = MTLStoreActionDontCare;
+  //depthAttachment.loadAction = MTLLoadActionClear;
 
   id<MTLRenderCommandEncoder> commandEncoder =
           [commandBuffer renderCommandEncoderWithDescriptor:passDescriptor];
@@ -339,23 +352,22 @@ void GraphicsLayer::onUpdate() {
   [commandEncoder setVertexBuffer:argBuffer offset:0 atIndex:0];
   [commandEncoder setFragmentBuffer:argBufferFrag offset:0 atIndex:0];
 
-  /*
-  int counter = 0;
-  for (auto &mesh : asset.models) {
-    if (!mesh.mesh.isHandleValid())
-      continue;
-    const SirMetal::MeshData *meshData =
-            m_engine->m_meshManager->getMeshData(mesh.mesh);
-    auto *data = (void *) (&mesh.matrix);
-    //[commandEncoder useResource: m_engine->m_textureManager->getNativeFromHandle(mesh.material.colorTexture) usage:MTLResourceUsageSample];
-    [commandEncoder setVertexBytes:data length:16 * 4 atIndex:5];
-    [commandEncoder setVertexBytes:&counter length:4 atIndex:6];
-    [commandEncoder drawPrimitives:MTLPrimitiveTypeTriangle
-                       vertexStart:0
-                       vertexCount:meshData->primitivesCount];
-    counter++;
-  }
-  */
+  //int counter = 0;
+  //for (auto &mesh : asset.models) {
+  //  if (!mesh.mesh.isHandleValid())
+  //    continue;
+  //  const SirMetal::MeshData *meshData =
+  //          m_engine->m_meshManager->getMeshData(mesh.mesh);
+  //  auto *data = (void *) (&mesh.matrix);
+  //  //[commandEncoder useResource: m_engine->m_textureManager->getNativeFromHandle(mesh.material.colorTexture) usage:MTLResourceUsageSample];
+  //  [commandEncoder setVertexBytes:data length:16 * 4 atIndex:5];
+  //  [commandEncoder setVertexBytes:&counter length:4 atIndex:6];
+  //  [commandEncoder drawPrimitives:MTLPrimitiveTypeTriangle
+  //                     vertexStart:0
+  //                     vertexCount:meshData->primitivesCount];
+  //  counter++;
+  //}
+
   int counter = 1;
   const auto &mesh = asset.models[counter];
   const SirMetal::MeshData *meshData = m_engine->m_meshManager->getMeshData(mesh.mesh);
@@ -366,15 +378,45 @@ void GraphicsLayer::onUpdate() {
                         usage:MTLResourceUsageSample];
   [commandEncoder setVertexBytes:mat length:16 * 4 atIndex:5];
   [commandEncoder setVertexBytes:&counter length:4 atIndex:6];
-  //[commandEncoder drawPrimitives:MTLPrimitiveTypeTriangle
-  //                   vertexStart:0
-  //                   vertexCount:meshData->primitivesCount];
   [commandEncoder drawIndexedPrimitives:MTLPrimitiveTypeTriangle
                              indexCount:meshData->primitivesCount
                               indexType:MTLIndexTypeUInt32
                             indexBuffer:meshData->indexBuffer
                       indexBufferOffset:0];
+  */
 
+  SirMetal::graphics::DrawTracker tracker{};
+  tracker.renderTargets[0] = texture;
+  tracker.depthTarget = {};
+
+  SirMetal::PSOCache cache =
+          SirMetal::getPSO(m_engine, tracker, SirMetal::Material{"fullscreen", false});
+
+
+  MTLRenderPassDescriptor *passDescriptor =
+  [MTLRenderPassDescriptor renderPassDescriptor];
+  passDescriptor.colorAttachments[0].texture = texture;
+  passDescriptor.colorAttachments[0].clearColor = {0.2, 0.2, 0.2, 1.0};
+  passDescriptor.colorAttachments[0].storeAction = MTLStoreActionStore;
+  passDescriptor.colorAttachments[0].loadAction = MTLLoadActionClear;
+
+  passDescriptor.colorAttachments[0].texture = texture;
+  passDescriptor.colorAttachments[0].clearColor = {0.2, 0.2, 0.2, 1.0};
+  passDescriptor.colorAttachments[0].storeAction = MTLStoreActionStore;
+  passDescriptor.colorAttachments[0].loadAction = MTLLoadActionClear;
+
+  id<MTLRenderCommandEncoder> commandEncoder =
+  [commandBuffer renderCommandEncoderWithDescriptor:passDescriptor];
+
+  uint32_t colorIndex = m_engine->m_timings.m_totalNumberOfFrames % 2;
+  id<MTLTexture> colorTexture =
+          m_engine->m_textureManager->getNativeFromHandle(m_lightMap[colorIndex]);
+
+  [commandEncoder setRenderPipelineState:cache.color];
+  [commandEncoder setFrontFacingWinding:MTLWindingCounterClockwise];
+  [commandEncoder setCullMode:MTLCullModeBack];
+  [commandEncoder setFragmentTexture:colorTexture atIndex:0];
+  [commandEncoder drawPrimitives:MTLPrimitiveTypeTriangle vertexStart:0 vertexCount:3];
 
   // render debug
   m_engine->m_debugRenderer->newFrame();
@@ -837,6 +879,9 @@ void GraphicsLayer::recordRasterArgBuffer() {
   }
 }
 void GraphicsLayer::allocateGBufferTexture(int size) {
+
+
+
   id<MTLDevice> device = m_engine->m_renderingContext->getDevice();
   SirMetal::AllocTextureRequest request{static_cast<uint32_t>(size),
                                         static_cast<uint32_t>(size),
@@ -849,14 +894,22 @@ void GraphicsLayer::allocateGBufferTexture(int size) {
                                         1,
                                         "gbuffPositions"};
   m_gbuff[0] = m_engine->m_textureManager->allocate(device, request);
+  auto oldUsage = request.usage;
+  request.usage = oldUsage | MTLTextureUsageShaderWrite;
+  request.name = "lightMap1";
+  m_lightMap[0] = m_engine->m_textureManager->allocate(device, request);
+  request.name = "lightMap2";
+  m_lightMap[1] = m_engine->m_textureManager->allocate(device, request);
+  request.usage = oldUsage;
   request.format = MTLPixelFormatRG16Unorm;
   request.name = "gbuffUVs";
   m_gbuff[1] = m_engine->m_textureManager->allocate(device, request);
   request.format = MTLPixelFormatRGBA8Unorm;
   request.name = "gbuffNormals";
   m_gbuff[2] = m_engine->m_textureManager->allocate(device, request);
+
 }
-void GraphicsLayer::doGBufferPass(id<MTLCommandBuffer> commandBuffer) {
+void GraphicsLayer::doGBufferPass(id<MTLCommandBuffer> commandBuffer,int index) {
 
   SirMetal::graphics::DrawTracker tracker{};
   id g1 = m_engine->m_textureManager->getNativeFromHandle(m_gbuff[0]);
@@ -931,8 +984,7 @@ void GraphicsLayer::doGBufferPass(id<MTLCommandBuffer> commandBuffer) {
     counter++;
   }
   */
-  int counter = 1;
-  const auto &mesh = asset.models[counter];
+  const auto &mesh = asset.models[index];
   const SirMetal::MeshData *meshData = m_engine->m_meshManager->getMeshData(mesh.mesh);
   auto *mat = (void *) (&mesh.matrix);
   [commandEncoder useResource:meshData->vertexBuffer usage:MTLResourceUsageRead];
@@ -940,7 +992,7 @@ void GraphicsLayer::doGBufferPass(id<MTLCommandBuffer> commandBuffer) {
         mesh.material.colorTexture)
   usage:MTLResourceUsageSample];
   [commandEncoder setVertexBytes:mat length:16 * 4 atIndex:5];
-  [commandEncoder setVertexBytes:&counter length:4 atIndex:6];
+  [commandEncoder setVertexBytes:&index length:4 atIndex:6];
   //[commandEncoder drawPrimitives:MTLPrimitiveTypeTriangle
   //                   vertexStart:0
   //                   vertexCount:meshData->primitivesCount];
@@ -950,6 +1002,48 @@ void GraphicsLayer::doGBufferPass(id<MTLCommandBuffer> commandBuffer) {
   indexBuffer:meshData->indexBuffer
   indexBufferOffset:0];
   [commandEncoder endEncoding];
+}
+
+void GraphicsLayer::doLightmapBake(id<MTLCommandBuffer> commandBuffer , int index) {
+
+  //HARDCODED HEIGHT
+  int w = 2048;
+  int h = 2048;
+  MTLSize threadsPerThreadgroup = MTLSizeMake(8, 8, 1);
+  MTLSize threadgroups = MTLSizeMake(
+          (w + threadsPerThreadgroup.width - 1) / threadsPerThreadgroup.width,
+          (h + threadsPerThreadgroup.height - 1) / threadsPerThreadgroup.height, 1);
+
+  id<MTLComputeCommandEncoder> computeEncoder = [commandBuffer computeCommandEncoder];
+
+  auto bindInfo = m_engine->m_constantBufferManager->getBindInfo(m_engine, m_uniforms);
+  uint32_t colorIndex = m_engine->m_timings.m_totalNumberOfFrames % 2;
+  id<MTLTexture> colorTexture =
+          m_engine->m_textureManager->getNativeFromHandle(m_lightMap[colorIndex]);
+  colorIndex = (m_engine->m_timings.m_totalNumberOfFrames + 1) % 2;
+  id<MTLTexture> prevTexture =
+          m_engine->m_textureManager->getNativeFromHandle(m_lightMap[colorIndex]);
+
+
+  id g1 = m_engine->m_textureManager->getNativeFromHandle(m_gbuff[0]);
+  id g2 = m_engine->m_textureManager->getNativeFromHandle(m_gbuff[1]);
+  id g3 = m_engine->m_textureManager->getNativeFromHandle(m_gbuff[2]);
+
+
+  [computeEncoder setAccelerationStructure:instanceAccelerationStructure atBufferIndex:0];
+  [computeEncoder setBuffer:bindInfo.buffer offset:bindInfo.offset atIndex:1];
+  [computeEncoder setBuffer:argRtBuffer offset:0 atIndex:2];
+  [computeEncoder setTexture:colorTexture atIndex:0];
+  [computeEncoder setTexture:m_randomTexture atIndex:1];
+  [computeEncoder setTexture:prevTexture atIndex:2];
+  [computeEncoder setTexture:g1 atIndex:3];
+  [computeEncoder setTexture:g2 atIndex:4];
+  [computeEncoder setTexture:g3 atIndex:5];
+  [computeEncoder setComputePipelineState:rtLightmapPipeline];
+  [computeEncoder dispatchThreadgroups:threadgroups
+  threadsPerThreadgroup:MTLSizeMake(8, 8, 1)];
+  [computeEncoder endEncoding];
+
 }
 
 }// namespace Sandbox

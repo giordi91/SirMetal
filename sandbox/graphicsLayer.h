@@ -10,7 +10,7 @@
 #include "SirMetal/resources/handle.h"
 #import <Metal/Metal.h>
 
-#define RT 0
+#define RT 1
 struct DirLight {
 
   matrix_float4x4 V;
@@ -60,8 +60,10 @@ class GraphicsLayer final : public SirMetal::Layer {
   SirMetal::LibraryHandle m_gbuffHandle;
   SirMetal::LibraryHandle m_fullScreenHandle;
   SirMetal::LibraryHandle m_rtMono;
+  SirMetal::LibraryHandle m_rtLightMap;
   SirMetal::TextureHandle m_color[2];
   SirMetal::TextureHandle m_gbuff[3];
+  SirMetal::TextureHandle m_lightMap[2];
   SirMetal::TextureHandle m_depthHandle;
   dispatch_semaphore_t frameBoundarySemaphore;
 
@@ -70,6 +72,7 @@ class GraphicsLayer final : public SirMetal::Layer {
   DirLight light{};
   SirMetal::GPUMemoryAllocator m_gpuAllocator;
   id rtMonoPipeline;
+  id rtLightmapPipeline;
 
   id m_randomTexture;
 
@@ -85,6 +88,7 @@ class GraphicsLayer final : public SirMetal::Layer {
   SirMetal::GLTFAsset asset;
   uint32_t rtFrameCounter = 0;
   void allocateGBufferTexture(int size);
-  void doGBufferPass(id<MTLCommandBuffer> commandBuffer);
+  void doGBufferPass(id<MTLCommandBuffer> commandBuffer, int index);
+  void doLightmapBake(id<MTLCommandBuffer> buffer, int index);
 };
 }// namespace Sandbox
