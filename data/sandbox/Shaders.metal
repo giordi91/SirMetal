@@ -73,10 +73,14 @@ fragment half4 fragment_flatcolor(OutVertex vertexIn [[stage_in]],
   float4 n = vertexIn.normal;
 
   float2 uv = vertexIn.uv;
+  uv.y = 1.0f - uv.y;
   float4 albedo =
           mat.albedoTex.sample(mat.sampler, uv);
   float4 color = mat.tintColor * albedo;
   color*=  saturate(dot(n.xyz,light->lightDir.xyz));
+  if(vertexIn.id == 1){
+    color = albedo;
+  }
 
   return half4(color.x,color.y,color.z, 1.0h);
 }

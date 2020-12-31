@@ -263,7 +263,7 @@ void GraphicsLayer::onUpdate() {
   //RASTER
   //since we cannot shoot rays from the fragment shader we are going to make a gbuffer pass
   //storing world position, uvs and normals
-  uint32_t index = 0;
+  uint32_t index = 1;
   doGBufferPass(commandBuffer, index);
 
   //now that we have that we can actually kick a raytracing shader which uses the gbuffer information
@@ -805,7 +805,14 @@ void GraphicsLayer::recordRasterArgBuffer() {
 
     const auto &material = asset.models[i].material;
     [argumentEncoderFrag setArgumentBuffer:argBufferFrag offset:i * buffInstanceSizeFrag];
-    id albedo = m_engine->m_textureManager->getNativeFromHandle(material.colorTexture);
+
+    id albedo;
+    if(i != 1) {
+      albedo = m_engine->m_textureManager->getNativeFromHandle(material.colorTexture);
+    }
+    else {
+      albedo =m_engine->m_textureManager->getNativeFromHandle( m_lightMap[0]);
+    }
     [argumentEncoderFrag setTexture:albedo atIndex:0];
     [argumentEncoderFrag setSamplerState:sampler atIndex:1];
     auto *ptr = [argumentEncoderFrag constantDataAtIndex:2];
