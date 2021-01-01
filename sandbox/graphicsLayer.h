@@ -63,7 +63,7 @@ class GraphicsLayer final : public SirMetal::Layer {
   SirMetal::LibraryHandle m_rtLightMap;
   SirMetal::TextureHandle m_color[2];
   SirMetal::TextureHandle m_gbuff[3];
-  SirMetal::TextureHandle m_lightMap[2];
+  SirMetal::TextureHandle m_lightMap;
   SirMetal::TextureHandle m_depthHandle;
   dispatch_semaphore_t frameBoundarySemaphore;
 

@@ -470,7 +470,7 @@ void GraphicsLayer::encodeMonoRay(id<MTLCommandBuffer> commandBuffer, float w, f
   auto bindInfo = m_engine->m_constantBufferManager->getBindInfo(m_engine, m_uniforms);
   uint32_t colorIndex = m_engine->m_timings.m_totalNumberOfFrames % 2;
   id<MTLTexture> colorTexture =
-          m_engine->m_textureManager->getNativeFromHandle(m_color[colorIndex]);
+          m_engine->m_textureManager->getNativeFromHandle(m_color[0]);
   colorIndex = (m_engine->m_timings.m_totalNumberOfFrames + 1) % 2;
   id<MTLTexture> prevTexture =
           m_engine->m_textureManager->getNativeFromHandle(m_color[colorIndex]);
@@ -811,7 +811,7 @@ void GraphicsLayer::recordRasterArgBuffer() {
       albedo = m_engine->m_textureManager->getNativeFromHandle(material.colorTexture);
     }
     else {
-      albedo =m_engine->m_textureManager->getNativeFromHandle( m_lightMap[0]);
+      albedo =m_engine->m_textureManager->getNativeFromHandle( m_lightMap);
     }
     [argumentEncoderFrag setTexture:albedo atIndex:0];
     [argumentEncoderFrag setSamplerState:sampler atIndex:1];
@@ -838,9 +838,7 @@ void GraphicsLayer::allocateGBufferTexture(int size) {
   auto oldUsage = request.usage;
   request.usage = oldUsage | MTLTextureUsageShaderWrite;
   request.name = "lightMap1";
-  m_lightMap[0] = m_engine->m_textureManager->allocate(device, request);
-  request.name = "lightMap2";
-  m_lightMap[1] = m_engine->m_textureManager->allocate(device, request);
+  m_lightMap = m_engine->m_textureManager->allocate(device, request);
   request.usage = oldUsage;
   request.format = MTLPixelFormatRG16Unorm;
   request.name = "gbuffUVs";
@@ -958,13 +956,8 @@ void GraphicsLayer::doLightmapBake(id<MTLCommandBuffer> commandBuffer , int inde
   id<MTLComputeCommandEncoder> computeEncoder = [commandBuffer computeCommandEncoder];
 
   auto bindInfo = m_engine->m_constantBufferManager->getBindInfo(m_engine, m_uniforms);
-  uint32_t colorIndex = m_engine->m_timings.m_totalNumberOfFrames % 2;
   id<MTLTexture> colorTexture =
-          m_engine->m_textureManager->getNativeFromHandle(m_lightMap[colorIndex]);
-  colorIndex = (m_engine->m_timings.m_totalNumberOfFrames + 1) % 2;
-  id<MTLTexture> prevTexture =
-          m_engine->m_textureManager->getNativeFromHandle(m_lightMap[colorIndex]);
-
+          m_engine->m_textureManager->getNativeFromHandle(m_lightMap);
 
   id g1 = m_engine->m_textureManager->getNativeFromHandle(m_gbuff[0]);
   id g2 = m_engine->m_textureManager->getNativeFromHandle(m_gbuff[1]);
@@ -977,7 +970,6 @@ void GraphicsLayer::doLightmapBake(id<MTLCommandBuffer> commandBuffer , int inde
   [computeEncoder setBytes :&index length:4 atIndex:3];
   [computeEncoder setTexture:colorTexture atIndex:0];
   [computeEncoder setTexture:m_randomTexture atIndex:1];
-  [computeEncoder setTexture:prevTexture atIndex:2];
   [computeEncoder setTexture:g1 atIndex:3];
   [computeEncoder setTexture:g2 atIndex:4];
   [computeEncoder setTexture:g3 atIndex:5];

@@ -267,9 +267,8 @@ kernel void rayKernel(instance_acceleration_structure accelerationStructure,
                       constant Uniforms &uniforms [[buffer(1)]],
                       const device Mesh *meshes [[buffer(2)]],
                       constant uint &instanceIndex [[buffer(3)]],
-                      texture2d<float, access::write> dstTex [[texture(0)]],
+                      texture2d<float, access::read_write> dstTex [[texture(0)]],
                       texture2d<uint> randomTex [[texture(1)]],
-                      texture2d<float> prevImage [[texture(2)]],
                       texture2d<float> gbuffPos [[texture(3)]],
                       texture2d<float> gbuffUV [[texture(4)]],
                       texture2d<float> gbuffNorm [[texture(5)]],
@@ -293,7 +292,7 @@ kernel void rayKernel(instance_acceleration_structure accelerationStructure,
 
   //CMA
   if (uniforms.frameIndex > 1) {
-    float3 color = prevImage.read(tid).xyz;
+    float3 color = dstTex.read(tid).xyz;
     color *= uniforms.frameIndex;
     color += outColor;
     color /= (uniforms.frameIndex + 1);
