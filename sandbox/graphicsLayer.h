@@ -11,13 +11,26 @@
 #import <Metal/Metal.h>
 #include <SirMetal/graphics/PSOGenerator.h>
 
-#define RT 1
+#define RT 0
 struct DirLight {
 
   matrix_float4x4 V;
   matrix_float4x4 P;
   matrix_float4x4 VP;
   simd_float4 lightDir;
+};
+
+struct TexRect
+{
+  int x,y,w,h;
+};
+
+struct PackingResult
+{
+  int w;
+  int h;
+  std::vector<TexRect> rectangles;
+
 };
 namespace SirMetal {
 struct EngineContext;
@@ -39,10 +52,10 @@ class GraphicsLayer final : public SirMetal::Layer {
   void updateLightData();
   void renderDebugWindow();
   void generateRandomTexture(uint32_t w, uint32_t h);
-  void recordRTArgBuffer();
   void recordRasterArgBuffer();
 
 #if RT
+  void recordRTArgBuffer();
   void buildAccellerationStructure();
   id buildPrimitiveAccelerationStructure(MTLAccelerationStructureDescriptor *descriptor);
 #endif
@@ -85,11 +98,12 @@ class GraphicsLayer final : public SirMetal::Layer {
   SirMetal::GLTFAsset asset;
   uint32_t rtFrameCounter = 0;
   uint32_t lightMapSize = 1024;
-  void allocateGBufferTexture(int size);
+  PackingResult packResult;
+  void allocateGBufferTexture(int w,int h);
   void doGBufferPass(id<MTLCommandBuffer> commandBuffer, int index);
   void doLightmapBake(id<MTLCommandBuffer> buffer, int index);
   void doRasterRender(id<MTLRenderCommandEncoder> commandEncoder,
                       const SirMetal::PSOCache &cache);
-  void buildPacking(int maxSize, int individualSize, int count);
+  PackingResult buildPacking(int maxSize, int individualSize, int count);
 };
 }// namespace Sandbox
