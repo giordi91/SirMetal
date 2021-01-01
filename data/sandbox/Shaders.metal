@@ -42,6 +42,7 @@ struct Material {
   texture2d<float> albedoTex [[id(0)]];
   sampler sampler [[id(1)]];
   float4 tintColor [[id(2)]];
+  float4 lightMapOff[[id(3)]];
 };
 
 vertex OutVertex vertex_project(
@@ -74,13 +75,15 @@ fragment half4 fragment_flatcolor(OutVertex vertexIn [[stage_in]],
 
   float2 uv = vertexIn.uv;
   uv.y = 1.0f - uv.y;
+  uv *= mat.lightMapOff.xy;
+  uv += mat.lightMapOff.zw;
   float4 albedo =
           mat.albedoTex.sample(mat.sampler, uv);
   float4 color = mat.tintColor * albedo;
   color*=  saturate(dot(n.xyz,light->lightDir.xyz));
-  if(vertexIn.id == 1){
+  //if(vertexIn.id == 1){
     color = albedo;
-  }
+  //}
 
   return half4(color.x,color.y,color.z, 1.0h);
 }

@@ -149,7 +149,7 @@ ray getCameraRay(constant Uniforms &uniforms, uint2 tid) {// Ray we will produce
 
 float3 shootRayInWorld(instance_acceleration_structure accelerationStructure, ray pray,
                        int bounces, const device Mesh *meshes, texture2d<uint> randomTex,
-                       constant Uniforms &uniforms, uint2 tid, float3 color) {
+                       constant Uniforms &uniforms, uint2 tid, uint2 tidOff, float3 color) {
   // Create an intersector to test for intersection between the ray and the geometry in the scene.
   intersector<triangle_data, instancing> i;
 
@@ -235,17 +235,16 @@ float3 shootRayInWorld(instance_acceleration_structure accelerationStructure, ra
   return outColor;
 }
 
-ray getLightMapRay(constant Uniforms &uniforms, uint2 tid, texture2d<float> gbuffPos,
+ray getLightMapRay(constant Uniforms &uniforms, uint2 tid, uint2 tidOff, texture2d<float> gbuffPos,
                    texture2d<float> gbuffUV, texture2d<float> gbuffNorm,
                    texture2d<uint> randomTex) {// Ray we will produce
 
-  float3 pos = gbuffPos.read(tid).xyz;
-  float3 norm = normalize(gbuffNorm.read(tid).xyz * 2.0f - 1.0f);
+  float3 pos = gbuffPos.read(tid + tidOff).xyz;
+  float3 norm = normalize(gbuffNorm.read(tid + tidOff).xyz * 2.0f - 1.0f);
 
   ray pray;
 
   pray.origin = pos + norm * 1e-3f;
-  ;
   pray.min_distance = 0.001f;
   pray.max_distance = INFINITY;
 
@@ -268,7 +267,8 @@ kernel void rayKernel(instance_acceleration_structure accelerationStructure,
                       constant Uniforms &uniforms [[buffer(1)]],
                       const device Mesh *meshes [[buffer(2)]],
                       constant uint &instanceIndex [[buffer(3)]],
-                      texture2d<float, access::read_write> dstTex [[texture(0)]],
+                      constant uint2 &tidOff[[buffer(4)]],
+texture2d<float, access::read_write> dstTex [[texture(0)]],
                       texture2d<uint> randomTex [[texture(1)]],
                       texture2d<float> gbuffPos [[texture(3)]],
                       texture2d<float> gbuffUV [[texture(4)]],
@@ -283,22 +283,22 @@ kernel void rayKernel(instance_acceleration_structure accelerationStructure,
   if ((tid.x >= uniforms.lightMapSize) | (tid.y >= uniforms.lightMapSize)) { return; }
   // Compute linear ray index from 2D position
   //    ray pray = getCameraRay(uniforms, tid);
-  ray pray = getLightMapRay(uniforms, tid, gbuffPos, gbuffUV, gbuffNorm, randomTex);
+  ray pray = getLightMapRay(uniforms, tid, tidOff, gbuffPos, gbuffUV, gbuffNorm, randomTex);
 
 
   device const Mesh &m = meshes[instanceIndex];
   constexpr int bounces = 3;
   float3 outColor = shootRayInWorld(accelerationStructure, pray, bounces, meshes,
-                                    randomTex, uniforms, tid, m.tintColor.xyz);
+                                    randomTex, uniforms, tid, tidOff, m.tintColor.xyz);
 
   //CMA
   if (uniforms.frameIndex > 1) {
-    float3 color = dstTex.read(tid).xyz;
+    float3 color = dstTex.read(tid+tidOff).xyz;
     color *= uniforms.frameIndex;
     color += outColor;
     color /= (uniforms.frameIndex + 1);
     outColor = saturate(color);
   }
 
-  dstTex.write(float4(outColor.x, outColor.y, outColor.z, 1.0f), tid);
+  dstTex.write(float4(outColor.x, outColor.y, outColor.z, 1.0f), tid+tidOff);
 }

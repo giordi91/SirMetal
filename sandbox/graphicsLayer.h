@@ -11,7 +11,7 @@
 #import <Metal/Metal.h>
 #include <SirMetal/graphics/PSOGenerator.h>
 
-#define RT 0
+#define RT 1
 struct DirLight {
 
   matrix_float4x4 V;
@@ -97,6 +97,7 @@ class GraphicsLayer final : public SirMetal::Layer {
 
   SirMetal::GLTFAsset asset;
   uint32_t rtFrameCounter = 0;
+  uint32_t rtFrameCounterFull = 0;
   uint32_t lightMapSize = 1024;
   PackingResult packResult;
   void allocateGBufferTexture(int w,int h);

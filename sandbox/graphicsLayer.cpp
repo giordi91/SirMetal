@@ -282,7 +282,6 @@ void GraphicsLayer::onUpdate() {
 #endif
 
 
-  /*
   SirMetal::graphics::DrawTracker tracker{};
   tracker.renderTargets[0] = texture;
   tracker.depthTarget = m_engine->m_textureManager->getNativeFromHandle(m_depthHandle);
@@ -309,25 +308,26 @@ void GraphicsLayer::onUpdate() {
   id<MTLRenderCommandEncoder> commandEncoder =
           [commandBuffer renderCommandEncoderWithDescriptor:passDescriptor];
 
-  //doRasterRender(commandEncoder, cache);
+  doRasterRender(commandEncoder, cache);
 
-  int counter = 1;
-  const auto &mesh = asset.models[counter];
-  const SirMetal::MeshData *meshData = m_engine->m_meshManager->getMeshData(mesh.mesh);
-  auto *mat = (void *) (&mesh.matrix);
-  [commandEncoder useResource:meshData->vertexBuffer usage:MTLResourceUsageRead];
-  [commandEncoder useResource:m_engine->m_textureManager->getNativeFromHandle(
-                                      mesh.material.colorTexture)
-                        usage:MTLResourceUsageSample];
-  [commandEncoder setVertexBytes:mat length:16 * 4 atIndex:5];
-  [commandEncoder setVertexBytes:&counter length:4 atIndex:6];
-  [commandEncoder drawIndexedPrimitives:MTLPrimitiveTypeTriangle
-                             indexCount:meshData->primitivesCount
-                              indexType:MTLIndexTypeUInt32
-                            indexBuffer:meshData->indexBuffer
-                      indexBufferOffset:0];
-                      */
+  //int counter = 1;
+  //const auto &mesh = asset.models[counter];
+  //const SirMetal::MeshData *meshData = m_engine->m_meshManager->getMeshData(mesh.mesh);
+  //auto *mat = (void *) (&mesh.matrix);
+  //[commandEncoder useResource:meshData->vertexBuffer usage:MTLResourceUsageRead];
+  //[commandEncoder useResource:m_engine->m_textureManager->getNativeFromHandle(
+  //                                    mesh.material.colorTexture)
+  //                      usage:MTLResourceUsageSample];
+  //[commandEncoder setVertexBytes:mat length:16 * 4 atIndex:5];
+  //[commandEncoder setVertexBytes:&counter length:4 atIndex:6];
+  //[commandEncoder drawIndexedPrimitives:MTLPrimitiveTypeTriangle
+  //                           indexCount:meshData->primitivesCount
+  //                            indexType:MTLIndexTypeUInt32
+  //                          indexBuffer:meshData->indexBuffer
+  //                    indexBufferOffset:0];
 
+  //FULL SCREEN
+  /*
   SirMetal::graphics::DrawTracker tracker{};
   tracker.renderTargets[0] = texture;
   tracker.depthTarget = {};
@@ -351,15 +351,15 @@ void GraphicsLayer::onUpdate() {
   id<MTLRenderCommandEncoder> commandEncoder =
   [commandBuffer renderCommandEncoderWithDescriptor:passDescriptor];
 
-  uint32_t colorIndex = m_engine->m_timings.m_totalNumberOfFrames % 2;
   id<MTLTexture> colorTexture =
-          m_engine->m_textureManager->getNativeFromHandle(m_gbuff[0]);
+          m_engine->m_textureManager->getNativeFromHandle(m_lightMap);
 
   [commandEncoder setRenderPipelineState:cache.color];
   [commandEncoder setFrontFacingWinding:MTLWindingCounterClockwise];
   [commandEncoder setCullMode:MTLCullModeBack];
   [commandEncoder setFragmentTexture:colorTexture atIndex:0];
   [commandEncoder drawPrimitives:MTLPrimitiveTypeTriangle vertexStart:0 vertexCount:3];
+   */
 
   // render debug
   m_engine->m_debugRenderer->newFrame();
@@ -386,7 +386,11 @@ void GraphicsLayer::onUpdate() {
 
 
   SDL_RenderPresent(m_engine->m_renderingContext->getRenderer());
-  ++rtFrameCounter;
+  ++rtFrameCounterFull;
+  if((rtFrameCounterFull%asset.models.size()) == 0)
+  {
+    rtFrameCounter++;
+  }
   //}
 }
 
@@ -787,15 +791,33 @@ void GraphicsLayer::recordRasterArgBuffer() {
     [argumentEncoderFrag setArgumentBuffer:argBufferFrag offset:i * buffInstanceSizeFrag];
 
     id albedo;
-    if (i != 1) {
-      albedo = m_engine->m_textureManager->getNativeFromHandle(material.colorTexture);
-    } else {
-      albedo = m_engine->m_textureManager->getNativeFromHandle(m_lightMap);
-    }
+    //if (i != 1) {
+    //  albedo = m_engine->m_textureManager->getNativeFromHandle(material.colorTexture);
+    //} else {
+    albedo = m_engine->m_textureManager->getNativeFromHandle(m_lightMap);
+    //}
     [argumentEncoderFrag setTexture:albedo atIndex:0];
     [argumentEncoderFrag setSamplerState:sampler atIndex:1];
     auto *ptr = [argumentEncoderFrag constantDataAtIndex:2];
-    memcpy(ptr, &material.colorFactors, sizeof(float) * 4);
+    float matData[8]{};
+    matData[0] = material.colorFactors.x;
+    matData[1] = material.colorFactors.y;
+    matData[2] = material.colorFactors.z;
+    matData[3] = material.colorFactors.w;
+
+    //uv offset for lightmap
+
+    float wratio = packResult.rectangles[i].w / (float)packResult.w;
+    float hratio = packResult.rectangles[i].h / (float)packResult.h;
+    float xoff = packResult.rectangles[i].x / (float)packResult.w;
+    float yoff = packResult.rectangles[i].y / (float)packResult.h;
+
+    matData[4] = wratio;
+    matData[5] = hratio;
+    matData[6] = xoff;
+    matData[7] = yoff;
+
+    memcpy(ptr, &matData, sizeof(float) * 8);
   }
 }
 void GraphicsLayer::allocateGBufferTexture(int w,int h) {
@@ -952,8 +974,9 @@ void GraphicsLayer::doGBufferPass(id<MTLCommandBuffer> commandBuffer, int indexx
   [commandEncoder endEncoding];
 }
 
-void GraphicsLayer::doLightmapBake(id<MTLCommandBuffer> commandBuffer, int index) {
+void GraphicsLayer::doLightmapBake(id<MTLCommandBuffer> commandBuffer, int indexx) {
 
+  int index = m_engine->m_timings.m_totalNumberOfFrames % asset.models.size();
   //HARDCODED HEIGHT
   int w = lightMapSize;
   int h = lightMapSize;
@@ -977,6 +1000,8 @@ void GraphicsLayer::doLightmapBake(id<MTLCommandBuffer> commandBuffer, int index
   [computeEncoder setBuffer:bindInfo.buffer offset:bindInfo.offset atIndex:1];
   [computeEncoder setBuffer:argRtBuffer offset:0 atIndex:2];
   [computeEncoder setBytes:&index length:4 atIndex:3];
+  int off[]= { packResult.rectangles[index].x,packResult.rectangles[index].y};
+  [computeEncoder setBytes:&off[0] length:sizeof(int)*2 atIndex:4];
   [computeEncoder setTexture:colorTexture atIndex:0];
   [computeEncoder setTexture:m_randomTexture atIndex:1];
   [computeEncoder setTexture:g1 atIndex:3];
