@@ -64,7 +64,7 @@ GLTFMaterial loadMaterial(EngineContext *context,
 }
 
 void loadNode(EngineContext *context, const cgltf_node *node,
-              GLTFAsset &outAsset, uint32_t flags,
+              GLTFAsset &outAsset, const GLTFLoadOptions& loadOptions,
               simd_float4x4 parentMatrix) {
   Model model{};
   if (node->mesh != nullptr) {
@@ -72,7 +72,7 @@ void loadNode(EngineContext *context, const cgltf_node *node,
     assert(node->mesh->primitives_count == 1 &&
            "gltf loader does not support multiple primitives per mesh yet");
     model.mesh = context->m_meshManager->loadFromMemory(
-            node->mesh, LOAD_MESH_TYPE::GLTF_MESH, static_cast<uint32_t>(flags));
+            node->mesh, LOAD_MESH_TYPE::GLTF_MESH, &loadOptions);
 
     assert(node->mesh->primitives_count == 1);
 
@@ -85,7 +85,7 @@ void loadNode(EngineContext *context, const cgltf_node *node,
   simd_float4x4 matrix = getMatrix(*node);
   model.matrix = simd_mul(parentMatrix, matrix);
 
-  bool flatten = (flags & GLTF_LOAD_FLAGS_FLATTEN_HIERARCHY) > 0;
+  bool flatten = (loadOptions.flags & GLTF_LOAD_FLAGS_FLATTEN_HIERARCHY) > 0;
   bool isEmpty = node->mesh == nullptr;
   if (!(flatten & isEmpty)) {
     outAsset.models.push_back(model);
@@ -93,13 +93,13 @@ void loadNode(EngineContext *context, const cgltf_node *node,
 
   for (int c = 0; c < node->children_count; ++c) {
     const auto *child = node->children[c];
-    loadNode(context, child, outAsset, flags, model.matrix);
+    loadNode(context, child, outAsset, loadOptions, model.matrix);
   }
 }
 
 bool loadGLTF(EngineContext *context, const char *path, GLTFAsset &outAsset,
-              uint32_t flags) {
-  assert(((flags & GLTF_LOAD_FLAGS_FLATTEN_HIERARCHY) > 0) &&
+              const GLTFLoadOptions& loadOptions) {
+  assert(((loadOptions.flags & GLTF_LOAD_FLAGS_FLATTEN_HIERARCHY) > 0) &&
          "only flatten hierarchy supported for now");
   assert(fileExists(path));
   cgltf_options options = {};
@@ -125,7 +125,7 @@ bool loadGLTF(EngineContext *context, const char *path, GLTFAsset &outAsset,
   for (int i = 0; i < nodesCount; ++i) {
     auto *node = scene->nodes[i];
     printf("Node -> %s\n", node->name);
-    loadNode(context, node, outAsset, flags, getIdentity());
+    loadNode(context, node, outAsset, loadOptions, getIdentity());
   }
 
   cgltf_free(data);

@@ -105,6 +105,7 @@ struct Uniforms {
   unsigned int width;
   unsigned int height;
   unsigned int frameIndex;
+  unsigned int lightMapSize;
   Camera camera;
   AreaLight light;
 };
@@ -279,7 +280,7 @@ kernel void rayKernel(instance_acceleration_structure accelerationStructure,
 
   // Since we aligned the thread count to the threadgroup size, the thread index may be out of bounds
   // of the render target size.
-  if ((tid.x >= 2048) | (tid.y >= 2048)) { return; }
+  if ((tid.x >= uniforms.lightMapSize) | (tid.y >= uniforms.lightMapSize)) { return; }
   // Compute linear ray index from 2D position
   //    ray pray = getCameraRay(uniforms, tid);
   ray pray = getLightMapRay(uniforms, tid, gbuffPos, gbuffUV, gbuffNorm, randomTex);

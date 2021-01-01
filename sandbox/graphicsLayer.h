@@ -35,11 +35,10 @@ class GraphicsLayer final : public SirMetal::Layer {
   void clear() override;
 
   private:
-  bool updateUniformsForView(float screenWidth, float screenHeight);
+  bool updateUniformsForView(float screenWidth, float screenHeight,uint32_t lightMapSize);
   void updateLightData();
   void renderDebugWindow();
   void generateRandomTexture(uint32_t w, uint32_t h);
-  void encodeMonoRay(id<MTLCommandBuffer> commandBuffer, float w, float h);
   void recordRTArgBuffer();
   void recordRasterArgBuffer();
 
@@ -59,7 +58,6 @@ class GraphicsLayer final : public SirMetal::Layer {
   SirMetal::LibraryHandle m_shaderHandle;
   SirMetal::LibraryHandle m_gbuffHandle;
   SirMetal::LibraryHandle m_fullScreenHandle;
-  SirMetal::LibraryHandle m_rtMono;
   SirMetal::LibraryHandle m_rtLightMap;
   SirMetal::TextureHandle m_color[2];
   SirMetal::TextureHandle m_gbuff[3];
@@ -71,7 +69,6 @@ class GraphicsLayer final : public SirMetal::Layer {
   SirMetal::graphics::GPUInfoWidget m_gpuInfo;
   DirLight light{};
   SirMetal::GPUMemoryAllocator m_gpuAllocator;
-  id rtMonoPipeline;
   id rtLightmapPipeline;
 
   id m_randomTexture;
@@ -87,10 +84,12 @@ class GraphicsLayer final : public SirMetal::Layer {
 
   SirMetal::GLTFAsset asset;
   uint32_t rtFrameCounter = 0;
+  uint32_t lightMapSize = 1024;
   void allocateGBufferTexture(int size);
   void doGBufferPass(id<MTLCommandBuffer> commandBuffer, int index);
   void doLightmapBake(id<MTLCommandBuffer> buffer, int index);
   void doRasterRender(id<MTLRenderCommandEncoder> commandEncoder,
                       const SirMetal::PSOCache &cache);
+  void buildPacking(int maxSize, int individualSize, int count);
 };
 }// namespace Sandbox

@@ -17,8 +17,6 @@ struct cgltf_mesh;
 namespace SirMetal {
 
 
-
-
 // TODO: temp public, we will need to build abstraction to render
 // this data potentially without the need to extract it from here
 // this is just an intermediate step
@@ -34,20 +32,18 @@ struct MeshData {
 };
 
 class MeshManager {
-public:
+  public:
   MeshHandle loadMesh(const std::string &path);
-  MeshHandle loadFromMemory(const void *data, LOAD_MESH_TYPE type,uint32_t flags);
+  MeshHandle loadFromMemory(const void *data, LOAD_MESH_TYPE type, const void *options);
 
   void initialize(id device, id queue) {
-    m_allocator.initialize(device,queue);
+    m_allocator.initialize(device, queue);
     m_device = device;
     m_queue = queue;
   };
   const MeshHandle getHandleFromName(const std::string &name) const {
     auto found = m_nameToHandle.find(name);
-    if (found != m_nameToHandle.end()) {
-      return {found->second};
-    }
+    if (found != m_nameToHandle.end()) { return {found->second}; }
     return {};
   }
 
@@ -55,15 +51,13 @@ public:
     assert(getTypeFromHandle(handle) == HANDLE_TYPE::MESH);
     uint32_t index = getIndexFromHandle(handle);
     auto found = m_handleToMesh.find(index);
-    if (found != m_handleToMesh.end()) {
-      return &found->second;
-    }
+    if (found != m_handleToMesh.end()) { return &found->second; }
     return nullptr;
   }
 
   void cleanup();
 
-private:
+  private:
   id m_device;
   id m_queue;
   std::unordered_map<uint32_t, MeshData> m_handleToMesh;
@@ -75,4 +69,4 @@ private:
   GPUMemoryAllocator m_allocator;
 };
 
-} // namespace SirMetal
+}// namespace SirMetal

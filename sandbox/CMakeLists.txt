@@ -9,6 +9,7 @@ include_directories(MyProject
         ${SDL2_INCLUDE_DIRS}
         "${CMAKE_SOURCE_DIR}/engine/src"
         "${CMAKE_SOURCE_DIR}/vendors/json/include"
+        "${CMAKE_SOURCE_DIR}/vendors/rectpack2D/src"
         )
 
 file(GLOB_RECURSE SOURCE_FILES "*.cpp" "*.h")

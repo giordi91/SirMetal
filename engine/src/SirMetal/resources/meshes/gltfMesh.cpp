@@ -46,10 +46,11 @@ static cgltf_size component_count(cgltf_type type) {
   }
 }
 
-bool loadGltfMesh(MeshLoadResult &outMesh, const void *gltfMesh, uint32_t flags) {
+bool loadGltfMesh(MeshLoadResult &outMesh, const void *gltfMesh, const void* options) {
   const auto *mesh = reinterpret_cast<const cgltf_mesh *>(gltfMesh);
 
-  auto gltfFlags = static_cast<GLTFLoadFlags>(flags);
+  auto* typedOptions = static_cast<const GLTFLoadOptions*>(options);
+  auto gltfFlags = static_cast<GLTFLoadFlags>(typedOptions->flags);
   // assuming primitive count 1
   assert(mesh->primitives_count == 1);
   cgltf_primitive &prim = mesh->primitives[0];
@@ -253,7 +254,7 @@ bool loadGltfMesh(MeshLoadResult &outMesh, const void *gltfMesh, uint32_t flags)
       xatlas::PackOptions packoptions;
       packoptions.padding = 8;
 
-      packoptions.resolution = 2048;
+      packoptions.resolution = typedOptions->lightMapSize;
       packoptions.blockAlign = true;
 
       xatlas::Generate(atlas, chartoptions, packoptions);

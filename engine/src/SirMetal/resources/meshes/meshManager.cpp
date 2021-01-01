@@ -60,7 +60,7 @@ MeshHandle MeshManager::processObjMesh(const std::string &path) {
 void MeshManager::cleanup() {}
 
 MeshHandle MeshManager::loadFromMemory(const void *data, LOAD_MESH_TYPE type,
-                                       uint32_t flags) {
+                                       const void* options) {
 
   MeshLoadResult result;
   switch (type) {
@@ -70,7 +70,7 @@ MeshHandle MeshManager::loadFromMemory(const void *data, LOAD_MESH_TYPE type,
       break;
     }
     case LOAD_MESH_TYPE::GLTF_MESH: {
-      loadGltfMesh(result, data, flags);
+      loadGltfMesh(result, data, options);
     }
   }
 

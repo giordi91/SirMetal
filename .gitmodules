@@ -16,3 +16,6 @@
 [submodule "vendors/xatlas"]
 	path = vendors/xatlas
 	url = https://github.com/cpp-pm/xatlas.git
+[submodule "vendors/rectpack2D"]
+	path = vendors/rectpack2D
+	url = https://github.com/TeamHypersomnia/rectpack2D

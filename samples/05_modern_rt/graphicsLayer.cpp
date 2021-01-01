@@ -18,7 +18,6 @@
 #include "SirMetal/graphics/renderingContext.h"
 #include "SirMetal/resources/meshes/meshManager.h"
 #include "SirMetal/resources/shaderManager.h"
-#include "../../sandbox/graphicsLayer.h"
 
 
 struct RtCamera {
@@ -101,8 +100,11 @@ void GraphicsLayer::onAttach(SirMetal::EngineContext *context) {
 
   const std::string base = m_engine->m_config.m_dataSourcePath + "05_modern_rt";
   // let us load the gltf file
+  struct SirMetal::GLTFLoadOptions options;
+  options.flags= SirMetal::GLTFLoadFlags::GLTF_LOAD_FLAGS_FLATTEN_HIERARCHY;
+
   SirMetal::loadGLTF(m_engine, (base + +"/test.glb").c_str(), asset,
-                     SirMetal::GLTFLoadFlags::GLTF_LOAD_FLAGS_FLATTEN_HIERARCHY );
+                     options );
 
   id<MTLDevice> device = m_engine->m_renderingContext->getDevice();
 

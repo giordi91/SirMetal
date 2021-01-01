@@ -51,9 +51,10 @@ void GraphicsLayer::onAttach(SirMetal::EngineContext *context) {
   const std::string base = m_engine->m_config.m_dataSourcePath;
   const std::string baseSample = base + "/04_gltf_args";
   // let us load the gltf file
-  auto flags = SirMetal::GLTFLoadFlags::GLTF_LOAD_FLAGS_FLATTEN_HIERARCHY |
-               SirMetal::GLTFLoadFlags::GLTF_LOAD_FLAGS_GENERATE_LIGHT_MAP_UVS;
-  SirMetal::loadGLTF(m_engine, (baseSample + +"/test.glb").c_str(), asset, flags);
+
+  struct SirMetal::GLTFLoadOptions options;
+  options.flags= SirMetal::GLTFLoadFlags::GLTF_LOAD_FLAGS_FLATTEN_HIERARCHY;
+  SirMetal::loadGLTF(m_engine, (baseSample + +"/test.glb").c_str(), asset, options);
 
   m_shaderHandle =
           m_engine->m_shaderManager->loadShader((baseSample + "/Shaders.metal").c_str());

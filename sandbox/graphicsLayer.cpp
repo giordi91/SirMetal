@@ -19,6 +19,8 @@
 #include "SirMetal/resources/meshes/meshManager.h"
 #include "SirMetal/resources/shaderManager.h"
 
+#include "finders_interface.h"//rectpack2D
+
 struct RtCamera {
   simd_float4x4 VPinverse;
   vector_float3 position;
@@ -39,6 +41,7 @@ struct Uniforms {
   unsigned int width;
   unsigned int height;
   unsigned int frameIndex;
+  unsigned int lightMapSize;
   RtCamera camera;
   AreaLight light;
 };
@@ -97,18 +100,25 @@ void GraphicsLayer::onAttach(SirMetal::EngineContext *context) {
 
   updateLightData();
 
+
   const std::string base = m_engine->m_config.m_dataSourcePath + "/sandbox";
   // let us load the gltf file
+  struct SirMetal::GLTFLoadOptions options;
+  options.flags= SirMetal::GLTFLoadFlags::GLTF_LOAD_FLAGS_FLATTEN_HIERARCHY |
+                  SirMetal::GLTF_LOAD_FLAGS_GENERATE_LIGHT_MAP_UVS;
+  options.lightMapSize = lightMapSize;
+
   SirMetal::loadGLTF(m_engine, (base + +"/test.glb").c_str(), asset,
-                     SirMetal::GLTFLoadFlags::GLTF_LOAD_FLAGS_FLATTEN_HIERARCHY |
-                             SirMetal::GLTF_LOAD_FLAGS_GENERATE_LIGHT_MAP_UVS);
+                     options);
+
+  buildPacking(16384,lightMapSize,asset.models.size());
 
   id<MTLDevice> device = m_engine->m_renderingContext->getDevice();
 
   assert(device.supportsRaytracing == true &&
          "This device does not support raytracing API, you can try samples based on MPS");
 
-  allocateGBufferTexture(2048);
+  allocateGBufferTexture(lightMapSize);
 
   SirMetal::AllocTextureRequest request{m_engine->m_config.m_windowConfig.m_width,
                                         m_engine->m_config.m_windowConfig.m_height,
@@ -127,12 +137,11 @@ void GraphicsLayer::onAttach(SirMetal::EngineContext *context) {
 
   m_shaderHandle =
           m_engine->m_shaderManager->loadShader((base + "/Shaders.metal").c_str());
-  m_gbuffHandle =
-          m_engine->m_shaderManager->loadShader((base + "/gbuff.metal").c_str());
+  m_gbuffHandle = m_engine->m_shaderManager->loadShader((base + "/gbuff.metal").c_str());
   m_fullScreenHandle =
           m_engine->m_shaderManager->loadShader((base + "/fullscreen.metal").c_str());
-  m_rtMono = m_engine->m_shaderManager->loadShader((base + "/rtMono.metal").c_str());
-  m_rtLightMap = m_engine->m_shaderManager->loadShader((base + "/rtLightMap.metal").c_str());
+  m_rtLightMap =
+          m_engine->m_shaderManager->loadShader((base + "/rtLightMap.metal").c_str());
 
   recordRTArgBuffer();
   recordRasterArgBuffer();
@@ -153,10 +162,7 @@ void GraphicsLayer::onAttach(SirMetal::EngineContext *context) {
   SirMetal::graphics::initImgui(m_engine);
   frameBoundarySemaphore = dispatch_semaphore_create(kMaxInflightBuffers);
 
-  rtMonoPipeline = createComputePipeline(
-          device, m_engine->m_shaderManager->getKernelFunction(m_rtMono));
-
-  rtLightmapPipeline= createComputePipeline(
+  rtLightmapPipeline = createComputePipeline(
           device, m_engine->m_shaderManager->getKernelFunction(m_rtLightMap));
   // this is to flush the gpu, should figure out why is not actually flushing
   // properly
@@ -168,15 +174,17 @@ void GraphicsLayer::onAttach(SirMetal::EngineContext *context) {
 #endif
 
   //generateRandomTexture(1280u, 720u);
-  generateRandomTexture(2048u, 2048u);
+  generateRandomTexture(lightMapSize, lightMapSize);
 
   MTLArgumentBuffersTier tier = [device argumentBuffersSupport];
   assert(tier == MTLArgumentBuffersTier2);
+
+
 }
 
 void GraphicsLayer::onDetach() {}
 
-bool GraphicsLayer::updateUniformsForView(float screenWidth, float screenHeight) {
+bool GraphicsLayer::updateUniformsForView(float screenWidth, float screenHeight,uint32_t lightMapSize) {
 
   SirMetal::Input *input = m_engine->m_inputManager;
 
@@ -205,6 +213,7 @@ bool GraphicsLayer::updateUniformsForView(float screenWidth, float screenHeight)
   u.frameIndex = rtFrameCounter;
   u.height = m_engine->m_config.m_windowConfig.m_height;
   u.width = m_engine->m_config.m_windowConfig.m_width;
+  u.lightMapSize = lightMapSize;
   // TODO add light data
   // u.light ...
   m_engine->m_constantBufferManager->update(m_engine, m_uniforms, &u);
@@ -254,7 +263,7 @@ void GraphicsLayer::onUpdate() {
 
   float w = texture.width;
   float h = texture.height;
-  updateUniformsForView(w, h);
+  updateUniformsForView(w, h,lightMapSize);
   updateLightData();
 
   id<MTLCommandBuffer> commandBuffer = [queue commandBuffer];
@@ -268,13 +277,12 @@ void GraphicsLayer::onUpdate() {
 
   //now that we have that we can actually kick a raytracing shader which uses the gbuffer information
   //forthe first ray
-  doLightmapBake(commandBuffer,index);
+  doLightmapBake(commandBuffer, index);
 
 
   SirMetal::graphics::DrawTracker tracker{};
   tracker.renderTargets[0] = texture;
-  tracker.depthTarget =
-    m_engine->m_textureManager->getNativeFromHandle(m_depthHandle);
+  tracker.depthTarget = m_engine->m_textureManager->getNativeFromHandle(m_depthHandle);
 
   SirMetal::PSOCache cache =
           SirMetal::getPSO(m_engine, tracker, SirMetal::Material{"Shaders", false});
@@ -287,7 +295,8 @@ void GraphicsLayer::onUpdate() {
   passDescriptor.colorAttachments[0].storeAction = MTLStoreActionStore;
   passDescriptor.colorAttachments[0].loadAction = MTLLoadActionClear;
 
-  MTLRenderPassDepthAttachmentDescriptor* depthAttachment = passDescriptor.depthAttachment;
+  MTLRenderPassDepthAttachmentDescriptor *depthAttachment =
+          passDescriptor.depthAttachment;
   depthAttachment.texture =
           m_engine->m_textureManager->getNativeFromHandle(m_depthHandle);
   depthAttachment.clearDepth = 1.0;
@@ -297,7 +306,7 @@ void GraphicsLayer::onUpdate() {
   id<MTLRenderCommandEncoder> commandEncoder =
           [commandBuffer renderCommandEncoderWithDescriptor:passDescriptor];
 
-  doRasterRender(commandEncoder,cache);
+  doRasterRender(commandEncoder, cache);
 
   /*
   int counter = 1;
@@ -451,41 +460,13 @@ void GraphicsLayer::generateRandomTexture(uint32_t w, uint32_t h) {
   for (NSUInteger i = 0; i < w * h; i++) randomValues[i] = rand() % (1024 * 1024);
 
   [m_randomTexture replaceRegion:MTLRegionMake2D(0, 0, w, h)
-                    mipmapLevel:0
-                      withBytes:randomValues
-                    bytesPerRow:sizeof(uint32_t) * w];
+                     mipmapLevel:0
+                       withBytes:randomValues
+                     bytesPerRow:sizeof(uint32_t) * w];
 
   free(randomValues);
 }
 
-void GraphicsLayer::encodeMonoRay(id<MTLCommandBuffer> commandBuffer, float w, float h) {
-
-  MTLSize threadsPerThreadgroup = MTLSizeMake(8, 8, 1);
-  MTLSize threadgroups = MTLSizeMake(
-          (w + threadsPerThreadgroup.width - 1) / threadsPerThreadgroup.width,
-          (h + threadsPerThreadgroup.height - 1) / threadsPerThreadgroup.height, 1);
-
-  id<MTLComputeCommandEncoder> computeEncoder = [commandBuffer computeCommandEncoder];
-
-  auto bindInfo = m_engine->m_constantBufferManager->getBindInfo(m_engine, m_uniforms);
-  uint32_t colorIndex = m_engine->m_timings.m_totalNumberOfFrames % 2;
-  id<MTLTexture> colorTexture =
-          m_engine->m_textureManager->getNativeFromHandle(m_color[0]);
-  colorIndex = (m_engine->m_timings.m_totalNumberOfFrames + 1) % 2;
-  id<MTLTexture> prevTexture =
-          m_engine->m_textureManager->getNativeFromHandle(m_color[colorIndex]);
-
-  [computeEncoder setAccelerationStructure:instanceAccelerationStructure atBufferIndex:0];
-  [computeEncoder setBuffer:bindInfo.buffer offset:bindInfo.offset atIndex:1];
-  [computeEncoder setBuffer:argRtBuffer offset:0 atIndex:2];
-  [computeEncoder setTexture:colorTexture atIndex:0];
-  [computeEncoder setTexture:m_randomTexture atIndex:1];
-  [computeEncoder setTexture:prevTexture atIndex:2];
-  [computeEncoder setComputePipelineState:rtMonoPipeline];
-  [computeEncoder dispatchThreadgroups:threadgroups
-                 threadsPerThreadgroup:MTLSizeMake(8, 8, 1)];
-  [computeEncoder endEncoding];
-}
 
 
 #if RT
@@ -689,7 +670,7 @@ void GraphicsLayer::recordRTArgBuffer() {
   id<MTLDevice> device = m_engine->m_renderingContext->getDevice();
 
   // args buffer
-  id<MTLFunction> fn = m_engine->m_shaderManager->getKernelFunction(m_rtMono);
+  id<MTLFunction> fn = m_engine->m_shaderManager->getKernelFunction(m_rtLightMap);
   id<MTLArgumentEncoder> argumentEncoder = [fn newArgumentEncoderWithBufferIndex:2];
   /*
   id<MTLFunction> fnFrag =
@@ -807,11 +788,10 @@ void GraphicsLayer::recordRasterArgBuffer() {
     [argumentEncoderFrag setArgumentBuffer:argBufferFrag offset:i * buffInstanceSizeFrag];
 
     id albedo;
-    if(i != 1) {
+    if (i != 1) {
       albedo = m_engine->m_textureManager->getNativeFromHandle(material.colorTexture);
-    }
-    else {
-      albedo =m_engine->m_textureManager->getNativeFromHandle( m_lightMap);
+    } else {
+      albedo = m_engine->m_textureManager->getNativeFromHandle(m_lightMap);
     }
     [argumentEncoderFrag setTexture:albedo atIndex:0];
     [argumentEncoderFrag setSamplerState:sampler atIndex:1];
@@ -822,7 +802,6 @@ void GraphicsLayer::recordRasterArgBuffer() {
 void GraphicsLayer::allocateGBufferTexture(int size) {
 
 
-
   id<MTLDevice> device = m_engine->m_renderingContext->getDevice();
   SirMetal::AllocTextureRequest request{static_cast<uint32_t>(size),
                                         static_cast<uint32_t>(size),
@@ -830,12 +809,13 @@ void GraphicsLayer::allocateGBufferTexture(int size) {
                                         MTLTextureType2D,
                                         MTLPixelFormatRGBA32Float,
                                         MTLTextureUsageRenderTarget |
-                                        MTLTextureUsageShaderRead,
+                                                MTLTextureUsageShaderRead,
                                         MTLStorageModePrivate,
                                         1,
                                         "gbuffPositions"};
   m_gbuff[0] = m_engine->m_textureManager->allocate(device, request);
   auto oldUsage = request.usage;
+  //request.format = MTLPixelFormatRGBA16Unorm;
   request.usage = oldUsage | MTLTextureUsageShaderWrite;
   request.name = "lightMap1";
   m_lightMap = m_engine->m_textureManager->allocate(device, request);
@@ -846,9 +826,8 @@ void GraphicsLayer::allocateGBufferTexture(int size) {
   request.format = MTLPixelFormatRGBA8Unorm;
   request.name = "gbuffNormals";
   m_gbuff[2] = m_engine->m_textureManager->allocate(device, request);
-
 }
-void GraphicsLayer::doGBufferPass(id<MTLCommandBuffer> commandBuffer,int index) {
+void GraphicsLayer::doGBufferPass(id<MTLCommandBuffer> commandBuffer, int index) {
 
   SirMetal::graphics::DrawTracker tracker{};
   id g1 = m_engine->m_textureManager->getNativeFromHandle(m_gbuff[0]);
@@ -865,7 +844,7 @@ void GraphicsLayer::doGBufferPass(id<MTLCommandBuffer> commandBuffer,int index) 
 
   // blitting to the swap chain
   MTLRenderPassDescriptor *passDescriptor =
-  [MTLRenderPassDescriptor renderPassDescriptor];
+          [MTLRenderPassDescriptor renderPassDescriptor];
   passDescriptor.colorAttachments[0].texture = g1;
   passDescriptor.colorAttachments[0].clearColor = {0.0, 0.0, 0.0, 0.0};
   passDescriptor.colorAttachments[0].storeAction = MTLStoreActionStore;
@@ -891,7 +870,7 @@ void GraphicsLayer::doGBufferPass(id<MTLCommandBuffer> commandBuffer,int index) 
      */
 
   id<MTLRenderCommandEncoder> commandEncoder =
-  [commandBuffer renderCommandEncoderWithDescriptor:passDescriptor];
+          [commandBuffer renderCommandEncoderWithDescriptor:passDescriptor];
 
   [commandEncoder setRenderPipelineState:cache.color];
   //[commandEncoder setDepthStencilState:cache.depth];
@@ -928,26 +907,26 @@ void GraphicsLayer::doGBufferPass(id<MTLCommandBuffer> commandBuffer,int index) 
   auto *mat = (void *) (&mesh.matrix);
   [commandEncoder useResource:meshData->vertexBuffer usage:MTLResourceUsageRead];
   [commandEncoder useResource:m_engine->m_textureManager->getNativeFromHandle(
-        mesh.material.colorTexture)
-  usage:MTLResourceUsageSample];
+                                      mesh.material.colorTexture)
+                        usage:MTLResourceUsageSample];
   [commandEncoder setVertexBytes:mat length:16 * 4 atIndex:5];
   [commandEncoder setVertexBytes:&index length:4 atIndex:6];
   //[commandEncoder drawPrimitives:MTLPrimitiveTypeTriangle
   //                   vertexStart:0
   //                   vertexCount:meshData->primitivesCount];
   [commandEncoder drawIndexedPrimitives:MTLPrimitiveTypeTriangle
-  indexCount:meshData->primitivesCount
-  indexType:MTLIndexTypeUInt32
-  indexBuffer:meshData->indexBuffer
-  indexBufferOffset:0];
+                             indexCount:meshData->primitivesCount
+                              indexType:MTLIndexTypeUInt32
+                            indexBuffer:meshData->indexBuffer
+                      indexBufferOffset:0];
   [commandEncoder endEncoding];
 }
 
-void GraphicsLayer::doLightmapBake(id<MTLCommandBuffer> commandBuffer , int index) {
+void GraphicsLayer::doLightmapBake(id<MTLCommandBuffer> commandBuffer, int index) {
 
   //HARDCODED HEIGHT
-  int w = 2048;
-  int h = 2048;
+  int w = lightMapSize;
+  int h = lightMapSize;
   MTLSize threadsPerThreadgroup = MTLSizeMake(8, 8, 1);
   MTLSize threadgroups = MTLSizeMake(
           (w + threadsPerThreadgroup.width - 1) / threadsPerThreadgroup.width,
@@ -967,7 +946,7 @@ void GraphicsLayer::doLightmapBake(id<MTLCommandBuffer> commandBuffer , int inde
   [computeEncoder setAccelerationStructure:instanceAccelerationStructure atBufferIndex:0];
   [computeEncoder setBuffer:bindInfo.buffer offset:bindInfo.offset atIndex:1];
   [computeEncoder setBuffer:argRtBuffer offset:0 atIndex:2];
-  [computeEncoder setBytes :&index length:4 atIndex:3];
+  [computeEncoder setBytes:&index length:4 atIndex:3];
   [computeEncoder setTexture:colorTexture atIndex:0];
   [computeEncoder setTexture:m_randomTexture atIndex:1];
   [computeEncoder setTexture:g1 atIndex:3];
@@ -975,13 +954,12 @@ void GraphicsLayer::doLightmapBake(id<MTLCommandBuffer> commandBuffer , int inde
   [computeEncoder setTexture:g3 atIndex:5];
   [computeEncoder setComputePipelineState:rtLightmapPipeline];
   [computeEncoder dispatchThreadgroups:threadgroups
-  threadsPerThreadgroup:MTLSizeMake(8, 8, 1)];
+                 threadsPerThreadgroup:MTLSizeMake(8, 8, 1)];
   [computeEncoder endEncoding];
-
 }
 
-void GraphicsLayer::doRasterRender(id<MTLRenderCommandEncoder> commandEncoder, const SirMetal::PSOCache& cache)
-{
+void GraphicsLayer::doRasterRender(id<MTLRenderCommandEncoder> commandEncoder,
+                                   const SirMetal::PSOCache &cache) {
   [commandEncoder setRenderPipelineState:cache.color];
   [commandEncoder setDepthStencilState:cache.depth];
   [commandEncoder setFrontFacingWinding:MTLWindingCounterClockwise];
@@ -999,24 +977,126 @@ void GraphicsLayer::doRasterRender(id<MTLRenderCommandEncoder> commandEncoder, c
 
   int counter = 0;
   for (auto &mesh : asset.models) {
-    if (!mesh.mesh.isHandleValid())
-      continue;
-    const SirMetal::MeshData *meshData =
-            m_engine->m_meshManager->getMeshData(mesh.mesh);
+    if (!mesh.mesh.isHandleValid()) continue;
+    const SirMetal::MeshData *meshData = m_engine->m_meshManager->getMeshData(mesh.mesh);
     auto *data = (void *) (&mesh.matrix);
     //[commandEncoder useResource: m_engine->m_textureManager->getNativeFromHandle(mesh.material.colorTexture) usage:MTLResourceUsageSample];
     [commandEncoder setVertexBytes:data length:16 * 4 atIndex:5];
     [commandEncoder setVertexBytes:&counter length:4 atIndex:6];
     [commandEncoder drawIndexedPrimitives:MTLPrimitiveTypeTriangle
-    indexCount:meshData->primitivesCount
-    indexType:MTLIndexTypeUInt32
-    indexBuffer:meshData->indexBuffer
-    indexBufferOffset:0];
+                               indexCount:meshData->primitivesCount
+                                indexType:MTLIndexTypeUInt32
+                              indexBuffer:meshData->indexBuffer
+                        indexBufferOffset:0];
     counter++;
   }
+}
 
 
+void GraphicsLayer::buildPacking(int maxSize, int individualSize, int count) {
+  constexpr bool allow_flip = false;
+  const auto runtime_flipping_mode = rectpack2D::flipping_option::DISABLED;
 
+  /*
+        Here, we choose the "empty_spaces" class that the algorithm will use from now on.
+
+        The first template argument is a bool which determines
+        if the algorithm will try to flip rectangles to better fit them.
+        The second argument is optional and specifies an allocator for the empty spaces.
+        The default one just uses a vector to store the spaces.
+        You can also pass a "static_empty_spaces<10000>" which will allocate 10000 spaces on the stack,
+        possibly improving performance.
+    */
+
+  using spaces_type =
+          rectpack2D::empty_spaces<allow_flip, rectpack2D::default_empty_spaces>;
+
+  /*
+        rect_xywh or rect_xywhf (see src/rect_structs.h),
+        depending on the value of allow_flip.
+    */
+
+  using rect_type = rectpack2D::output_rect_t<spaces_type>;
+
+  /*
+        Note:
+        The multiple-bin functionality was removed.
+        This means that it is now up to you what is to be done with unsuccessful insertions.
+        You may initialize another search when this happens.
+    */
+
+  auto report_successful = [](rect_type &) {
+    return rectpack2D::callback_result::CONTINUE_PACKING;
+  };
+
+  auto report_unsuccessful = [](rect_type &) {
+    return rectpack2D::callback_result::ABORT_PACKING;
+  };
+
+
+  /*
+        The search stops when the bin was successfully inserted into,
+        AND the next candidate bin size differs from the last successful one by *less* then discard_step.
+        The best possible granuarity is achieved with discard_step = 1.
+        If you pass a negative discard_step, the algoritm will search with even more granularity -
+        E.g. with discard_step = -4, the algoritm will behave as if you passed discard_step = 1,
+        but it will make as many as 4 attempts to optimize bins down to the single pixel.
+        Since discard_step = 0 does not make sense, the algoritm will automatically treat this case
+        as if it were passed a discard_step = 1.
+        For common applications, a discard_step = 1 or even discard_step = 128
+        should yield really good packings while being very performant.
+        If you are dealing with very small rectangles specifically,
+        it might be a good idea to make this value negative.
+        See the algorithm section of README for more information.
+    */
+
+  const auto discard_step = -4;
+
+  /*
+        Create some arbitrary rectangles.
+        Every subsequent call to the packer library will only read the widths and heights that we now specify,
+        and always overwrite the x and y coordinates with calculated results.
+    */
+
+  std::vector<rect_type> rectangles;
+
+  for(int i =0; i < count;++i)
+  {
+    rectangles.emplace_back(rectpack2D::rect_xywh(0, 0, individualSize, individualSize));
+  }
+
+  auto report_result = [&rectangles](const rectpack2D::rect_wh &result_size) {
+    printf("Resultant bin: %i %i \n", result_size.w, result_size.h);
+
+    for (const auto &r : rectangles) {
+      printf("%i %i %i %i\n", r.x, r.y, r.w, r.h); }
+  };
+
+  {
+    /*
+          Example 1: Find best packing with default orders.
+          If you pass no comparators whatsoever,
+          the standard collection of 6 orders:
+             by area, by perimeter, by bigger side, by width, by height and by "pathological multiplier"
+          - will be passed by default.
+      */
+
+    //const auto result_size = rectpack2D::find_best_packing<spaces_type>(
+    //        rectangles, make_finder_input(max_side, discard_step, report_successful,
+    //                                      report_unsuccessful, runtime_flipping_mode));
+
+    const auto result_size = rectpack2D::find_best_packing_dont_sort<spaces_type>(
+            rectangles,
+            make_finder_input(
+                    maxSize,
+                    discard_step,
+                    report_successful,
+                    report_unsuccessful,
+                    runtime_flipping_mode
+            )
+    );
+    report_result(result_size);
+  }
 }
 
 }// namespace Sandbox
