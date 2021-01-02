@@ -3,26 +3,24 @@
 #import <Metal/Metal.h>
 #import <QuartzCore/CAMetalLayer.h>
 #include <SirMetal/core/mathUtils.h>
-#include <SirMetal/resources/textureManager.h>
-#include <simd/simd.h>
 
 #include "SirMetal/application/window.h"
 #include "SirMetal/core/input.h"
 #include "SirMetal/engine.h"
-#include "SirMetal/graphics/PSOGenerator.h"
 #include "SirMetal/graphics/blit.h"
 #include "SirMetal/graphics/constantBufferManager.h"
 #include "SirMetal/graphics/debug/debugRenderer.h"
 #include "SirMetal/graphics/debug/imgui/imgui.h"
 #include "SirMetal/graphics/debug/imguiRenderer.h"
 #include "SirMetal/graphics/materialManager.h"
-#include "SirMetal/graphics/renderingContext.h"
+//resources
+#include <SirMetal/resources/textureManager.h>
 #include "SirMetal/resources/meshes/meshManager.h"
 #include "SirMetal/resources/shaderManager.h"
 
 #include "finders_interface.h"//rectpack2D
 
-static const char* rts[] = {"GPositions", "GUVs","GNormals","lightMap"};
+static const char *rts[] = {"GPositions", "GUVs", "GNormals", "lightMap"};
 
 struct RtCamera {
   simd_float4x4 VPinverse;
@@ -40,7 +38,6 @@ struct Uniforms {
   unsigned int lightMapSize;
   RtCamera camera;
 };
-
 
 constexpr int kMaxInflightBuffers = 3;
 
@@ -69,8 +66,6 @@ namespace Sandbox {
 void GraphicsLayer::onAttach(SirMetal::EngineContext *context) {
 
   m_engine = context;
-  m_gpuAllocator.initialize(m_engine->m_renderingContext->getDevice(),
-                            m_engine->m_renderingContext->getQueue());
 
   // initializing the camera to the identity
   m_camera.viewMatrix = matrix_float4x4_translation(vector_float3{0, 0, 0});
@@ -84,15 +79,9 @@ void GraphicsLayer::onAttach(SirMetal::EngineContext *context) {
   m_camUniformHandle = m_engine->m_constantBufferManager->allocate(
           m_engine, sizeof(SirMetal::Camera),
           SirMetal::CONSTANT_BUFFER_FLAGS_BITS::CONSTANT_BUFFER_FLAG_BUFFERED);
-  m_lightHandle = m_engine->m_constantBufferManager->allocate(
-          m_engine, sizeof(DirLight),
-          SirMetal::CONSTANT_BUFFER_FLAGS_BITS::CONSTANT_BUFFER_FLAG_NONE);
   m_uniforms = m_engine->m_constantBufferManager->allocate(
           m_engine, sizeof(Uniforms),
           SirMetal::CONSTANT_BUFFER_FLAGS_BITS::CONSTANT_BUFFER_FLAG_BUFFERED);
-
-  updateLightData();
-
 
   const std::string base = m_engine->m_config.m_dataSourcePath + "/sandbox";
   // let us load the gltf file
@@ -112,27 +101,12 @@ void GraphicsLayer::onAttach(SirMetal::EngineContext *context) {
 
   allocateGBufferTexture(packResult.w, packResult.h);
 
-  SirMetal::AllocTextureRequest request{m_engine->m_config.m_windowConfig.m_width,
-                                        m_engine->m_config.m_windowConfig.m_height,
-                                        1,
-                                        MTLTextureType2D,
-                                        MTLPixelFormatRGBA32Float,
-                                        MTLTextureUsageRenderTarget |
-                                                MTLTextureUsageShaderRead |
-                                                MTLTextureUsageShaderWrite,
-                                        MTLStorageModePrivate,
-                                        1,
-                                        "colorRayTracing"};
-  m_color[0] = m_engine->m_textureManager->allocate(device, request);
-  request.name = "colorRayTracing2";
-  m_color[1] = m_engine->m_textureManager->allocate(device, request);
-
   m_shaderHandle =
           m_engine->m_shaderManager->loadShader((base + "/Shaders.metal").c_str());
   m_gbuffHandle = m_engine->m_shaderManager->loadShader((base + "/gbuff.metal").c_str());
   m_fullScreenHandle =
           m_engine->m_shaderManager->loadShader((base + "/fullscreen.metal").c_str());
-  m_rtLightMap =
+  m_rtLightMapHandle =
           m_engine->m_shaderManager->loadShader((base + "/rtLightMap.metal").c_str());
 
 #if RT
@@ -157,14 +131,14 @@ void GraphicsLayer::onAttach(SirMetal::EngineContext *context) {
   frameBoundarySemaphore = dispatch_semaphore_create(kMaxInflightBuffers);
 
   rtLightmapPipeline = createComputePipeline(
-          device, m_engine->m_shaderManager->getKernelFunction(m_rtLightMap));
+          device, m_engine->m_shaderManager->getKernelFunction(m_rtLightMapHandle));
   // this is to flush the gpu, should figure out why is not actually flushing
   // properly
   m_engine->m_renderingContext->flush();
 
 
 #if RT
-  SirMetal::graphics::buildMultiLevelBVH(m_engine,asset.models,accelStruct);
+  SirMetal::graphics::buildMultiLevelBVH(m_engine, asset.models, accelStruct);
 #endif
 
   //generateRandomTexture(1280u, 720u);
@@ -172,7 +146,6 @@ void GraphicsLayer::onAttach(SirMetal::EngineContext *context) {
 
   MTLArgumentBuffersTier tier = [device argumentBuffersSupport];
   assert(tier == MTLArgumentBuffersTier2);
-
 }
 
 void GraphicsLayer::onDetach() {}
@@ -213,28 +186,6 @@ bool GraphicsLayer::updateUniformsForView(float screenWidth, float screenHeight,
 
   return updated;
 }
-struct RtCamera {
-  vector_float3 position;
-  vector_float3 right;
-  vector_float3 up;
-  vector_float3 forward;
-};
-
-struct AreaLight {
-  vector_float3 position;
-  vector_float3 forward;
-  vector_float3 right;
-  vector_float3 up;
-  vector_float3 color;
-};
-
-struct Uniforms {
-  unsigned int width;
-  unsigned int height;
-  unsigned int frameIndex;
-  RtCamera camera;
-  AreaLight light;
-};
 
 void GraphicsLayer::onUpdate() {
 
@@ -257,7 +208,6 @@ void GraphicsLayer::onUpdate() {
   float w = texture.width;
   float h = texture.height;
   updateUniformsForView(w, h, lightMapSize);
-  updateLightData();
 
   id<MTLCommandBuffer> commandBuffer = [queue commandBuffer];
 
@@ -302,20 +252,26 @@ void GraphicsLayer::onUpdate() {
 
   doRasterRender(commandEncoder, cache);
 
-  if(debugFullScreen)
-  {
+  if (debugFullScreen) {
     SirMetal::graphics::BlitRequest request{};
-    switch(currentDebug)
-    {
-      case 0: request.srcTexture = m_gbuff[0];break;
-      case 1: request.srcTexture = m_gbuff[1];break;
-      case 2: request.srcTexture = m_gbuff[2];break;
-      case 3: request.srcTexture = m_lightMap;break;
+    switch (currentDebug) {
+      case 0:
+        request.srcTexture = m_gbuff[0];
+        break;
+      case 1:
+        request.srcTexture = m_gbuff[1];
+        break;
+      case 2:
+        request.srcTexture = m_gbuff[2];
+        break;
+      case 3:
+        request.srcTexture = m_lightMap;
+        break;
     }
     request.dstTexture = texture;
     request.customView = 0;
     request.customScissor = 0;
-    SirMetal::graphics::doBlit(m_engine,commandEncoder,request);
+    SirMetal::graphics::doBlit(m_engine, commandEncoder, request);
   }
   // render debug
   m_engine->m_debugRenderer->newFrame();
@@ -355,25 +311,6 @@ void GraphicsLayer::clear() {
   m_engine->m_renderingContext->flush();
   SirMetal::graphics::shutdownImgui();
 }
-void GraphicsLayer::updateLightData() {
-  simd_float3 view{0, 1, 1};
-  view = simd_normalize(view);
-  simd_float3 up{0, 1, 0};
-  simd_float3 cross = simd_normalize(simd_cross(up, view));
-  up = simd_normalize(simd_cross(view, cross));
-  simd_float4 pos4{0, 15, 15, 1};
-
-  simd_float4 view4{view.x, view.y, view.z, 0};
-  simd_float4 up4{up.x, up.y, up.z, 0};
-  simd_float4 cross4{cross.x, cross.y, cross.z, 0};
-  light.V = {cross4, up4, view4, pos4};
-  light.P = matrix_float4x4_perspective(1, M_PI / 2, 0.01f, 40.0f);
-  // light.VInverse = simd_inverse(light.V);
-  light.VP = simd_mul(light.P, simd_inverse(light.V));
-  light.lightDir = view4;
-
-  m_engine->m_constantBufferManager->update(m_engine, m_lightHandle, &light);
-}
 void GraphicsLayer::renderDebugWindow() {
 
   static bool p_open = false;
@@ -387,7 +324,7 @@ void GraphicsLayer::renderDebugWindow() {
     //lets render the pathracer stuff
     if (ImGui::CollapsingHeader("LightMapper")) {
 
-      ImGui::SliderInt("Number of samples",&requestedSamples,0,4000);
+      ImGui::SliderInt("Number of samples", &requestedSamples, 0, 4000);
       ImGui::Separator();
       //bake button
       bool isDone = rtSampleCounter == requestedSamples;
@@ -401,11 +338,7 @@ void GraphicsLayer::renderDebugWindow() {
       ImGui::Separator();
 
       ImGui::Checkbox("Debug full screen", &debugFullScreen);
-      if(debugFullScreen)
-      {
-        ImGui::Combo("Target",&currentDebug,rts,4);
-      }
-
+      if (debugFullScreen) { ImGui::Combo("Target", &currentDebug, rts, 4); }
     }
   }
   ImGui::End();
@@ -436,7 +369,7 @@ void GraphicsLayer::generateRandomTexture(uint32_t w, uint32_t h) {
 
   auto *randomValues = static_cast<uint32_t *>(malloc(sizeof(uint32_t) * w * h));
 
-  for (NSUInteger i = 0; i < w * h; i++) randomValues[i] = rand() % (1024 * 1024);
+  for (int i = 0; i < w * h; i++) randomValues[i] = rand() % (1024 * 1024);
 
   [m_randomTexture replaceRegion:MTLRegionMake2D(0, 0, w, h)
                      mipmapLevel:0
@@ -446,39 +379,17 @@ void GraphicsLayer::generateRandomTexture(uint32_t w, uint32_t h) {
   free(randomValues);
 }
 
+#if RT
 void GraphicsLayer::recordRTArgBuffer() {
   id<MTLDevice> device = m_engine->m_renderingContext->getDevice();
 
   // args buffer
-  id<MTLFunction> fn = m_engine->m_shaderManager->getKernelFunction(m_rtLightMap);
+  id<MTLFunction> fn = m_engine->m_shaderManager->getKernelFunction(m_rtLightMapHandle);
   id<MTLArgumentEncoder> argumentEncoder = [fn newArgumentEncoderWithBufferIndex:2];
-  /*
-  id<MTLFunction> fnFrag =
-          m_engine->m_shaderManager->getFragmentFunction(m_shaderHandle);
-  id<MTLArgumentEncoder> argumentEncoderFrag =
-          [fnFrag newArgumentEncoderWithBufferIndex:0];
-          */
 
   int meshesCount = asset.models.size();
   int buffInstanceSize = argumentEncoder.encodedLength;
   argRtBuffer = [device newBufferWithLength:buffInstanceSize * meshesCount options:0];
-
-  /*
-  int buffInstanceSizeFrag = argumentEncoderFrag.encodedLength;
-  argBufferFrag =
-          [device newBufferWithLength:buffInstanceSizeFrag * meshesCount
-                              options:0];
-
-  MTLSamplerDescriptor *samplerDesc = [MTLSamplerDescriptor new];
-  samplerDesc.minFilter = MTLSamplerMinMagFilterLinear;
-  samplerDesc.magFilter = MTLSamplerMinMagFilterLinear;
-  samplerDesc.mipFilter = MTLSamplerMipFilterNotMipmapped;
-  samplerDesc.normalizedCoordinates = YES;
-  samplerDesc.supportArgumentBuffers = YES;
-
-  sampler = [device newSamplerStateWithDescriptor:samplerDesc];
-  */
-
 
   for (int i = 0; i < meshesCount; ++i) {
     [argumentEncoder setArgumentBuffer:argRtBuffer offset:i * buffInstanceSize];
@@ -504,16 +415,6 @@ void GraphicsLayer::recordRTArgBuffer() {
     memcpy(ptrMatrix, &asset.models[i].matrix, sizeof(float) * 16);
     memcpy(((char *) ptrMatrix + sizeof(float) * 16), &material.colorFactors,
            sizeof(float) * 4);
-
-    /*
-    const auto &material = asset.models[i].material;
-    [argumentEncoderFrag setArgumentBuffer:argBufferFrag offset:i * buffInstanceSizeFrag];
-    id albedo = m_engine->m_textureManager->getNativeFromHandle(material.colorTexture);
-    [argumentEncoderFrag setTexture:albedo atIndex:0];
-    [argumentEncoderFrag setSamplerState:sampler atIndex:1];
-    auto *ptr = [argumentEncoderFrag constantDataAtIndex:2];
-    memcpy(ptr, &material.colorFactors, sizeof(float) * 4);
-     */
   }
 }
 #endif
@@ -535,15 +436,6 @@ void GraphicsLayer::recordRasterArgBuffer() {
   int buffInstanceSizeFrag = argumentEncoderFrag.encodedLength;
   argBufferFrag =
           [device newBufferWithLength:buffInstanceSizeFrag * meshesCount options:0];
-
-  MTLSamplerDescriptor *samplerDesc = [MTLSamplerDescriptor new];
-  samplerDesc.minFilter = MTLSamplerMinMagFilterLinear;
-  samplerDesc.magFilter = MTLSamplerMinMagFilterLinear;
-  samplerDesc.mipFilter = MTLSamplerMipFilterNotMipmapped;
-  samplerDesc.normalizedCoordinates = YES;
-  samplerDesc.supportArgumentBuffers = YES;
-
-  sampler = [device newSamplerStateWithDescriptor:samplerDesc];
 
 
   for (int i = 0; i < meshesCount; ++i) {
@@ -569,14 +461,10 @@ void GraphicsLayer::recordRasterArgBuffer() {
     [argumentEncoderFrag setArgumentBuffer:argBufferFrag offset:i * buffInstanceSizeFrag];
 
     id albedo;
-    //if (i != 1) {
-    //  albedo = m_engine->m_textureManager->getNativeFromHandle(material.colorTexture);
-    //} else {
     albedo = m_engine->m_textureManager->getNativeFromHandle(m_lightMap);
     //}
     [argumentEncoderFrag setTexture:albedo atIndex:0];
-    [argumentEncoderFrag setSamplerState:sampler atIndex:1];
-    auto *ptr = [argumentEncoderFrag constantDataAtIndex:2];
+    auto *ptr = [argumentEncoderFrag constantDataAtIndex:1];
     float matData[8]{};
     matData[0] = material.colorFactors.x;
     matData[1] = material.colorFactors.y;
@@ -618,7 +506,6 @@ void GraphicsLayer::allocateGBufferTexture(int w, int h) {
                                         "gbuffPositions"};
   m_gbuff[0] = m_engine->m_textureManager->allocate(device, request);
   auto oldUsage = request.usage;
-  //request.format = MTLPixelFormatRGBA16Unorm;
   request.usage = oldUsage | MTLTextureUsageShaderWrite;
   request.name = "lightMap1";
   m_lightMap = m_engine->m_textureManager->allocate(device, request);
@@ -663,20 +550,10 @@ void GraphicsLayer::doGBufferPass(id<MTLCommandBuffer> commandBuffer) {
   passDescriptor.colorAttachments[2].storeAction = MTLStoreActionStore;
   passDescriptor.colorAttachments[2].loadAction = MTLLoadActionClear;
 
-  /*
-  MTLRenderPassDepthAttachmentDescriptor* depthAttachment = passDescriptor.depthAttachment;
-  depthAttachment.texture =
-          m_engine->m_textureManager->getNativeFromHandle(m_depthHandle);
-  depthAttachment.clearDepth = 1.0;
-  depthAttachment.storeAction = MTLStoreActionDontCare;
-  depthAttachment.loadAction = MTLLoadActionClear;
-     */
-
   id<MTLRenderCommandEncoder> commandEncoder =
           [commandBuffer renderCommandEncoderWithDescriptor:passDescriptor];
 
   [commandEncoder setRenderPipelineState:cache.color];
-  //[commandEncoder setDepthStencilState:cache.depth];
   [commandEncoder setFrontFacingWinding:MTLWindingCounterClockwise];
   //disabling culling since we  are rendering in uv space
   [commandEncoder setCullMode:MTLCullModeNone];
@@ -692,14 +569,12 @@ void GraphicsLayer::doGBufferPass(id<MTLCommandBuffer> commandBuffer) {
   double LO = 0.0f;
   double HI = 1.0f;
   float jitter[2];
-  float t1 =
-          static_cast<float>(LO + static_cast<double>(rand()) /
-                                          (static_cast<double>(RAND_MAX / (HI - LO)))) *
-          M_PI * 2;
-  float t2 =
-          static_cast<float>(LO + static_cast<double>(rand()) /
-                                          (static_cast<double>(RAND_MAX / (HI - LO)))) *
-          M_PI * 2;
+  auto t1 = static_cast<float>(LO + static_cast<double>(rand()) /
+                                            (static_cast<double>(RAND_MAX / (HI - LO))) *
+                                            M_PI * 2);
+  auto t2 = static_cast<float>(LO + static_cast<double>(rand()) /
+                                            (static_cast<double>(RAND_MAX / (HI - LO))) *
+                                            M_PI * 2);
 
   float jitterMultiplier = 3.0f;
   jitter[0] = cos(t1) / lightMapSize;
@@ -734,9 +609,6 @@ void GraphicsLayer::doGBufferPass(id<MTLCommandBuffer> commandBuffer) {
     [commandEncoder setVertexBytes:mat length:16 * sizeof(float) atIndex:5];
     [commandEncoder setVertexBytes:&i length:sizeof(uint32_t) atIndex:6];
     [commandEncoder setVertexBytes:&jitter[0] length:sizeof(float) * 2 atIndex:7];
-    //[commandEncoder drawPrimitives:MTLPrimitiveTypeTriangle
-    //                   vertexStart:0
-    //                   vertexCount:meshData->primitivesCount];
     [commandEncoder drawIndexedPrimitives:MTLPrimitiveTypeTriangle
                                indexCount:meshData->primitivesCount
                                 indexType:MTLIndexTypeUInt32
@@ -782,7 +654,8 @@ void GraphicsLayer::doLightmapBake(id<MTLCommandBuffer> commandBuffer) {
   id g3 = m_engine->m_textureManager->getNativeFromHandle(m_gbuff[2]);
 
 
-  [computeEncoder setAccelerationStructure:accelStruct.instanceAccelerationStructure atBufferIndex:0];
+  [computeEncoder setAccelerationStructure:accelStruct.instanceAccelerationStructure
+                             atBufferIndex:0];
   [computeEncoder setBuffer:bindInfo.buffer offset:bindInfo.offset atIndex:1];
   [computeEncoder setBuffer:argRtBuffer offset:0 atIndex:2];
   [computeEncoder setBytes:&index length:4 atIndex:3];
@@ -813,8 +686,6 @@ void GraphicsLayer::doRasterRender(id<MTLRenderCommandEncoder> commandEncoder,
   SirMetal::BindInfo info =
           m_engine->m_constantBufferManager->getBindInfo(m_engine, m_camUniformHandle);
   [commandEncoder setVertexBuffer:info.buffer offset:info.offset atIndex:4];
-  info = m_engine->m_constantBufferManager->getBindInfo(m_engine, m_lightHandle);
-  [commandEncoder setFragmentBuffer:info.buffer offset:info.offset atIndex:5];
 
   //setting the arguments buffer
   [commandEncoder setVertexBuffer:argBuffer offset:0 atIndex:0];
@@ -839,7 +710,6 @@ void GraphicsLayer::doRasterRender(id<MTLRenderCommandEncoder> commandEncoder,
 
 
 PackingResult GraphicsLayer::buildPacking(int maxSize, int individualSize, int count) {
-  constexpr bool allow_flip = false;
   const auto runtime_flipping_mode = rectpack2D::flipping_option::DISABLED;
 
   /*
@@ -852,7 +722,7 @@ PackingResult GraphicsLayer::buildPacking(int maxSize, int individualSize, int c
         You can also pass a "static_empty_spaces<10000>" which will allocate 10000 spaces on the stack,
         possibly improving performance.
     */
-
+  constexpr bool allow_flip = false;
   using spaces_type =
           rectpack2D::empty_spaces<allow_flip, rectpack2D::default_empty_spaces>;
 

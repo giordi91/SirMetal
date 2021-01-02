@@ -23,13 +23,6 @@ struct Camera {
   float fov;
 };
 
-struct DirLight {
-  float4x4 V;
-  float4x4 P;
-  float4x4 VP;
-  float4 lightDir;
-};
-
 struct Mesh {
   device float4 *positions [[id(0)]];
   device float4 *normals [[id(1)]];
@@ -40,9 +33,8 @@ struct Mesh {
 
 struct Material {
   texture2d<float> albedoTex [[id(0)]];
-  sampler sampler [[id(1)]];
-  float4 tintColor [[id(2)]];
-  float4 lightMapOff[[id(3)]];
+  float4 tintColor [[id(1)]];
+  float4 lightMapOff[[id(2)]];
 };
 
 vertex OutVertex vertex_project(
@@ -67,23 +59,16 @@ vertex OutVertex vertex_project(
 
 
 fragment half4 fragment_flatcolor(OutVertex vertexIn [[stage_in]],
-                                  constant DirLight *light [[buffer(5)]],
                                   const device Material *materials [[buffer(0)]]) {
 
   device const Material &mat = materials[vertexIn.id];
-  float4 n = vertexIn.normal;
+  constexpr sampler s(coord::normalized, filter::linear, address::clamp_to_edge);
 
-  float2 uv = vertexIn.uv;
+float2 uv = vertexIn.uv;
   uv.y = 1.0f - uv.y;
   uv *= mat.lightMapOff.xy;
   uv += mat.lightMapOff.zw;
   float4 albedo =
-          mat.albedoTex.sample(mat.sampler, uv);
-  float4 color = mat.tintColor * albedo;
-  color*=  saturate(dot(n.xyz,light->lightDir.xyz));
-  //if(vertexIn.id == 1){
-    color = albedo;
-  //}
-
-  return half4(color.x,color.y,color.z, 1.0h);
+          mat.albedoTex.sample(s, uv);
+  return half4(albedo.x,albedo.y,albedo.z, 1.0h);
 }

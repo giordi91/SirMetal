@@ -3,14 +3,13 @@
 #include "SirMetal//application/layer.h"
 #include "SirMetal/core/memory/gpu/GPUMemoryAllocator.h"
 #include "SirMetal/graphics/camera.h"
-#include "SirMetal/graphics/debug/frameTimingsWidget.h"
-#include "SirMetal/graphics/debug/gpuWidget.h"
 #include "SirMetal/graphics/renderingContext.h"
 #include "SirMetal/resources/gltfLoader.h"
 #include "SirMetal/resources/handle.h"
-#import <Metal/Metal.h>
-#include <SirMetal/graphics/PSOGenerator.h>
-#include <SirMetal/graphics/metalBvh.h>
+#include "SirMetal/graphics/PSOGenerator.h"
+#include "SirMetal/graphics/metalBvh.h"
+#include "SirMetal/graphics/debug/frameTimingsWidget.h"
+#include "SirMetal/graphics/debug/gpuWidget.h"
 
 #define RT 1
 struct DirLight {
@@ -48,7 +47,6 @@ class GraphicsLayer final : public SirMetal::Layer {
   private:
   bool updateUniformsForView(float screenWidth, float screenHeight,
                              uint32_t lightMapSize);
-  void updateLightData();
   void renderDebugWindow();
   void generateRandomTexture(uint32_t w, uint32_t h);
   void recordRasterArgBuffer();
@@ -69,13 +67,11 @@ class GraphicsLayer final : public SirMetal::Layer {
   SirMetal::CameraManipulationConfig m_camConfig{};
   SirMetal::EngineContext *m_engine{};
   SirMetal::ConstantBufferHandle m_camUniformHandle;
-  SirMetal::ConstantBufferHandle m_lightHandle;
   SirMetal::ConstantBufferHandle m_uniforms;
   SirMetal::LibraryHandle m_shaderHandle;
   SirMetal::LibraryHandle m_gbuffHandle;
   SirMetal::LibraryHandle m_fullScreenHandle;
-  SirMetal::LibraryHandle m_rtLightMap;
-  SirMetal::TextureHandle m_color[2];
+  SirMetal::LibraryHandle m_rtLightMapHandle;
   SirMetal::TextureHandle m_gbuff[3];
   SirMetal::TextureHandle m_lightMap;
   SirMetal::TextureHandle m_depthHandle;
@@ -83,18 +79,16 @@ class GraphicsLayer final : public SirMetal::Layer {
 
   SirMetal::graphics::FrameTimingsWidget m_timingsWidget;
   SirMetal::graphics::GPUInfoWidget m_gpuInfo;
-  DirLight light{};
-  SirMetal::GPUMemoryAllocator m_gpuAllocator;
-  id rtLightmapPipeline;
 
+  id rtLightmapPipeline;
   id m_randomTexture;
 
   id argRtBuffer;
   id argBuffer;
   id argBufferFrag;
-  id sampler;
 
   SirMetal::GLTFAsset asset;
+
   int rtSampleCounter = 0;
   int requestedSamples = 400;
   uint32_t rtFrameCounterFull = 0;

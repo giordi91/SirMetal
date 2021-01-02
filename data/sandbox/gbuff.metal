@@ -39,8 +39,8 @@ struct Mesh {
 
 struct Material {
   texture2d<float> albedoTex [[id(0)]];
-  sampler sampler [[id(1)]];
-  float4 tintColor [[id(2)]];
+  float4 tintColor [[id(1)]];
+  float4 lightMapOff[[id(2)]];
 };
 
 vertex OutVertex vertex_project(const device Mesh *meshes [[buffer(0)]],
