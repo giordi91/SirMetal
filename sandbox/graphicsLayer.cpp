@@ -18,8 +18,11 @@
 #include "SirMetal/graphics/renderingContext.h"
 #include "SirMetal/resources/meshes/meshManager.h"
 #include "SirMetal/resources/shaderManager.h"
+#include "SirMetal/graphics/blit.h"
 
 #include "finders_interface.h"//rectpack2D
+
+static const char* rts[] = {"GPositions", "GUVs","GNormals","lightMap"};
 
 struct RtCamera {
   simd_float4x4 VPinverse;
@@ -169,6 +172,7 @@ void GraphicsLayer::onAttach(SirMetal::EngineContext *context) {
 
   MTLArgumentBuffersTier tier = [device argumentBuffersSupport];
   assert(tier == MTLArgumentBuffersTier2);
+
 }
 
 void GraphicsLayer::onDetach() {}
@@ -199,8 +203,7 @@ bool GraphicsLayer::updateUniformsForView(float screenWidth, float screenHeight,
   simd_float4 right = simd_normalize(m_camera.viewMatrix.columns[0]);
   u.camera.right = simd_normalize(simd_float3{right.x, right.y, right.z});
 
-  if (updated) { rtFrameCounter = 0; }
-  u.frameIndex = rtFrameCounter;
+  u.frameIndex = rtSampleCounter;
   u.height = m_engine->m_config.m_windowConfig.m_height;
   u.width = m_engine->m_config.m_windowConfig.m_width;
   u.lightMapSize = lightMapSize;
@@ -267,7 +270,7 @@ void GraphicsLayer::onUpdate() {
   //now that we have that we can actually kick a raytracing shader which uses the gbuffer information
   //for the first ray
 #if RT
-  doLightmapBake(commandBuffer);
+  if (rtSampleCounter < requestedSamples) { doLightmapBake(commandBuffer); }
 #endif
 
 
@@ -299,57 +302,21 @@ void GraphicsLayer::onUpdate() {
 
   doRasterRender(commandEncoder, cache);
 
-  //int counter = 1;
-  //const auto &mesh = asset.models[counter];
-  //const SirMetal::MeshData *meshData = m_engine->m_meshManager->getMeshData(mesh.mesh);
-  //auto *mat = (void *) (&mesh.matrix);
-  //[commandEncoder useResource:meshData->vertexBuffer usage:MTLResourceUsageRead];
-  //[commandEncoder useResource:m_engine->m_textureManager->getNativeFromHandle(
-  //                                    mesh.material.colorTexture)
-  //                      usage:MTLResourceUsageSample];
-  //[commandEncoder setVertexBytes:mat length:16 * 4 atIndex:5];
-  //[commandEncoder setVertexBytes:&counter length:4 atIndex:6];
-  //[commandEncoder drawIndexedPrimitives:MTLPrimitiveTypeTriangle
-  //                           indexCount:meshData->primitivesCount
-  //                            indexType:MTLIndexTypeUInt32
-  //                          indexBuffer:meshData->indexBuffer
-  //                    indexBufferOffset:0];
-
-  /*
-  //FULL SCREEN
-  SirMetal::graphics::DrawTracker tracker{};
-  tracker.renderTargets[0] = texture;
-  tracker.depthTarget = {};
-
-  SirMetal::PSOCache cache =
-          SirMetal::getPSO(m_engine, tracker, SirMetal::Material{"fullscreen", false});
-
-
-  MTLRenderPassDescriptor *passDescriptor =
-  [MTLRenderPassDescriptor renderPassDescriptor];
-  passDescriptor.colorAttachments[0].texture = texture;
-  passDescriptor.colorAttachments[0].clearColor = {0.2, 0.2, 0.2, 1.0};
-  passDescriptor.colorAttachments[0].storeAction = MTLStoreActionStore;
-  passDescriptor.colorAttachments[0].loadAction = MTLLoadActionClear;
-
-  passDescriptor.colorAttachments[0].texture = texture;
-  passDescriptor.colorAttachments[0].clearColor = {0.2, 0.2, 0.2, 1.0};
-  passDescriptor.colorAttachments[0].storeAction = MTLStoreActionStore;
-  passDescriptor.colorAttachments[0].loadAction = MTLLoadActionClear;
-
-  id<MTLRenderCommandEncoder> commandEncoder =
-  [commandBuffer renderCommandEncoderWithDescriptor:passDescriptor];
-
-  id<MTLTexture> colorTexture =
-          m_engine->m_textureManager->getNativeFromHandle(m_lightMap);
-
-  [commandEncoder setRenderPipelineState:cache.color];
-  [commandEncoder setFrontFacingWinding:MTLWindingCounterClockwise];
-  [commandEncoder setCullMode:MTLCullModeBack];
-  [commandEncoder setFragmentTexture:colorTexture atIndex:0];
-  [commandEncoder drawPrimitives:MTLPrimitiveTypeTriangle vertexStart:0 vertexCount:3];
-                                    */
-
+  if(debugFullScreen)
+  {
+    SirMetal::graphics::BlitRequest request{};
+    switch(currentDebug)
+    {
+      case 0: request.srcTexture = m_gbuff[0];break;
+      case 1: request.srcTexture = m_gbuff[1];break;
+      case 2: request.srcTexture = m_gbuff[2];break;
+      case 3: request.srcTexture = m_lightMap;break;
+    }
+    request.dstTexture = texture;
+    request.customView = 0;
+    request.customScissor = 0;
+    SirMetal::graphics::doBlit(m_engine,commandEncoder,request);
+  }
   // render debug
   m_engine->m_debugRenderer->newFrame();
   float data[6]{0, 0, 0, 0, 100, 0};
@@ -375,8 +342,6 @@ void GraphicsLayer::onUpdate() {
 
 
   SDL_RenderPresent(m_engine->m_renderingContext->getRenderer());
-  ++rtFrameCounterFull;
-  if ((rtFrameCounterFull % asset.models.size()) == 0) { rtFrameCounter++; }
   //}
 }
 
@@ -418,6 +383,30 @@ void GraphicsLayer::renderDebugWindow() {
   if (ImGui::Begin("Debug", &p_open, 0)) {
     m_gpuInfo.render(m_engine->m_renderingContext->getDevice());
     m_timingsWidget.render(m_engine);
+
+    //lets render the pathracer stuff
+    if (ImGui::CollapsingHeader("LightMapper")) {
+
+      ImGui::SliderInt("Number of samples",&requestedSamples,0,4000);
+      ImGui::Separator();
+      //bake button
+      bool isDone = rtSampleCounter == requestedSamples;
+      if (isDone) { ImGui::PushStyleColor(0, ImVec4(0, 1, 0, 1)); }
+      if (ImGui::Button("Bake lightmap")) { rtSampleCounter = 0; }
+      if (isDone) { ImGui::PopStyleColor(1); }
+
+      ImGui::PushItemWidth(50.0f);
+      ImGui::DragInt("Samples done", &rtSampleCounter, 0.0f);
+      ImGui::PopItemWidth();
+      ImGui::Separator();
+
+      ImGui::Checkbox("Debug full screen", &debugFullScreen);
+      if(debugFullScreen)
+      {
+        ImGui::Combo("Target",&currentDebug,rts,4);
+      }
+
+    }
   }
   ImGui::End();
 }
@@ -896,37 +885,24 @@ void GraphicsLayer::doGBufferPass(id<MTLCommandBuffer> commandBuffer) {
   [commandEncoder setVertexBuffer:argBuffer offset:0 atIndex:0];
   [commandEncoder setFragmentBuffer:argBufferFrag offset:0 atIndex:0];
 
-  /*
-  int counter = 0;
-  for (auto &mesh : asset.models) {
-    if (!mesh.mesh.isHandleValid())
-      continue;
-    const SirMetal::MeshData *meshData =
-            m_engine->m_meshManager->getMeshData(mesh.mesh);
-    auto *data = (void *) (&mesh.matrix);
-    //[commandEncoder useResource: m_engine->m_textureManager->getNativeFromHandle(mesh.material.colorTexture) usage:MTLResourceUsageSample];
-    [commandEncoder setVertexBytes:data length:16 * 4 atIndex:5];
-    [commandEncoder setVertexBytes:&counter length:4 atIndex:6];
-    [commandEncoder drawPrimitives:MTLPrimitiveTypeTriangle
-                       vertexStart:0
-                       vertexCount:meshData->primitivesCount];
-    counter++;
-  }
-  */
-
   //compute jitter
-  double LO = -1.0f;
+  double LO = 0.0f;
   double HI = 1.0f;
   float jitter[2];
-  jitter[0] = static_cast<float>(
-          LO + static_cast<double>(rand()) / (static_cast<double>(RAND_MAX / (HI - LO))));
-  jitter[1] = static_cast<float>(
-          LO + static_cast<double>(rand()) / (static_cast<double>(RAND_MAX / (HI - LO))));
-  float jitterMultiplier = 2.0f;
-  jitter[0] /= lightMapSize;
-  jitter[1] /= lightMapSize;
-  jitter[0] *= jitterMultiplier;
-  jitter[1] *= jitterMultiplier;
+  float t1 =
+          static_cast<float>(LO + static_cast<double>(rand()) /
+                                          (static_cast<double>(RAND_MAX / (HI - LO)))) *
+          M_PI * 2;
+  float t2 =
+          static_cast<float>(LO + static_cast<double>(rand()) /
+                                          (static_cast<double>(RAND_MAX / (HI - LO)))) *
+          M_PI * 2;
+
+  float jitterMultiplier = 3.0f;
+  jitter[0] = cos(t1) / lightMapSize;
+  jitter[1] = sin(t2) / lightMapSize;
+  jitter[0] *= (jitterMultiplier);
+  jitter[1] *= (jitterMultiplier);
 
   for (int i = 0; i < asset.models.size(); ++i) {
     const auto &mesh = asset.models[i];
@@ -941,8 +917,8 @@ void GraphicsLayer::doGBufferPass(id<MTLCommandBuffer> commandBuffer) {
     [commandEncoder setScissorRect:rect];
 
     MTLViewport view;
-    view.height = rect.height;
     view.width = rect.width;
+    view.height = rect.height;
     view.originX = rect.x;
     view.originY = rect.y;
     view.znear = 0;
@@ -980,6 +956,7 @@ void GraphicsLayer::doGBufferPass(id<MTLCommandBuffer> commandBuffer) {
   [commandEncoder endEncoding];
 }
 
+#if RT
 void GraphicsLayer::doLightmapBake(id<MTLCommandBuffer> commandBuffer) {
 
   int index = m_engine->m_timings.m_totalNumberOfFrames % asset.models.size();
@@ -1017,7 +994,11 @@ void GraphicsLayer::doLightmapBake(id<MTLCommandBuffer> commandBuffer) {
   [computeEncoder dispatchThreadgroups:threadgroups
                  threadsPerThreadgroup:MTLSizeMake(8, 8, 1)];
   [computeEncoder endEncoding];
+
+  ++rtFrameCounterFull;
+  if ((rtFrameCounterFull % asset.models.size()) == 0) { rtSampleCounter++; }
 }
+#endif
 
 void GraphicsLayer::doRasterRender(id<MTLRenderCommandEncoder> commandEncoder,
                                    const SirMetal::PSOCache &cache) {
@@ -1152,7 +1133,11 @@ PackingResult GraphicsLayer::buildPacking(int maxSize, int individualSize, int c
     for (const auto &rect : rectangles) {
       outRects.emplace_back(TexRect{rect.x, rect.y, rect.w, rect.h});
     }
-    return {result_size.w, result_size.h, outRects};
+    return {
+            outRects,
+            result_size.w,
+            result_size.h,
+    };
   }
 }
 

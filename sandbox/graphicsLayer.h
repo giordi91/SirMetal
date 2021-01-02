@@ -20,17 +20,14 @@ struct DirLight {
   simd_float4 lightDir;
 };
 
-struct TexRect
-{
-  int x,y,w,h;
+struct TexRect {
+  int x, y, w, h;
 };
 
-struct PackingResult
-{
+struct PackingResult {
+  std::vector<TexRect> rectangles;
   int w;
   int h;
-  std::vector<TexRect> rectangles;
-
 };
 namespace SirMetal {
 struct EngineContext;
@@ -48,16 +45,23 @@ class GraphicsLayer final : public SirMetal::Layer {
   void clear() override;
 
   private:
-  bool updateUniformsForView(float screenWidth, float screenHeight,uint32_t lightMapSize);
+  bool updateUniformsForView(float screenWidth, float screenHeight,
+                             uint32_t lightMapSize);
   void updateLightData();
   void renderDebugWindow();
   void generateRandomTexture(uint32_t w, uint32_t h);
   void recordRasterArgBuffer();
+  void allocateGBufferTexture(int w, int h);
+  void doGBufferPass(id<MTLCommandBuffer> commandBuffer);
+  void doRasterRender(id<MTLRenderCommandEncoder> commandEncoder,
+                      const SirMetal::PSOCache &cache);
+  PackingResult buildPacking(int maxSize, int individualSize, int count);
 
 #if RT
   void recordRTArgBuffer();
   void buildAccellerationStructure();
   id buildPrimitiveAccelerationStructure(MTLAccelerationStructureDescriptor *descriptor);
+  void doLightmapBake(id<MTLCommandBuffer> buffer);
 #endif
 
   private:
@@ -96,15 +100,12 @@ class GraphicsLayer final : public SirMetal::Layer {
   id instanceAccelerationStructure;
 
   SirMetal::GLTFAsset asset;
-  uint32_t rtFrameCounter = 0;
+  int rtSampleCounter = 0;
+  int requestedSamples = 400;
   uint32_t rtFrameCounterFull = 0;
   uint32_t lightMapSize = 1024;
   PackingResult packResult;
-  void allocateGBufferTexture(int w,int h);
-  void doGBufferPass(id<MTLCommandBuffer> commandBuffer);
-  void doLightmapBake(id<MTLCommandBuffer> buffer);
-  void doRasterRender(id<MTLRenderCommandEncoder> commandEncoder,
-                      const SirMetal::PSOCache &cache);
-  PackingResult buildPacking(int maxSize, int individualSize, int count);
+  bool debugFullScreen = true;
+  int currentDebug = 0;
 };
 }// namespace Sandbox

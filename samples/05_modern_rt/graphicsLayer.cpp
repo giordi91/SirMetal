@@ -180,8 +180,8 @@ bool GraphicsLayer::updateUniformsForView(float screenWidth, float screenHeight)
   simd_float4 right = simd_normalize(m_camera.viewMatrix.columns[0]);
   u.camera.right = simd_normalize(simd_float3{right.x, right.y, right.z});
 
-  if (updated) { rtFrameCounter = 0; }
-  u.frameIndex = rtFrameCounter;
+  if (updated) { rtSampleCounter = 0; }
+  u.frameIndex = rtSampleCounter;
   u.height = m_engine->m_config.m_windowConfig.m_height;
   u.width = m_engine->m_config.m_windowConfig.m_width;
   // TODO add light data
@@ -301,7 +301,7 @@ void GraphicsLayer::onUpdate() {
 
 
   SDL_RenderPresent(m_engine->m_renderingContext->getRenderer());
-  ++rtFrameCounter;
+  ++rtSampleCounter;
   //}
 }
 

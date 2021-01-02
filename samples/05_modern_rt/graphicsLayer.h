@@ -70,6 +70,6 @@ class GraphicsLayer final : public SirMetal::Layer {
   id instanceAccelerationStructure;
 
   SirMetal::GLTFAsset asset;
-  uint32_t rtFrameCounter = 0;
+  uint32_t rtSampleCounter = 0;
 };
 }// namespace Sandbox
