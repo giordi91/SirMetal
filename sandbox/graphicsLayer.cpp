@@ -92,25 +92,24 @@ void GraphicsLayer::onAttach(SirMetal::EngineContext *context) {
 
   SirMetal::loadGLTF(m_engine, (base + +"/test.glb").c_str(), asset, options);
 
-  packResult = buildPacking(16384, lightMapSize, asset.models.size());
 
   id<MTLDevice> device = m_engine->m_renderingContext->getDevice();
 
   assert(device.supportsRaytracing == true &&
          "This device does not support raytracing API, you can try samples based on MPS");
 
-  allocateGBufferTexture(packResult.w, packResult.h);
 
   m_shaderHandle =
           m_engine->m_shaderManager->loadShader((base + "/Shaders.metal").c_str());
-  m_gbuffHandle = m_engine->m_shaderManager->loadShader((base + "/gbuff.metal").c_str());
   m_fullScreenHandle =
           m_engine->m_shaderManager->loadShader((base + "/fullscreen.metal").c_str());
-  m_rtLightMapHandle =
-          m_engine->m_shaderManager->loadShader((base + "/rtLightMap.metal").c_str());
+
+  m_lightMapper.initialize(m_engine,(base + "/gbuff.metal").c_str(),(base + "/rtLightMap.metal").c_str());
+  m_gbuffHandle = m_lightMapper.m_gbuffHandle;
+  m_rtLightMapHandle = m_lightMapper.m_rtLightMapHandle;
 
 #if RT
-  recordRTArgBuffer();
+  m_lightMapper.setAssetData(context,&asset,lightMapSize);
 #endif
   recordRasterArgBuffer();
 
@@ -136,12 +135,6 @@ void GraphicsLayer::onAttach(SirMetal::EngineContext *context) {
   // properly
   m_engine->m_renderingContext->flush();
 
-
-#if RT
-  SirMetal::graphics::buildMultiLevelBVH(m_engine, asset.models, accelStruct);
-#endif
-
-  //generateRandomTexture(1280u, 720u);
   generateRandomTexture(lightMapSize, lightMapSize);
 
   MTLArgumentBuffersTier tier = [device argumentBuffersSupport];
@@ -215,7 +208,8 @@ void GraphicsLayer::onUpdate() {
   //RASTER
   //since we cannot shoot rays from the fragment shader we are going to make a gbuffer pass
   //storing world position, uvs and normals
-  doGBufferPass(commandBuffer);
+  m_lightMapper.doGBufferPass(m_engine,commandBuffer);
+  //doGBufferPass(commandBuffer);
 
   //now that we have that we can actually kick a raytracing shader which uses the gbuffer information
   //for the first ray
@@ -256,16 +250,16 @@ void GraphicsLayer::onUpdate() {
     SirMetal::graphics::BlitRequest request{};
     switch (currentDebug) {
       case 0:
-        request.srcTexture = m_gbuff[0];
+        request.srcTexture = m_lightMapper.m_gbuff[0];
         break;
       case 1:
-        request.srcTexture = m_gbuff[1];
+        request.srcTexture = m_lightMapper.m_gbuff[1];
         break;
       case 2:
-        request.srcTexture = m_gbuff[2];
+        request.srcTexture = m_lightMapper.m_gbuff[2];
         break;
       case 3:
-        request.srcTexture = m_lightMap;
+        request.srcTexture = m_lightMapper.m_lightMap;
         break;
     }
     request.dstTexture = texture;
@@ -379,45 +373,6 @@ void GraphicsLayer::generateRandomTexture(uint32_t w, uint32_t h) {
   free(randomValues);
 }
 
-#if RT
-void GraphicsLayer::recordRTArgBuffer() {
-  id<MTLDevice> device = m_engine->m_renderingContext->getDevice();
-
-  // args buffer
-  id<MTLFunction> fn = m_engine->m_shaderManager->getKernelFunction(m_rtLightMapHandle);
-  id<MTLArgumentEncoder> argumentEncoder = [fn newArgumentEncoderWithBufferIndex:2];
-
-  int meshesCount = asset.models.size();
-  int buffInstanceSize = argumentEncoder.encodedLength;
-  argRtBuffer = [device newBufferWithLength:buffInstanceSize * meshesCount options:0];
-
-  for (int i = 0; i < meshesCount; ++i) {
-    [argumentEncoder setArgumentBuffer:argRtBuffer offset:i * buffInstanceSize];
-    const auto *meshData = m_engine->m_meshManager->getMeshData(asset.models[i].mesh);
-    [argumentEncoder setBuffer:meshData->vertexBuffer
-                        offset:meshData->ranges[0].m_offset
-                       atIndex:0];
-    [argumentEncoder setBuffer:meshData->vertexBuffer
-                        offset:meshData->ranges[1].m_offset
-                       atIndex:1];
-    [argumentEncoder setBuffer:meshData->vertexBuffer
-                        offset:meshData->ranges[2].m_offset
-                       atIndex:2];
-    [argumentEncoder setBuffer:meshData->vertexBuffer
-                        offset:meshData->ranges[3].m_offset
-                       atIndex:3];
-    [argumentEncoder setBuffer:meshData->indexBuffer offset:0 atIndex:4];
-    const auto &material = asset.materials[i];
-    id albedo = m_engine->m_textureManager->getNativeFromHandle(material.colorTexture);
-    [argumentEncoder setTexture:albedo atIndex:5];
-
-    auto *ptrMatrix = [argumentEncoder constantDataAtIndex:6];
-    memcpy(ptrMatrix, &asset.models[i].matrix, sizeof(float) * 16);
-    memcpy(((char *) ptrMatrix + sizeof(float) * 16), &material.colorFactors,
-           sizeof(float) * 4);
-  }
-}
-#endif
 void GraphicsLayer::recordRasterArgBuffer() {
   id<MTLDevice> device = m_engine->m_renderingContext->getDevice();
 
@@ -461,7 +416,7 @@ void GraphicsLayer::recordRasterArgBuffer() {
     [argumentEncoderFrag setArgumentBuffer:argBufferFrag offset:i * buffInstanceSizeFrag];
 
     id albedo;
-    albedo = m_engine->m_textureManager->getNativeFromHandle(m_lightMap);
+    albedo = m_engine->m_textureManager->getNativeFromHandle(m_lightMapper.m_lightMap);
     //}
     [argumentEncoderFrag setTexture:albedo atIndex:0];
     auto *ptr = [argumentEncoderFrag constantDataAtIndex:1];
@@ -472,6 +427,7 @@ void GraphicsLayer::recordRasterArgBuffer() {
     matData[3] = material.colorFactors.w;
 
     //uv offset for lightmap
+    const auto& packResult = m_lightMapper.packResult;
 
     float wratio = static_cast<float>(packResult.rectangles[i].w) /
                    static_cast<float>(packResult.w);
@@ -490,146 +446,7 @@ void GraphicsLayer::recordRasterArgBuffer() {
     memcpy(ptr, &matData, sizeof(float) * 8);
   }
 }
-void GraphicsLayer::allocateGBufferTexture(int w, int h) {
 
-
-  id<MTLDevice> device = m_engine->m_renderingContext->getDevice();
-  SirMetal::AllocTextureRequest request{static_cast<uint32_t>(w),
-                                        static_cast<uint32_t>(h),
-                                        1,
-                                        MTLTextureType2D,
-                                        MTLPixelFormatRGBA32Float,
-                                        MTLTextureUsageRenderTarget |
-                                                MTLTextureUsageShaderRead,
-                                        MTLStorageModePrivate,
-                                        1,
-                                        "gbuffPositions"};
-  m_gbuff[0] = m_engine->m_textureManager->allocate(device, request);
-  auto oldUsage = request.usage;
-  request.usage = oldUsage | MTLTextureUsageShaderWrite;
-  request.name = "lightMap1";
-  m_lightMap = m_engine->m_textureManager->allocate(device, request);
-  request.usage = oldUsage;
-  request.format = MTLPixelFormatRG16Unorm;
-  request.name = "gbuffUVs";
-  m_gbuff[1] = m_engine->m_textureManager->allocate(device, request);
-  request.format = MTLPixelFormatRGBA8Unorm;
-  request.name = "gbuffNormals";
-  m_gbuff[2] = m_engine->m_textureManager->allocate(device, request);
-}
-void GraphicsLayer::doGBufferPass(id<MTLCommandBuffer> commandBuffer) {
-
-  SirMetal::graphics::DrawTracker tracker{};
-  id g1 = m_engine->m_textureManager->getNativeFromHandle(m_gbuff[0]);
-  id g2 = m_engine->m_textureManager->getNativeFromHandle(m_gbuff[1]);
-  id g3 = m_engine->m_textureManager->getNativeFromHandle(m_gbuff[2]);
-  tracker.renderTargets[0] = g1;
-  tracker.renderTargets[1] = g2;
-  tracker.renderTargets[2] = g3;
-  tracker.depthTarget = {};
-  //  m_engine->m_textureManager->getNativeFromHandle(m_depthHandle);
-
-  SirMetal::PSOCache cache =
-          SirMetal::getPSO(m_engine, tracker, SirMetal::Material{"gbuff", false});
-
-  // blitting to the swap chain
-  MTLRenderPassDescriptor *passDescriptor =
-          [MTLRenderPassDescriptor renderPassDescriptor];
-  passDescriptor.colorAttachments[0].texture = g1;
-  passDescriptor.colorAttachments[0].clearColor = {0.0, 0.0, 0.0, 0.0};
-  passDescriptor.colorAttachments[0].storeAction = MTLStoreActionStore;
-  passDescriptor.colorAttachments[0].loadAction = MTLLoadActionClear;
-
-  passDescriptor.colorAttachments[1].texture = g2;
-  passDescriptor.colorAttachments[1].clearColor = {0.0, 0.0, 0.0, 0.0};
-  passDescriptor.colorAttachments[1].storeAction = MTLStoreActionStore;
-  passDescriptor.colorAttachments[1].loadAction = MTLLoadActionClear;
-
-  passDescriptor.colorAttachments[2].texture = g3;
-  passDescriptor.colorAttachments[2].clearColor = {0.0, 0.0, 0.0, 0.0};
-  passDescriptor.colorAttachments[2].storeAction = MTLStoreActionStore;
-  passDescriptor.colorAttachments[2].loadAction = MTLLoadActionClear;
-
-  id<MTLRenderCommandEncoder> commandEncoder =
-          [commandBuffer renderCommandEncoderWithDescriptor:passDescriptor];
-
-  [commandEncoder setRenderPipelineState:cache.color];
-  [commandEncoder setFrontFacingWinding:MTLWindingCounterClockwise];
-  //disabling culling since we  are rendering in uv space
-  [commandEncoder setCullMode:MTLCullModeNone];
-
-  SirMetal::BindInfo info =
-          m_engine->m_constantBufferManager->getBindInfo(m_engine, m_camUniformHandle);
-  [commandEncoder setVertexBuffer:info.buffer offset:info.offset atIndex:4];
-  //setting the arguments buffer
-  [commandEncoder setVertexBuffer:argBuffer offset:0 atIndex:0];
-  [commandEncoder setFragmentBuffer:argBufferFrag offset:0 atIndex:0];
-
-  //compute jitter
-  double LO = 0.0f;
-  double HI = 1.0f;
-  float jitter[2];
-  auto t1 = static_cast<float>(LO + static_cast<double>(rand()) /
-                                            (static_cast<double>(RAND_MAX / (HI - LO))) *
-                                            M_PI * 2);
-  auto t2 = static_cast<float>(LO + static_cast<double>(rand()) /
-                                            (static_cast<double>(RAND_MAX / (HI - LO))) *
-                                            M_PI * 2);
-
-  float jitterMultiplier = 3.0f;
-  jitter[0] = cos(t1) / lightMapSize;
-  jitter[1] = sin(t2) / lightMapSize;
-  jitter[0] *= (jitterMultiplier);
-  jitter[1] *= (jitterMultiplier);
-
-  for (int i = 0; i < asset.models.size(); ++i) {
-    const auto &mesh = asset.models[i];
-    const SirMetal::MeshData *meshData = m_engine->m_meshManager->getMeshData(mesh.mesh);
-    auto *mat = (void *) (&mesh.matrix);
-    const auto &packrect = packResult.rectangles[i];
-    MTLScissorRect rect;
-    rect.width = packrect.w;
-    rect.height = packrect.h;
-    rect.x = packrect.x;
-    rect.y = packrect.y;
-    [commandEncoder setScissorRect:rect];
-
-    MTLViewport view;
-    view.width = rect.width;
-    view.height = rect.height;
-    view.originX = rect.x;
-    view.originY = rect.y;
-    view.znear = 0;
-    view.zfar = 1;
-    [commandEncoder setViewport:view];
-    [commandEncoder useResource:meshData->vertexBuffer usage:MTLResourceUsageRead];
-    [commandEncoder useResource:m_engine->m_textureManager->getNativeFromHandle(
-                                        asset.materials[i].colorTexture)
-                          usage:MTLResourceUsageSample];
-    [commandEncoder setVertexBytes:mat length:16 * sizeof(float) atIndex:5];
-    [commandEncoder setVertexBytes:&i length:sizeof(uint32_t) atIndex:6];
-    [commandEncoder setVertexBytes:&jitter[0] length:sizeof(float) * 2 atIndex:7];
-    [commandEncoder drawIndexedPrimitives:MTLPrimitiveTypeTriangle
-                               indexCount:meshData->primitivesCount
-                                indexType:MTLIndexTypeUInt32
-                              indexBuffer:meshData->indexBuffer
-                        indexBufferOffset:0];
-    rect.x = 0;
-    rect.y = 0;
-    rect.width = m_engine->m_config.m_windowConfig.m_width;
-    rect.height = m_engine->m_config.m_windowConfig.m_height;
-    [commandEncoder setScissorRect:rect];
-    view.height = rect.height;
-    view.width = rect.width;
-    view.originX = 0;
-    view.originY = 0;
-    view.znear = 0;
-    view.zfar = 1;
-    [commandEncoder setViewport:view];
-  }
-
-  [commandEncoder endEncoding];
-}
 
 #if RT
 void GraphicsLayer::doLightmapBake(id<MTLCommandBuffer> commandBuffer) {
@@ -647,19 +464,19 @@ void GraphicsLayer::doLightmapBake(id<MTLCommandBuffer> commandBuffer) {
 
   auto bindInfo = m_engine->m_constantBufferManager->getBindInfo(m_engine, m_uniforms);
   id<MTLTexture> colorTexture =
-          m_engine->m_textureManager->getNativeFromHandle(m_lightMap);
+          m_engine->m_textureManager->getNativeFromHandle(m_lightMapper.m_lightMap);
 
-  id g1 = m_engine->m_textureManager->getNativeFromHandle(m_gbuff[0]);
-  id g2 = m_engine->m_textureManager->getNativeFromHandle(m_gbuff[1]);
-  id g3 = m_engine->m_textureManager->getNativeFromHandle(m_gbuff[2]);
+  id g1 = m_engine->m_textureManager->getNativeFromHandle(m_lightMapper.m_gbuff[0]);
+  id g2 = m_engine->m_textureManager->getNativeFromHandle(m_lightMapper.m_gbuff[1]);
+  id g3 = m_engine->m_textureManager->getNativeFromHandle(m_lightMapper.m_gbuff[2]);
 
 
-  [computeEncoder setAccelerationStructure:accelStruct.instanceAccelerationStructure
+  [computeEncoder setAccelerationStructure:m_lightMapper.accelStruct.instanceAccelerationStructure
                              atBufferIndex:0];
   [computeEncoder setBuffer:bindInfo.buffer offset:bindInfo.offset atIndex:1];
-  [computeEncoder setBuffer:argRtBuffer offset:0 atIndex:2];
+  [computeEncoder setBuffer:m_lightMapper.argRtBuffer offset:0 atIndex:2];
   [computeEncoder setBytes:&index length:4 atIndex:3];
-  int off[] = {packResult.rectangles[index].x, packResult.rectangles[index].y};
+  int off[] = {m_lightMapper.packResult.rectangles[index].x, m_lightMapper.packResult.rectangles[index].y};
   [computeEncoder setBytes:&off[0] length:sizeof(int) * 2 atIndex:4];
   [computeEncoder setTexture:colorTexture atIndex:0];
   [computeEncoder setTexture:m_randomTexture atIndex:1];
@@ -705,112 +522,6 @@ void GraphicsLayer::doRasterRender(id<MTLRenderCommandEncoder> commandEncoder,
                               indexBuffer:meshData->indexBuffer
                         indexBufferOffset:0];
     counter++;
-  }
-}
-
-
-PackingResult GraphicsLayer::buildPacking(int maxSize, int individualSize, int count) {
-  const auto runtime_flipping_mode = rectpack2D::flipping_option::DISABLED;
-
-  /*
-        Here, we choose the "empty_spaces" class that the algorithm will use from now on.
-
-        The first template argument is a bool which determines
-        if the algorithm will try to flip rectangles to better fit them.
-        The second argument is optional and specifies an allocator for the empty spaces.
-        The default one just uses a vector to store the spaces.
-        You can also pass a "static_empty_spaces<10000>" which will allocate 10000 spaces on the stack,
-        possibly improving performance.
-    */
-  constexpr bool allow_flip = false;
-  using spaces_type =
-          rectpack2D::empty_spaces<allow_flip, rectpack2D::default_empty_spaces>;
-
-  /*
-        rect_xywh or rect_xywhf (see src/rect_structs.h),
-        depending on the value of allow_flip.
-    */
-
-  using rect_type = rectpack2D::output_rect_t<spaces_type>;
-
-  /*
-        Note:
-        The multiple-bin functionality was removed.
-        This means that it is now up to you what is to be done with unsuccessful insertions.
-        You may initialize another search when this happens.
-    */
-
-  auto report_successful = [](rect_type &) {
-    return rectpack2D::callback_result::CONTINUE_PACKING;
-  };
-
-  auto report_unsuccessful = [](rect_type &) {
-    return rectpack2D::callback_result::ABORT_PACKING;
-  };
-
-
-  /*
-        The search stops when the bin was successfully inserted into,
-        AND the next candidate bin size differs from the last successful one by *less* then discard_step.
-        The best possible granuarity is achieved with discard_step = 1.
-        If you pass a negative discard_step, the algoritm will search with even more granularity -
-        E.g. with discard_step = -4, the algoritm will behave as if you passed discard_step = 1,
-        but it will make as many as 4 attempts to optimize bins down to the single pixel.
-        Since discard_step = 0 does not make sense, the algoritm will automatically treat this case
-        as if it were passed a discard_step = 1.
-        For common applications, a discard_step = 1 or even discard_step = 128
-        should yield really good packings while being very performant.
-        If you are dealing with very small rectangles specifically,
-        it might be a good idea to make this value negative.
-        See the algorithm section of README for more information.
-    */
-
-  const auto discard_step = -4;
-
-  /*
-        Create some arbitrary rectangles.
-        Every subsequent call to the packer library will only read the widths and heights that we now specify,
-        and always overwrite the x and y coordinates with calculated results.
-    */
-
-  std::vector<rect_type> rectangles;
-
-  for (int i = 0; i < count; ++i) {
-    rectangles.emplace_back(rectpack2D::rect_xywh(0, 0, individualSize, individualSize));
-  }
-
-  auto report_result = [&rectangles](const rectpack2D::rect_wh &result_size) {
-    printf("Resultant bin: %i %i \n", result_size.w, result_size.h);
-
-    for (const auto &r : rectangles) { printf("%i %i %i %i\n", r.x, r.y, r.w, r.h); }
-  };
-
-  {
-    /*
-          Example 1: Find best packing with default orders.
-          If you pass no comparators whatsoever,
-          the standard collection of 6 orders:
-             by area, by perimeter, by bigger side, by width, by height and by "pathological multiplier"
-          - will be passed by default.
-      */
-
-    //const auto result_size = rectpack2D::find_best_packing<spaces_type>(
-    //        rectangles, make_finder_input(max_side, discard_step, report_successful,
-    //                                      report_unsuccessful, runtime_flipping_mode));
-
-    const auto result_size = rectpack2D::find_best_packing_dont_sort<spaces_type>(
-            rectangles, make_finder_input(maxSize, discard_step, report_successful,
-                                          report_unsuccessful, runtime_flipping_mode));
-    report_result(result_size);
-    std::vector<TexRect> outRects;
-    for (const auto &rect : rectangles) {
-      outRects.emplace_back(TexRect{rect.x, rect.y, rect.w, rect.h});
-    }
-    return {
-            outRects,
-            result_size.w,
-            result_size.h,
-    };
   }
 }
 

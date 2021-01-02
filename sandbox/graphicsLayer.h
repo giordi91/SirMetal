@@ -10,6 +10,7 @@
 #include "SirMetal/graphics/metalBvh.h"
 #include "SirMetal/graphics/debug/frameTimingsWidget.h"
 #include "SirMetal/graphics/debug/gpuWidget.h"
+#include "SirMetal/graphics/lightmapper.h"
 
 #define RT 1
 struct DirLight {
@@ -20,15 +21,6 @@ struct DirLight {
   simd_float4 lightDir;
 };
 
-struct TexRect {
-  int x, y, w, h;
-};
-
-struct PackingResult {
-  std::vector<TexRect> rectangles;
-  int w;
-  int h;
-};
 namespace SirMetal {
 struct EngineContext;
 
@@ -50,14 +42,10 @@ class GraphicsLayer final : public SirMetal::Layer {
   void renderDebugWindow();
   void generateRandomTexture(uint32_t w, uint32_t h);
   void recordRasterArgBuffer();
-  void allocateGBufferTexture(int w, int h);
-  void doGBufferPass(id<MTLCommandBuffer> commandBuffer);
   void doRasterRender(id<MTLRenderCommandEncoder> commandEncoder,
                       const SirMetal::PSOCache &cache);
-  PackingResult buildPacking(int maxSize, int individualSize, int count);
 
 #if RT
-  void recordRTArgBuffer();
   void doLightmapBake(id<MTLCommandBuffer> buffer);
 #endif
 
@@ -72,8 +60,6 @@ class GraphicsLayer final : public SirMetal::Layer {
   SirMetal::LibraryHandle m_gbuffHandle;
   SirMetal::LibraryHandle m_fullScreenHandle;
   SirMetal::LibraryHandle m_rtLightMapHandle;
-  SirMetal::TextureHandle m_gbuff[3];
-  SirMetal::TextureHandle m_lightMap;
   SirMetal::TextureHandle m_depthHandle;
   dispatch_semaphore_t frameBoundarySemaphore;
 
@@ -83,7 +69,6 @@ class GraphicsLayer final : public SirMetal::Layer {
   id rtLightmapPipeline;
   id m_randomTexture;
 
-  id argRtBuffer;
   id argBuffer;
   id argBufferFrag;
 
@@ -93,9 +78,8 @@ class GraphicsLayer final : public SirMetal::Layer {
   int requestedSamples = 400;
   uint32_t rtFrameCounterFull = 0;
   uint32_t lightMapSize = 1024;
-  PackingResult packResult;
   bool debugFullScreen = false;
   int currentDebug = 0;
-  SirMetal::graphics::MetalBVH accelStruct;
+  SirMetal::graphics::LightMapper m_lightMapper;
 };
 }// namespace Sandbox
