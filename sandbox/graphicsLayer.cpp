@@ -21,6 +21,8 @@
 
 #include "finders_interface.h"//rectpack2D
 
+#include <iostream>
+
 struct RtCamera {
   simd_float4x4 VPinverse;
   vector_float3 position;
@@ -117,7 +119,7 @@ void GraphicsLayer::onAttach(SirMetal::EngineContext *context) {
   assert(device.supportsRaytracing == true &&
          "This device does not support raytracing API, you can try samples based on MPS");
 
-  allocateGBufferTexture(packResult.w,packResult.h);
+  allocateGBufferTexture(packResult.w, packResult.h);
 
   SirMetal::AllocTextureRequest request{m_engine->m_config.m_windowConfig.m_width,
                                         m_engine->m_config.m_windowConfig.m_height,
@@ -326,8 +328,8 @@ void GraphicsLayer::onUpdate() {
   //                          indexBuffer:meshData->indexBuffer
   //                    indexBufferOffset:0];
 
-  //FULL SCREEN
   /*
+  //FULL SCREEN
   SirMetal::graphics::DrawTracker tracker{};
   tracker.renderTargets[0] = texture;
   tracker.depthTarget = {};
@@ -359,7 +361,7 @@ void GraphicsLayer::onUpdate() {
   [commandEncoder setCullMode:MTLCullModeBack];
   [commandEncoder setFragmentTexture:colorTexture atIndex:0];
   [commandEncoder drawPrimitives:MTLPrimitiveTypeTriangle vertexStart:0 vertexCount:3];
-   */
+                                    */
 
   // render debug
   m_engine->m_debugRenderer->newFrame();
@@ -387,10 +389,7 @@ void GraphicsLayer::onUpdate() {
 
   SDL_RenderPresent(m_engine->m_renderingContext->getRenderer());
   ++rtFrameCounterFull;
-  if((rtFrameCounterFull%asset.models.size()) == 0)
-  {
-    rtFrameCounter++;
-  }
+  if ((rtFrameCounterFull % asset.models.size()) == 0) { rtFrameCounter++; }
   //}
 }
 
@@ -807,10 +806,10 @@ void GraphicsLayer::recordRasterArgBuffer() {
 
     //uv offset for lightmap
 
-    float wratio = packResult.rectangles[i].w / (float)packResult.w;
-    float hratio = packResult.rectangles[i].h / (float)packResult.h;
-    float xoff = packResult.rectangles[i].x / (float)packResult.w;
-    float yoff = packResult.rectangles[i].y / (float)packResult.h;
+    float wratio = packResult.rectangles[i].w / (float) packResult.w;
+    float hratio = packResult.rectangles[i].h / (float) packResult.h;
+    float xoff = packResult.rectangles[i].x / (float) packResult.w;
+    float yoff = packResult.rectangles[i].y / (float) packResult.h;
 
     matData[4] = wratio;
     matData[5] = hratio;
@@ -820,7 +819,7 @@ void GraphicsLayer::recordRasterArgBuffer() {
     memcpy(ptr, &matData, sizeof(float) * 8);
   }
 }
-void GraphicsLayer::allocateGBufferTexture(int w,int h) {
+void GraphicsLayer::allocateGBufferTexture(int w, int h) {
 
 
   id<MTLDevice> device = m_engine->m_renderingContext->getDevice();
@@ -923,7 +922,22 @@ void GraphicsLayer::doGBufferPass(id<MTLCommandBuffer> commandBuffer, int indexx
     counter++;
   }
   */
-  for(int i =0; i < asset.models.size();++i) {
+
+  //compute jitter
+  double LO = -1.0f;
+  double HI = 1.0f;
+  float jitter[2];
+  jitter[0]= static_cast<float>(LO + static_cast<double>(rand()) /
+                                           (static_cast<double>(RAND_MAX / (HI - LO))));
+  jitter[1]= static_cast<float>(LO + static_cast<double>(rand()) /
+                                   (static_cast<double>(RAND_MAX / (HI - LO))));
+  float jitterMultiplier = 2.0f;
+  jitter[0]/= lightMapSize;
+  jitter[1]/= lightMapSize;
+  jitter[0]*= jitterMultiplier;
+  jitter[1]*= jitterMultiplier;
+
+  for (int i = 0; i < asset.models.size(); ++i) {
     const auto &mesh = asset.models[i];
     const SirMetal::MeshData *meshData = m_engine->m_meshManager->getMeshData(mesh.mesh);
     auto *mat = (void *) (&mesh.matrix);
@@ -947,8 +961,9 @@ void GraphicsLayer::doGBufferPass(id<MTLCommandBuffer> commandBuffer, int indexx
     [commandEncoder useResource:m_engine->m_textureManager->getNativeFromHandle(
                                         mesh.material.colorTexture)
                           usage:MTLResourceUsageSample];
-    [commandEncoder setVertexBytes:mat length:16 * 4 atIndex:5];
-    [commandEncoder setVertexBytes:&i length:4 atIndex:6];
+    [commandEncoder setVertexBytes:mat length:16 * sizeof(float) atIndex:5];
+    [commandEncoder setVertexBytes:&i length:sizeof(uint32_t) atIndex:6];
+    [commandEncoder setVertexBytes:&jitter[0] length:sizeof(float)*2 atIndex:7];
     //[commandEncoder drawPrimitives:MTLPrimitiveTypeTriangle
     //                   vertexStart:0
     //                   vertexCount:meshData->primitivesCount];
@@ -1000,8 +1015,8 @@ void GraphicsLayer::doLightmapBake(id<MTLCommandBuffer> commandBuffer, int index
   [computeEncoder setBuffer:bindInfo.buffer offset:bindInfo.offset atIndex:1];
   [computeEncoder setBuffer:argRtBuffer offset:0 atIndex:2];
   [computeEncoder setBytes:&index length:4 atIndex:3];
-  int off[]= { packResult.rectangles[index].x,packResult.rectangles[index].y};
-  [computeEncoder setBytes:&off[0] length:sizeof(int)*2 atIndex:4];
+  int off[] = {packResult.rectangles[index].x, packResult.rectangles[index].y};
+  [computeEncoder setBytes:&off[0] length:sizeof(int) * 2 atIndex:4];
   [computeEncoder setTexture:colorTexture atIndex:0];
   [computeEncoder setTexture:m_randomTexture atIndex:1];
   [computeEncoder setTexture:g1 atIndex:3];

@@ -34,7 +34,7 @@ struct Mesh {
   device float4 *normals [[id(1)]];
   device float2 *uvs [[id(2)]];
   device float4 *tangents [[id(3)]];
-  device float2 *lightMapUvs[[id(4)]];
+  device float2 *lightMapUvs [[id(4)]];
 };
 
 struct Material {
@@ -43,54 +43,40 @@ struct Material {
   float4 tintColor [[id(2)]];
 };
 
-vertex OutVertex vertex_project(
-        const device Mesh *meshes [[buffer(0)]],
-constant Camera *camera [[buffer(4)]],
-constant float4x4 &modelMatrix [[buffer(5)]],
-constant uint &meshIdx [[buffer(6)]],
-uint vid [[vertex_id]]) {
+vertex OutVertex vertex_project(const device Mesh *meshes [[buffer(0)]],
+                                constant Camera *camera [[buffer(4)]],
+                                constant float4x4 &modelMatrix [[buffer(5)]],
+                                constant uint &meshIdx [[buffer(6)]],
+                                constant float2 &jitter[[buffer(7)]],
+                                uint vid [[vertex_id]]) {
 
 
-OutVertex vertexOut;
-device const Mesh &m = meshes[meshIdx];
-//export in uv space
-float2 luv = m.lightMapUvs[vid];
-vertexOut.position = float4(luv* 2 -1.0f,0.5f,1);
+  OutVertex vertexOut;
+  device const Mesh &m = meshes[meshIdx];
+  //export in uv space
+  float2 luv = m.lightMapUvs[vid];
+  vertexOut.position = float4((luv  * 2 - 1.0f), 0.5f, 1);
+  vertexOut.position.xy += (jitter);
 
-float4 p = m.positions[vid];
-vertexOut.worldPos = modelMatrix* p;
-vertexOut.normal = modelMatrix * m.normals[vid];
-vertexOut.uv = luv;
-return vertexOut;
+  float4 p = m.positions[vid];
+  vertexOut.worldPos = modelMatrix * p;
+  vertexOut.normal = modelMatrix * m.normals[vid];
+  vertexOut.uv = luv;
+  return vertexOut;
 }
 
 
-struct FragmentOut
-{
+struct FragmentOut {
   float4 position [[color(0)]];
   float2 uv [[color(1)]];
   float4 normal [[color(2)]];
-
 };
 fragment FragmentOut fragment_flatcolor(OutVertex vertexIn [[stage_in]],
-const device Material *materials [[buffer(0)]]) {
+                                        const device Material *materials [[buffer(0)]]) {
 
   FragmentOut fout;
   fout.position = vertexIn.worldPos;
   fout.uv = vertexIn.uv;
   fout.normal = normalize(vertexIn.normal) * 0.5f + 0.5f;
   return fout;
-
-  /*
-device const Material &mat = materials[vertexIn.id];
-float4 n = vertexIn.normal;
-
-float2 uv = vertexIn.uv;
-float4 albedo =
-        mat.albedoTex.sample(mat.sampler, uv);
-//float4 color = mat.tintColor * albedo;
-//color*=  saturate(dot(n.xyz,light->lightDir.xyz));
-
-return half4(uv.x,uv.y,0.0h, 1.0h);
-   */
 }

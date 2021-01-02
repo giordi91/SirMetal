@@ -212,7 +212,7 @@ float3 shootRayInWorld(instance_acceleration_structure accelerationStructure, ra
         sampleDirection = alignHemisphereWithNormal(sampleDirection, outN);
         bRay.direction = sampleDirection;
       } else {
-        float fuzzScale = 0.6f;
+        float fuzzScale = 0.2f;
         bRay.direction = reflect(normalize(pray.direction), outN);
         float2 r = float2(halton(offset + uniforms.frameIndex, (2 + (bounce + uniforms.frameIndex * 4) + 0) % 16),
                           halton(offset + uniforms.frameIndex, (2 + (bounce + uniforms.frameIndex * 4) + 1) % 16));
@@ -239,13 +239,15 @@ ray getLightMapRay(constant Uniforms &uniforms, uint2 tid, uint2 tidOff, texture
                    texture2d<float> gbuffUV, texture2d<float> gbuffNorm,
                    texture2d<uint> randomTex) {// Ray we will produce
 
-  float3 pos = gbuffPos.read(tid + tidOff).xyz;
+  float4 pos = gbuffPos.read(tid + tidOff).xyzw;
   float3 norm = normalize(gbuffNorm.read(tid + tidOff).xyz * 2.0f - 1.0f);
 
   ray pray;
 
-  pray.origin = pos + norm * 1e-3f;
-  pray.min_distance = 0.001f;
+  pray.origin = pos.xyz + norm * 1e-3f;
+  //if the w is set to zero it means we have no triangle in there, so we set min distance
+  //negative as sentinel value to not shoot rays
+  pray.min_distance = pos.w  < 0.0001f ? -1.0f : 0.0001f;;
   pray.max_distance = INFINITY;
 
   int bounce = 3;
@@ -285,6 +287,7 @@ texture2d<float, access::read_write> dstTex [[texture(0)]],
   //    ray pray = getCameraRay(uniforms, tid);
   ray pray = getLightMapRay(uniforms, tid, tidOff, gbuffPos, gbuffUV, gbuffNorm, randomTex);
 
+  if(pray.min_distance < 0.0f)return;
 
   device const Mesh &m = meshes[instanceIndex];
   constexpr int bounces = 3;
