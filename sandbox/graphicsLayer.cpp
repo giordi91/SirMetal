@@ -21,8 +21,6 @@
 
 #include "finders_interface.h"//rectpack2D
 
-#include <iostream>
-
 struct RtCamera {
   simd_float4x4 VPinverse;
   vector_float3 position;
@@ -31,13 +29,6 @@ struct RtCamera {
   vector_float3 forward;
 };
 
-struct AreaLight {
-  vector_float3 position;
-  vector_float3 forward;
-  vector_float3 right;
-  vector_float3 up;
-  vector_float3 color;
-};
 
 struct Uniforms {
   unsigned int width;
@@ -45,12 +36,9 @@ struct Uniforms {
   unsigned int frameIndex;
   unsigned int lightMapSize;
   RtCamera camera;
-  AreaLight light;
 };
 
 
-static const size_t rayStride = sizeof(float) * 8;
-// static const size_t rayStride = 48;
 constexpr int kMaxInflightBuffers = 3;
 
 id createComputePipeline(id<MTLDevice> device, id function) {
@@ -274,13 +262,12 @@ void GraphicsLayer::onUpdate() {
   //RASTER
   //since we cannot shoot rays from the fragment shader we are going to make a gbuffer pass
   //storing world position, uvs and normals
-  uint32_t index = 1;
-  doGBufferPass(commandBuffer, index);
+  doGBufferPass(commandBuffer);
 
   //now that we have that we can actually kick a raytracing shader which uses the gbuffer information
   //for the first ray
 #if RT
-  doLightmapBake(commandBuffer, index);
+  doLightmapBake(commandBuffer);
 #endif
 
 
@@ -806,10 +793,14 @@ void GraphicsLayer::recordRasterArgBuffer() {
 
     //uv offset for lightmap
 
-    float wratio = packResult.rectangles[i].w / (float) packResult.w;
-    float hratio = packResult.rectangles[i].h / (float) packResult.h;
-    float xoff = packResult.rectangles[i].x / (float) packResult.w;
-    float yoff = packResult.rectangles[i].y / (float) packResult.h;
+    float wratio = static_cast<float>(packResult.rectangles[i].w) /
+                   static_cast<float>(packResult.w);
+    float hratio = static_cast<float>(packResult.rectangles[i].h) /
+                   static_cast<float>(packResult.h);
+    float xoff = static_cast<float>(packResult.rectangles[i].x) /
+                 static_cast<float>(packResult.w);
+    float yoff = static_cast<float>(packResult.rectangles[i].y) /
+                 static_cast<float>(packResult.h);
 
     matData[4] = wratio;
     matData[5] = hratio;
@@ -847,7 +838,7 @@ void GraphicsLayer::allocateGBufferTexture(int w, int h) {
   request.name = "gbuffNormals";
   m_gbuff[2] = m_engine->m_textureManager->allocate(device, request);
 }
-void GraphicsLayer::doGBufferPass(id<MTLCommandBuffer> commandBuffer, int indexx) {
+void GraphicsLayer::doGBufferPass(id<MTLCommandBuffer> commandBuffer) {
 
   SirMetal::graphics::DrawTracker tracker{};
   id g1 = m_engine->m_textureManager->getNativeFromHandle(m_gbuff[0]);
@@ -927,15 +918,15 @@ void GraphicsLayer::doGBufferPass(id<MTLCommandBuffer> commandBuffer, int indexx
   double LO = -1.0f;
   double HI = 1.0f;
   float jitter[2];
-  jitter[0]= static_cast<float>(LO + static_cast<double>(rand()) /
-                                           (static_cast<double>(RAND_MAX / (HI - LO))));
-  jitter[1]= static_cast<float>(LO + static_cast<double>(rand()) /
-                                   (static_cast<double>(RAND_MAX / (HI - LO))));
+  jitter[0] = static_cast<float>(
+          LO + static_cast<double>(rand()) / (static_cast<double>(RAND_MAX / (HI - LO))));
+  jitter[1] = static_cast<float>(
+          LO + static_cast<double>(rand()) / (static_cast<double>(RAND_MAX / (HI - LO))));
   float jitterMultiplier = 2.0f;
-  jitter[0]/= lightMapSize;
-  jitter[1]/= lightMapSize;
-  jitter[0]*= jitterMultiplier;
-  jitter[1]*= jitterMultiplier;
+  jitter[0] /= lightMapSize;
+  jitter[1] /= lightMapSize;
+  jitter[0] *= jitterMultiplier;
+  jitter[1] *= jitterMultiplier;
 
   for (int i = 0; i < asset.models.size(); ++i) {
     const auto &mesh = asset.models[i];
@@ -963,7 +954,7 @@ void GraphicsLayer::doGBufferPass(id<MTLCommandBuffer> commandBuffer, int indexx
                           usage:MTLResourceUsageSample];
     [commandEncoder setVertexBytes:mat length:16 * sizeof(float) atIndex:5];
     [commandEncoder setVertexBytes:&i length:sizeof(uint32_t) atIndex:6];
-    [commandEncoder setVertexBytes:&jitter[0] length:sizeof(float)*2 atIndex:7];
+    [commandEncoder setVertexBytes:&jitter[0] length:sizeof(float) * 2 atIndex:7];
     //[commandEncoder drawPrimitives:MTLPrimitiveTypeTriangle
     //                   vertexStart:0
     //                   vertexCount:meshData->primitivesCount];
@@ -989,7 +980,7 @@ void GraphicsLayer::doGBufferPass(id<MTLCommandBuffer> commandBuffer, int indexx
   [commandEncoder endEncoding];
 }
 
-void GraphicsLayer::doLightmapBake(id<MTLCommandBuffer> commandBuffer, int indexx) {
+void GraphicsLayer::doLightmapBake(id<MTLCommandBuffer> commandBuffer) {
 
   int index = m_engine->m_timings.m_totalNumberOfFrames % asset.models.size();
   //HARDCODED HEIGHT

@@ -93,21 +93,12 @@ struct Camera {
   vector_float3 forward;
 };
 
-struct AreaLight {
-  vector_float3 position;
-  vector_float3 forward;
-  vector_float3 right;
-  vector_float3 up;
-  vector_float3 color;
-};
-
 struct Uniforms {
   unsigned int width;
   unsigned int height;
   unsigned int frameIndex;
   unsigned int lightMapSize;
   Camera camera;
-  AreaLight light;
 };
 
 struct Mesh {
@@ -270,7 +261,7 @@ kernel void rayKernel(instance_acceleration_structure accelerationStructure,
                       const device Mesh *meshes [[buffer(2)]],
                       constant uint &instanceIndex [[buffer(3)]],
                       constant uint2 &tidOff[[buffer(4)]],
-texture2d<float, access::read_write> dstTex [[texture(0)]],
+                      texture2d<float, access::read_write> dstTex [[texture(0)]],
                       texture2d<uint> randomTex [[texture(1)]],
                       texture2d<float> gbuffPos [[texture(3)]],
                       texture2d<float> gbuffUV [[texture(4)]],
@@ -283,10 +274,11 @@ texture2d<float, access::read_write> dstTex [[texture(0)]],
   // Since we aligned the thread count to the threadgroup size, the thread index may be out of bounds
   // of the render target size.
   if ((tid.x >= uniforms.lightMapSize) | (tid.y >= uniforms.lightMapSize)) { return; }
-  // Compute linear ray index from 2D position
-  //    ray pray = getCameraRay(uniforms, tid);
+
+  //sampling gbuffer to get a camera ray
   ray pray = getLightMapRay(uniforms, tid, tidOff, gbuffPos, gbuffUV, gbuffNorm, randomTex);
 
+  //if the distance is negative it means the pixel is not on the geometry
   if(pray.min_distance < 0.0f)return;
 
   device const Mesh &m = meshes[instanceIndex];

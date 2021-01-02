@@ -101,8 +101,8 @@ class GraphicsLayer final : public SirMetal::Layer {
   uint32_t lightMapSize = 1024;
   PackingResult packResult;
   void allocateGBufferTexture(int w,int h);
-  void doGBufferPass(id<MTLCommandBuffer> commandBuffer, int index);
-  void doLightmapBake(id<MTLCommandBuffer> buffer, int index);
+  void doGBufferPass(id<MTLCommandBuffer> commandBuffer);
+  void doLightmapBake(id<MTLCommandBuffer> buffer);
   void doRasterRender(id<MTLRenderCommandEncoder> commandEncoder,
                       const SirMetal::PSOCache &cache);
   PackingResult buildPacking(int maxSize, int individualSize, int count);
