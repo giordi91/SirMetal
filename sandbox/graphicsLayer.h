@@ -60,8 +60,6 @@ class GraphicsLayer final : public SirMetal::Layer {
 
 #if RT
   void recordRTArgBuffer();
-  void buildAccellerationStructure();
-  id buildPrimitiveAccelerationStructure(MTLAccelerationStructureDescriptor *descriptor);
   void doLightmapBake(id<MTLCommandBuffer> buffer);
 #endif
 
