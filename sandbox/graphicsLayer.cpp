@@ -10,6 +10,7 @@
 #include "SirMetal/core/input.h"
 #include "SirMetal/engine.h"
 #include "SirMetal/graphics/PSOGenerator.h"
+#include "SirMetal/graphics/blit.h"
 #include "SirMetal/graphics/constantBufferManager.h"
 #include "SirMetal/graphics/debug/debugRenderer.h"
 #include "SirMetal/graphics/debug/imgui/imgui.h"
@@ -18,7 +19,6 @@
 #include "SirMetal/graphics/renderingContext.h"
 #include "SirMetal/resources/meshes/meshManager.h"
 #include "SirMetal/resources/shaderManager.h"
-#include "SirMetal/graphics/blit.h"
 
 #include "finders_interface.h"//rectpack2D
 
@@ -544,6 +544,9 @@ id GraphicsLayer::buildPrimitiveAccelerationStructure(
 
 void GraphicsLayer::buildAccellerationStructure() {
 
+  SirMetal::graphics::buildMultiLevelBVH(m_engine,asset.models,accelStruct);
+
+  /*
   id<MTLDevice> device = m_engine->m_renderingContext->getDevice();
   MTLResourceOptions options = MTLResourceStorageModeManaged;
 
@@ -642,6 +645,7 @@ void GraphicsLayer::buildAccellerationStructure() {
   // Finally, create the instance acceleration structure containing all of the instances
   // in the scene.
   instanceAccelerationStructure = buildPrimitiveAccelerationStructure(accelDescriptor);
+   */
 }
 void GraphicsLayer::recordRTArgBuffer() {
   id<MTLDevice> device = m_engine->m_renderingContext->getDevice();
@@ -693,7 +697,7 @@ void GraphicsLayer::recordRTArgBuffer() {
                         offset:meshData->ranges[3].m_offset
                        atIndex:3];
     [argumentEncoder setBuffer:meshData->indexBuffer offset:0 atIndex:4];
-    const auto &material = asset.models[i].material;
+    const auto &material = asset.materials[i];
     id albedo = m_engine->m_textureManager->getNativeFromHandle(material.colorTexture);
     [argumentEncoder setTexture:albedo atIndex:5];
 
@@ -762,7 +766,7 @@ void GraphicsLayer::recordRasterArgBuffer() {
                         offset:meshData->ranges[4].m_offset
                        atIndex:4];
 
-    const auto &material = asset.models[i].material;
+    const auto &material = asset.materials[i];
     [argumentEncoderFrag setArgumentBuffer:argBufferFrag offset:i * buffInstanceSizeFrag];
 
     id albedo;
@@ -926,7 +930,7 @@ void GraphicsLayer::doGBufferPass(id<MTLCommandBuffer> commandBuffer) {
     [commandEncoder setViewport:view];
     [commandEncoder useResource:meshData->vertexBuffer usage:MTLResourceUsageRead];
     [commandEncoder useResource:m_engine->m_textureManager->getNativeFromHandle(
-                                        mesh.material.colorTexture)
+                                        asset.materials[i].colorTexture)
                           usage:MTLResourceUsageSample];
     [commandEncoder setVertexBytes:mat length:16 * sizeof(float) atIndex:5];
     [commandEncoder setVertexBytes:&i length:sizeof(uint32_t) atIndex:6];
@@ -979,7 +983,7 @@ void GraphicsLayer::doLightmapBake(id<MTLCommandBuffer> commandBuffer) {
   id g3 = m_engine->m_textureManager->getNativeFromHandle(m_gbuff[2]);
 
 
-  [computeEncoder setAccelerationStructure:instanceAccelerationStructure atBufferIndex:0];
+  [computeEncoder setAccelerationStructure:accelStruct.instanceAccelerationStructure atBufferIndex:0];
   [computeEncoder setBuffer:bindInfo.buffer offset:bindInfo.offset atIndex:1];
   [computeEncoder setBuffer:argRtBuffer offset:0 atIndex:2];
   [computeEncoder setBytes:&index length:4 atIndex:3];

@@ -635,7 +635,7 @@ void GraphicsLayer::recordRTArgBuffer() {
                         offset:meshData->ranges[3].m_offset
                        atIndex:3];
     [argumentEncoder setBuffer:meshData->indexBuffer offset:0 atIndex:4];
-    const auto &material = asset.models[i].material;
+    const auto &material = asset.materials[i];
     id albedo = m_engine->m_textureManager->getNativeFromHandle(material.colorTexture);
     [argumentEncoder setTexture:albedo atIndex:5];
 

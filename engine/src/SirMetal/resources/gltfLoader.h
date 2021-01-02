@@ -1,6 +1,6 @@
 #pragma once
 #include "SirMetal/resources/handle.h"
-#include <simd/simd.h>
+#include "SirMetal/resources/resourceTypes.h"
 #include <string>
 #include <vector>
 
@@ -14,13 +14,9 @@ struct GLTFMaterial {
   bool doubleSided;
 };
 
-struct Model {
-  simd_float4x4 matrix;
-  MeshHandle mesh;
-  GLTFMaterial material;
-};
 struct GLTFAsset {
   std::vector<Model> models;
+  std::vector<GLTFMaterial> materials;
 };
 
 enum GLTFLoadFlags : uint32_t {

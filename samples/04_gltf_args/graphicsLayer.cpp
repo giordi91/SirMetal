@@ -118,7 +118,7 @@ void GraphicsLayer::onAttach(SirMetal::EngineContext *context) {
 
 
     //next we do the same exact process but for the material
-    const auto &material = asset.models[i].material;
+    const auto &material = asset.materials[i];
     [argumentEncoderFrag setArgumentBuffer:argBufferFrag offset:i * buffInstanceSizeFrag];
     id albedo = m_engine->m_textureManager->getNativeFromHandle(material.colorTexture);
     [argumentEncoderFrag setTexture:albedo atIndex:0];

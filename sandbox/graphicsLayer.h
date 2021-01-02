@@ -10,6 +10,7 @@
 #include "SirMetal/resources/handle.h"
 #import <Metal/Metal.h>
 #include <SirMetal/graphics/PSOGenerator.h>
+#include <SirMetal/graphics/metalBvh.h>
 
 #define RT 1
 struct DirLight {
@@ -95,17 +96,14 @@ class GraphicsLayer final : public SirMetal::Layer {
   id argBufferFrag;
   id sampler;
 
-  std::vector<id> primitiveAccelerationStructures;
-  id<MTLBuffer> instanceBuffer;
-  id instanceAccelerationStructure;
-
   SirMetal::GLTFAsset asset;
   int rtSampleCounter = 0;
   int requestedSamples = 400;
   uint32_t rtFrameCounterFull = 0;
   uint32_t lightMapSize = 1024;
   PackingResult packResult;
-  bool debugFullScreen = true;
+  bool debugFullScreen = false;
   int currentDebug = 0;
+  SirMetal::graphics::MetalBVH accelStruct;
 };
 }// namespace Sandbox

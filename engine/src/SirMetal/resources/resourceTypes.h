@@ -5,6 +5,8 @@
 #include <vector>
 
 #include "SirMetal/core/core.h"
+#include "SirMetal/resources/handle.h"
+#include <simd/vector.h>
 
 namespace SirMetal {
 
@@ -54,6 +56,12 @@ struct TextureLoadResult {
   int mipLevel : 8;
   bool isCube : 1;
   uint32_t padding : 23;
+};
+
+
+struct Model {
+  simd_float4x4 matrix;
+  MeshHandle mesh;
 };
 
 }// namespace SirMetal

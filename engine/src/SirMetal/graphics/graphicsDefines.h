@@ -1,6 +1,7 @@
 #pragma once
 
 #include "stdint.h"
+
 namespace SirMetal {
 
 // Common graphics defines
@@ -23,5 +24,6 @@ enum class RESOURCE_STATE {
   SHADER_READ_RESOURCE,
   RANDOM_WRITE
 };
+
 
 }  // namespace BlackHole

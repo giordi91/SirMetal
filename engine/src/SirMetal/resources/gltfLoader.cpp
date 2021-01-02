@@ -67,6 +67,7 @@ void loadNode(EngineContext *context, const cgltf_node *node,
               GLTFAsset &outAsset, const GLTFLoadOptions& loadOptions,
               simd_float4x4 parentMatrix) {
   Model model{};
+  GLTFMaterial material{};
   if (node->mesh != nullptr) {
     printf("loading mesh for node %s\n", node->name);
     assert(node->mesh->primitives_count == 1 &&
@@ -77,7 +78,7 @@ void loadNode(EngineContext *context, const cgltf_node *node,
     assert(node->mesh->primitives_count == 1);
 
     if (node->mesh->primitives[0].material != nullptr) {
-      model.material =
+      material =
               loadMaterial(context, node->mesh->primitives[0].material);
     }
   }
@@ -89,6 +90,7 @@ void loadNode(EngineContext *context, const cgltf_node *node,
   bool isEmpty = node->mesh == nullptr;
   if (!(flatten & isEmpty)) {
     outAsset.models.push_back(model);
+    outAsset.materials.push_back(material);
   }
 
   for (int c = 0; c < node->children_count; ++c) {
