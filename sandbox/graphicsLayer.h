@@ -12,7 +12,6 @@
 #include "SirMetal/graphics/debug/gpuWidget.h"
 #include "SirMetal/graphics/lightmapper.h"
 
-#define RT 1
 struct DirLight {
 
   matrix_float4x4 V;

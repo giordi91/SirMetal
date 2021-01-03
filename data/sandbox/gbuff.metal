@@ -67,16 +67,17 @@ vertex OutVertex vertex_project(const device Mesh *meshes [[buffer(0)]],
 
 
 struct FragmentOut {
-  float4 position [[color(0)]];
+  uint position [[color(0)]];
   float2 uv [[color(1)]];
-  float4 normal [[color(2)]];
 };
 fragment FragmentOut fragment_flatcolor(OutVertex vertexIn [[stage_in]],
-                                        const device Material *materials [[buffer(0)]]) {
+                                        const device Material *materials [[buffer(0)]],
+                                        const float3 bary [[barycentric_coord]],
+                                        const uint pid [[primitive_id]]
+                                        ) {
 
   FragmentOut fout;
-  fout.position = vertexIn.worldPos;
-  fout.uv = vertexIn.uv;
-  fout.normal = normalize(vertexIn.normal) * 0.5f + 0.5f;
+  fout.position = pid;
+  fout.uv = bary.xy;
   return fout;
 }

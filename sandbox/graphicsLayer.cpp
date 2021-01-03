@@ -20,7 +20,7 @@
 
 #include "finders_interface.h"//rectpack2D
 
-static const char *rts[] = {"GPositions", "GUVs", "GNormals", "lightMap"};
+static const char *rts[] = {"GPositions", "GUVs","lightMap"};
 
 struct RtCamera {
   simd_float4x4 VPinverse;
@@ -104,12 +104,11 @@ void GraphicsLayer::onAttach(SirMetal::EngineContext *context) {
   m_fullScreenHandle =
           m_engine->m_shaderManager->loadShader((base + "/fullscreen.metal").c_str());
 
-  m_lightMapper.initialize(m_engine, (base + "/gbuff.metal").c_str(),
+  m_lightMapper.initialize(m_engine, (base + "/gbuff.metal").c_str(),(base + "/gbuffClear.metal").c_str(),
                            (base + "/rtLightMap.metal").c_str());
 
-#if RT
   m_lightMapper.setAssetData(context, &asset, lightMapSize);
-#endif
+
   recordRasterArgBuffer();
 
   SirMetal::AllocTextureRequest requestDepth{m_engine->m_config.m_windowConfig.m_width,
@@ -201,11 +200,9 @@ void GraphicsLayer::onUpdate() {
 
   id<MTLCommandBuffer> commandBuffer = [queue commandBuffer];
 
-#if RT
   if (m_lightMapper.rtSampleCounter < m_lightMapper.requestedSamples) {
     m_lightMapper.bakeNextSample(m_engine, commandBuffer, m_uniforms, m_randomTexture);
   }
-#endif
 
 
   SirMetal::graphics::DrawTracker tracker{};
@@ -246,9 +243,6 @@ void GraphicsLayer::onUpdate() {
         request.srcTexture = m_lightMapper.m_gbuff[1];
         break;
       case 2:
-        request.srcTexture = m_lightMapper.m_gbuff[2];
-        break;
-      case 3:
         request.srcTexture = m_lightMapper.m_lightMap;
         break;
     }
@@ -322,7 +316,7 @@ void GraphicsLayer::renderDebugWindow() {
       ImGui::Separator();
 
       ImGui::Checkbox("Debug full screen", &debugFullScreen);
-      if (debugFullScreen) { ImGui::Combo("Target", &currentDebug, rts, 4); }
+      if (debugFullScreen) { ImGui::Combo("Target", &currentDebug, rts, 3); }
     }
   }
   ImGui::End();

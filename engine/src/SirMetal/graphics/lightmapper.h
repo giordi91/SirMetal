@@ -4,6 +4,8 @@
 
 #include <vector>
 
+#define RT 1
+
 struct TexRect {
   int x, y, w, h;
 };
@@ -21,8 +23,8 @@ namespace graphics {
 
 class LightMapper {
   public:
-  void initialize(EngineContext *context, const char *gbufferShader,
-                  const char *rtShader);
+  void initialize(EngineContext *context, const char *gbufferShader,const char *gbufferClearShader,
+                             const char *rtShader);
 
   void setAssetData(EngineContext *context, GLTFAsset *asset, int individualLightMapSize);
   [[nodiscard]] const PackingResult &getPackResult() const { return packResult; }
@@ -39,7 +41,7 @@ class LightMapper {
                       ConstantBufferHandle uniforms, id randomTexture);
 
   public:
-  TextureHandle m_gbuff[3];
+  TextureHandle m_gbuff[2];
   TextureHandle m_lightMap;
   int rtSampleCounter = 0;
   int requestedSamples = 400;
@@ -52,6 +54,7 @@ class LightMapper {
   PackingResult packResult;
   LibraryHandle m_rtLightMapHandle;
   LibraryHandle m_gbuffHandle;
+  LibraryHandle m_gbuffClearHandle;
   id argRtBuffer;
   id argBuffer;
   id argBufferFrag;

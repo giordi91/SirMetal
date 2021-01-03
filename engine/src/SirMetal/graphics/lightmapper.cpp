@@ -33,9 +33,10 @@ static id createComputePipeline(id<MTLDevice> device, id function) {
   return toReturn;
 }
 
-void LightMapper::initialize(EngineContext *context, const char *gbufferShader,
+void LightMapper::initialize(EngineContext *context, const char *gbufferShader,const char *gbufferClearShader,
                              const char *rtShader) {
   m_gbuffHandle = context->m_shaderManager->loadShader(gbufferShader);
+  m_gbuffClearHandle = context->m_shaderManager->loadShader(gbufferClearShader);
   m_rtLightMapHandle = context->m_shaderManager->loadShader(rtShader);
 
   id<MTLDevice> device = context->m_renderingContext->getDevice();
@@ -46,7 +47,9 @@ void LightMapper::setAssetData(EngineContext *context, GLTFAsset *asset,
                                int individualLightMapSize) {
   m_asset = asset;
   m_lightMapSize = individualLightMapSize;
+#if RT
   buildMultiLevelBVH(context, asset->models, accelStruct);
+#endif
   packResult = buildPacking(16384, individualLightMapSize, asset->models.size());
   allocateTextures(context, packResult.w, packResult.h);
   recordRtArgBuffer(context, asset);
@@ -97,7 +100,7 @@ void LightMapper::allocateTextures(EngineContext *context, int w, int h) {
                                         static_cast<uint32_t>(h),
                                         1,
                                         MTLTextureType2D,
-                                        MTLPixelFormatRGBA32Float,
+                                        MTLPixelFormatR32Uint,
                                         MTLTextureUsageRenderTarget |
                                                 MTLTextureUsageShaderRead,
                                         MTLStorageModePrivate,
@@ -105,6 +108,7 @@ void LightMapper::allocateTextures(EngineContext *context, int w, int h) {
                                         "gbuffPositions"};
   m_gbuff[0] = context->m_textureManager->allocate(device, request);
   auto oldUsage = request.usage;
+  request.format = MTLPixelFormatRGBA32Float;
   request.usage = oldUsage | MTLTextureUsageShaderWrite;
   request.name = "lightMap";
   m_lightMap = context->m_textureManager->allocate(device, request);
@@ -112,9 +116,6 @@ void LightMapper::allocateTextures(EngineContext *context, int w, int h) {
   request.format = MTLPixelFormatRG16Unorm;
   request.name = "gbuffUVs";
   m_gbuff[1] = context->m_textureManager->allocate(device, request);
-  request.format = MTLPixelFormatRGBA8Unorm;
-  request.name = "gbuffNormals";
-  m_gbuff[2] = context->m_textureManager->allocate(device, request);
 }
 
 PackingResult LightMapper::buildPacking(int maxSize, int individualSize, int count) {
@@ -172,19 +173,19 @@ void LightMapper::doGBufferPass(EngineContext *context,
   SirMetal::graphics::DrawTracker tracker{};
   id g1 = context->m_textureManager->getNativeFromHandle(m_gbuff[0]);
   id g2 = context->m_textureManager->getNativeFromHandle(m_gbuff[1]);
-  id g3 = context->m_textureManager->getNativeFromHandle(m_gbuff[2]);
   tracker.renderTargets[0] = g1;
   tracker.renderTargets[1] = g2;
-  tracker.renderTargets[2] = g3;
   tracker.depthTarget = {};
 
-  PSOCache cache = SirMetal::getPSO(context, tracker, SirMetal::Material{"gbuff", false});
 
   // blitting to the swap chain
   MTLRenderPassDescriptor *passDescriptor =
           [MTLRenderPassDescriptor renderPassDescriptor];
+  uint32_t nanI = 0xFFFFFFFF;
+  float nan;
+  memcpy(&nan, &nanI,sizeof(float));
   passDescriptor.colorAttachments[0].texture = g1;
-  passDescriptor.colorAttachments[0].clearColor = {0.0, 0.0, 0.0, 0.0};
+  passDescriptor.colorAttachments[0].clearColor = {1.0f, 1.0f, 1.0f, 1.0f};
   passDescriptor.colorAttachments[0].storeAction = MTLStoreActionStore;
   passDescriptor.colorAttachments[0].loadAction = MTLLoadActionClear;
 
@@ -193,13 +194,9 @@ void LightMapper::doGBufferPass(EngineContext *context,
   passDescriptor.colorAttachments[1].storeAction = MTLStoreActionStore;
   passDescriptor.colorAttachments[1].loadAction = MTLLoadActionClear;
 
-  passDescriptor.colorAttachments[2].texture = g3;
-  passDescriptor.colorAttachments[2].clearColor = {0.0, 0.0, 0.0, 0.0};
-  passDescriptor.colorAttachments[2].storeAction = MTLStoreActionStore;
-  passDescriptor.colorAttachments[2].loadAction = MTLLoadActionClear;
-
   id<MTLRenderCommandEncoder> commandEncoder =
           [commandBuffer renderCommandEncoderWithDescriptor:passDescriptor];
+  PSOCache cache = SirMetal::getPSO(context, tracker, SirMetal::Material{"gbuffClear", false});
 
   [commandEncoder setRenderPipelineState:cache.color];
   [commandEncoder setFrontFacingWinding:MTLWindingCounterClockwise];
@@ -209,6 +206,16 @@ void LightMapper::doGBufferPass(EngineContext *context,
   //setting the arguments buffer
   [commandEncoder setVertexBuffer:argBuffer offset:0 atIndex:0];
   [commandEncoder setFragmentBuffer:argBufferFrag offset:0 atIndex:0];
+
+
+  //cleaning the buffer
+  [commandEncoder setRenderPipelineState:cache.color];
+  [commandEncoder drawPrimitives:MTLPrimitiveTypeTriangle vertexStart:0 vertexCount:3];
+
+
+  cache = SirMetal::getPSO(context, tracker, SirMetal::Material{"gbuff", false});
+  [commandEncoder setRenderPipelineState:cache.color];
+
 
   //compute jitter
   double LO = 0.0f;
@@ -350,7 +357,9 @@ void LightMapper::bakeNextSample(EngineContext *context,
                                  ConstantBufferHandle uniforms, id randomTexture) {
 
   doGBufferPass(context, commandBuffer);
+#if RT
   doLightMapBake(context, commandBuffer, uniforms, randomTexture);
+#endif
 }
 void LightMapper::doLightMapBake(EngineContext *context, id<MTLCommandBuffer> commandBuffer,
                                  ConstantBufferHandle uniforms, id randomTexture) {
@@ -372,8 +381,6 @@ void LightMapper::doLightMapBake(EngineContext *context, id<MTLCommandBuffer> co
 
   id g1 = context->m_textureManager->getNativeFromHandle(m_gbuff[0]);
   id g2 = context->m_textureManager->getNativeFromHandle(m_gbuff[1]);
-  id g3 = context->m_textureManager->getNativeFromHandle(m_gbuff[2]);
-
 
   [computeEncoder
           setAccelerationStructure:accelStruct.instanceAccelerationStructure
@@ -388,7 +395,6 @@ void LightMapper::doLightMapBake(EngineContext *context, id<MTLCommandBuffer> co
   [computeEncoder setTexture:randomTexture atIndex:1];
   [computeEncoder setTexture:g1 atIndex:3];
   [computeEncoder setTexture:g2 atIndex:4];
-  [computeEncoder setTexture:g3 atIndex:5];
   [computeEncoder setComputePipelineState:rtLightmapPipeline];
   [computeEncoder dispatchThreadgroups:threadgroups
                  threadsPerThreadgroup:MTLSizeMake(8, 8, 1)];
