@@ -14,9 +14,9 @@
 #include "SirMetal/graphics/debug/imguiRenderer.h"
 #include "SirMetal/graphics/materialManager.h"
 //resources
-#include <SirMetal/resources/textureManager.h>
 #include "SirMetal/resources/meshes/meshManager.h"
 #include "SirMetal/resources/shaderManager.h"
+#include <SirMetal/resources/textureManager.h>
 
 #include "finders_interface.h"//rectpack2D
 
@@ -104,12 +104,11 @@ void GraphicsLayer::onAttach(SirMetal::EngineContext *context) {
   m_fullScreenHandle =
           m_engine->m_shaderManager->loadShader((base + "/fullscreen.metal").c_str());
 
-  m_lightMapper.initialize(m_engine,(base + "/gbuff.metal").c_str(),(base + "/rtLightMap.metal").c_str());
-  m_gbuffHandle = m_lightMapper.m_gbuffHandle;
-  m_rtLightMapHandle = m_lightMapper.m_rtLightMapHandle;
+  m_lightMapper.initialize(m_engine, (base + "/gbuff.metal").c_str(),
+                           (base + "/rtLightMap.metal").c_str());
 
 #if RT
-  m_lightMapper.setAssetData(context,&asset,lightMapSize);
+  m_lightMapper.setAssetData(context, &asset, lightMapSize);
 #endif
   recordRasterArgBuffer();
 
@@ -129,8 +128,6 @@ void GraphicsLayer::onAttach(SirMetal::EngineContext *context) {
   SirMetal::graphics::initImgui(m_engine);
   frameBoundarySemaphore = dispatch_semaphore_create(kMaxInflightBuffers);
 
-  rtLightmapPipeline = createComputePipeline(
-          device, m_engine->m_shaderManager->getKernelFunction(m_rtLightMapHandle));
   // this is to flush the gpu, should figure out why is not actually flushing
   // properly
   m_engine->m_renderingContext->flush();
@@ -169,7 +166,7 @@ bool GraphicsLayer::updateUniformsForView(float screenWidth, float screenHeight,
   simd_float4 right = simd_normalize(m_camera.viewMatrix.columns[0]);
   u.camera.right = simd_normalize(simd_float3{right.x, right.y, right.z});
 
-  u.frameIndex = rtSampleCounter;
+  u.frameIndex = m_lightMapper.rtSampleCounter;
   u.height = m_engine->m_config.m_windowConfig.m_height;
   u.width = m_engine->m_config.m_windowConfig.m_width;
   u.lightMapSize = lightMapSize;
@@ -204,17 +201,10 @@ void GraphicsLayer::onUpdate() {
 
   id<MTLCommandBuffer> commandBuffer = [queue commandBuffer];
 
-
-  //RASTER
-  //since we cannot shoot rays from the fragment shader we are going to make a gbuffer pass
-  //storing world position, uvs and normals
-  m_lightMapper.doGBufferPass(m_engine,commandBuffer);
-  //doGBufferPass(commandBuffer);
-
-  //now that we have that we can actually kick a raytracing shader which uses the gbuffer information
-  //for the first ray
 #if RT
-  if (rtSampleCounter < requestedSamples) { doLightmapBake(commandBuffer); }
+  if (m_lightMapper.rtSampleCounter < m_lightMapper.requestedSamples) {
+    m_lightMapper.bakeNextSample(m_engine, commandBuffer, m_uniforms, m_randomTexture);
+  }
 #endif
 
 
@@ -318,16 +308,16 @@ void GraphicsLayer::renderDebugWindow() {
     //lets render the pathracer stuff
     if (ImGui::CollapsingHeader("LightMapper")) {
 
-      ImGui::SliderInt("Number of samples", &requestedSamples, 0, 4000);
+      ImGui::SliderInt("Number of samples", &m_lightMapper.requestedSamples, 0, 4000);
       ImGui::Separator();
       //bake button
-      bool isDone = rtSampleCounter == requestedSamples;
+      bool isDone = m_lightMapper.rtSampleCounter == m_lightMapper.requestedSamples;
       if (isDone) { ImGui::PushStyleColor(0, ImVec4(0, 1, 0, 1)); }
-      if (ImGui::Button("Bake lightmap")) { rtSampleCounter = 0; }
+      if (ImGui::Button("Bake lightmap")) { m_lightMapper.rtSampleCounter = 0; }
       if (isDone) { ImGui::PopStyleColor(1); }
 
       ImGui::PushItemWidth(50.0f);
-      ImGui::DragInt("Samples done", &rtSampleCounter, 0.0f);
+      ImGui::DragInt("Samples done", &m_lightMapper.rtSampleCounter, 0.0f);
       ImGui::PopItemWidth();
       ImGui::Separator();
 
@@ -427,7 +417,7 @@ void GraphicsLayer::recordRasterArgBuffer() {
     matData[3] = material.colorFactors.w;
 
     //uv offset for lightmap
-    const auto& packResult = m_lightMapper.packResult;
+    const auto &packResult = m_lightMapper.getPackResult();
 
     float wratio = static_cast<float>(packResult.rectangles[i].w) /
                    static_cast<float>(packResult.w);
@@ -447,51 +437,6 @@ void GraphicsLayer::recordRasterArgBuffer() {
   }
 }
 
-
-#if RT
-void GraphicsLayer::doLightmapBake(id<MTLCommandBuffer> commandBuffer) {
-
-  int index = m_engine->m_timings.m_totalNumberOfFrames % asset.models.size();
-  //HARDCODED HEIGHT
-  int w = lightMapSize;
-  int h = lightMapSize;
-  MTLSize threadsPerThreadgroup = MTLSizeMake(8, 8, 1);
-  MTLSize threadgroups = MTLSizeMake(
-          (w + threadsPerThreadgroup.width - 1) / threadsPerThreadgroup.width,
-          (h + threadsPerThreadgroup.height - 1) / threadsPerThreadgroup.height, 1);
-
-  id<MTLComputeCommandEncoder> computeEncoder = [commandBuffer computeCommandEncoder];
-
-  auto bindInfo = m_engine->m_constantBufferManager->getBindInfo(m_engine, m_uniforms);
-  id<MTLTexture> colorTexture =
-          m_engine->m_textureManager->getNativeFromHandle(m_lightMapper.m_lightMap);
-
-  id g1 = m_engine->m_textureManager->getNativeFromHandle(m_lightMapper.m_gbuff[0]);
-  id g2 = m_engine->m_textureManager->getNativeFromHandle(m_lightMapper.m_gbuff[1]);
-  id g3 = m_engine->m_textureManager->getNativeFromHandle(m_lightMapper.m_gbuff[2]);
-
-
-  [computeEncoder setAccelerationStructure:m_lightMapper.accelStruct.instanceAccelerationStructure
-                             atBufferIndex:0];
-  [computeEncoder setBuffer:bindInfo.buffer offset:bindInfo.offset atIndex:1];
-  [computeEncoder setBuffer:m_lightMapper.argRtBuffer offset:0 atIndex:2];
-  [computeEncoder setBytes:&index length:4 atIndex:3];
-  int off[] = {m_lightMapper.packResult.rectangles[index].x, m_lightMapper.packResult.rectangles[index].y};
-  [computeEncoder setBytes:&off[0] length:sizeof(int) * 2 atIndex:4];
-  [computeEncoder setTexture:colorTexture atIndex:0];
-  [computeEncoder setTexture:m_randomTexture atIndex:1];
-  [computeEncoder setTexture:g1 atIndex:3];
-  [computeEncoder setTexture:g2 atIndex:4];
-  [computeEncoder setTexture:g3 atIndex:5];
-  [computeEncoder setComputePipelineState:rtLightmapPipeline];
-  [computeEncoder dispatchThreadgroups:threadgroups
-                 threadsPerThreadgroup:MTLSizeMake(8, 8, 1)];
-  [computeEncoder endEncoding];
-
-  ++rtFrameCounterFull;
-  if ((rtFrameCounterFull % asset.models.size()) == 0) { rtSampleCounter++; }
-}
-#endif
 
 void GraphicsLayer::doRasterRender(id<MTLRenderCommandEncoder> commandEncoder,
                                    const SirMetal::PSOCache &cache) {

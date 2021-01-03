@@ -1,21 +1,46 @@
 #include "SirMetal/graphics/lightmapper.h"
 #include "SirMetal/engine.h"
+#include "SirMetal/graphics/PSOGenerator.h"
+#include "SirMetal/graphics/materialManager.h"
 #include "SirMetal/graphics/renderingContext.h"
 #include "SirMetal/resources/gltfLoader.h"
 #include "SirMetal/resources/meshes/meshManager.h"
 #include "SirMetal/resources/shaderManager.h"
 #include "SirMetal/resources/textureManager.h"
+#include "SirMetal/graphics/constantBufferManager.h"
 #include "rectpack2D/src/finders_interface.h"
 #include <Metal/Metal.h>
-#include "SirMetal/graphics/PSOGenerator.h"
-#include "SirMetal/graphics/materialManager.h"
 
 namespace SirMetal::graphics {
+static id createComputePipeline(id<MTLDevice> device, id function) {
+  // Create compute pipelines will will execute code on the GPU
+  MTLComputePipelineDescriptor *computeDescriptor =
+  [[MTLComputePipelineDescriptor alloc] init];
+
+  // Set to YES to allow compiler to make certain optimizations
+  computeDescriptor.threadGroupSizeIsMultipleOfThreadExecutionWidth = YES;
+
+  // Generates rays according to view/projection matrices
+  computeDescriptor.computeFunction = function;
+  NSError *error = nullptr;
+  id toReturn = [device newComputePipelineStateWithDescriptor:computeDescriptor
+  options:0
+  reflection:nil
+  error:&error];
+
+  if (!toReturn) NSLog(@"Failed to create pipeline state: %@", error);
+
+  return toReturn;
+}
 
 void LightMapper::initialize(EngineContext *context, const char *gbufferShader,
                              const char *rtShader) {
   m_gbuffHandle = context->m_shaderManager->loadShader(gbufferShader);
   m_rtLightMapHandle = context->m_shaderManager->loadShader(rtShader);
+
+  id<MTLDevice> device = context->m_renderingContext->getDevice();
+  rtLightmapPipeline = createComputePipeline(
+          device, context->m_shaderManager->getKernelFunction(m_rtLightMapHandle));
 }
 void LightMapper::setAssetData(EngineContext *context, GLTFAsset *asset,
                                int individualLightMapSize) {
@@ -141,7 +166,8 @@ PackingResult LightMapper::buildPacking(int maxSize, int individualSize, int cou
     };
   }
 }
-void LightMapper::doGBufferPass(EngineContext* context, id<MTLCommandBuffer> commandBuffer) {
+void LightMapper::doGBufferPass(EngineContext *context,
+                                id<MTLCommandBuffer> commandBuffer) {
 
   SirMetal::graphics::DrawTracker tracker{};
   id g1 = context->m_textureManager->getNativeFromHandle(m_gbuff[0]);
@@ -152,8 +178,7 @@ void LightMapper::doGBufferPass(EngineContext* context, id<MTLCommandBuffer> com
   tracker.renderTargets[2] = g3;
   tracker.depthTarget = {};
 
-  PSOCache cache =
-          SirMetal::getPSO(context, tracker, SirMetal::Material{"gbuff", false});
+  PSOCache cache = SirMetal::getPSO(context, tracker, SirMetal::Material{"gbuff", false});
 
   // blitting to the swap chain
   MTLRenderPassDescriptor *passDescriptor =
@@ -249,7 +274,7 @@ void LightMapper::doGBufferPass(EngineContext* context, id<MTLCommandBuffer> com
   }
   [commandEncoder endEncoding];
 }
-void LightMapper::recordRasterArgBuffer(EngineContext*context, GLTFAsset* asset) {
+void LightMapper::recordRasterArgBuffer(EngineContext *context, GLTFAsset *asset) {
   id<MTLDevice> device = context->m_renderingContext->getDevice();
   // args buffer
   id<MTLFunction> fn = context->m_shaderManager->getVertexFunction(m_gbuffHandle);
@@ -257,7 +282,7 @@ void LightMapper::recordRasterArgBuffer(EngineContext*context, GLTFAsset* asset)
 
   id<MTLFunction> fnFrag = context->m_shaderManager->getFragmentFunction(m_gbuffHandle);
   id<MTLArgumentEncoder> argumentEncoderFrag =
-  [fnFrag newArgumentEncoderWithBufferIndex:0];
+          [fnFrag newArgumentEncoderWithBufferIndex:0];
 
   int meshesCount = asset->models.size();
   int buffInstanceSize = argumentEncoder.encodedLength;
@@ -265,27 +290,27 @@ void LightMapper::recordRasterArgBuffer(EngineContext*context, GLTFAsset* asset)
 
   int buffInstanceSizeFrag = argumentEncoderFrag.encodedLength;
   argBufferFrag =
-  [device newBufferWithLength:buffInstanceSizeFrag * meshesCount options:0];
+          [device newBufferWithLength:buffInstanceSizeFrag * meshesCount options:0];
 
 
   for (int i = 0; i < meshesCount; ++i) {
     [argumentEncoder setArgumentBuffer:argBuffer offset:i * buffInstanceSize];
     const auto *meshData = context->m_meshManager->getMeshData(asset->models[i].mesh);
     [argumentEncoder setBuffer:meshData->vertexBuffer
-    offset:meshData->ranges[0].m_offset
-    atIndex:0];
+                        offset:meshData->ranges[0].m_offset
+                       atIndex:0];
     [argumentEncoder setBuffer:meshData->vertexBuffer
-    offset:meshData->ranges[1].m_offset
-    atIndex:1];
+                        offset:meshData->ranges[1].m_offset
+                       atIndex:1];
     [argumentEncoder setBuffer:meshData->vertexBuffer
-    offset:meshData->ranges[2].m_offset
-    atIndex:2];
+                        offset:meshData->ranges[2].m_offset
+                       atIndex:2];
     [argumentEncoder setBuffer:meshData->vertexBuffer
-    offset:meshData->ranges[3].m_offset
-    atIndex:3];
+                        offset:meshData->ranges[3].m_offset
+                       atIndex:3];
     [argumentEncoder setBuffer:meshData->vertexBuffer
-    offset:meshData->ranges[4].m_offset
-    atIndex:4];
+                        offset:meshData->ranges[4].m_offset
+                       atIndex:4];
 
     const auto &material = asset->materials[i];
     [argumentEncoderFrag setArgumentBuffer:argBufferFrag offset:i * buffInstanceSizeFrag];
@@ -319,7 +344,57 @@ void LightMapper::recordRasterArgBuffer(EngineContext*context, GLTFAsset* asset)
 
     memcpy(ptr, &matData, sizeof(float) * 8);
   }
+}
+void LightMapper::bakeNextSample(EngineContext *context,
+                                 id<MTLCommandBuffer> commandBuffer,
+                                 ConstantBufferHandle uniforms, id randomTexture) {
+
+  doGBufferPass(context, commandBuffer);
+  doLightMapBake(context, commandBuffer, uniforms, randomTexture);
+}
+void LightMapper::doLightMapBake(EngineContext *context, id<MTLCommandBuffer> commandBuffer,
+                                 ConstantBufferHandle uniforms, id randomTexture) {
+  int index = context->m_timings.m_totalNumberOfFrames % m_asset->models.size();
+
+  int w = m_lightMapSize;
+  int h = m_lightMapSize;
+
+  MTLSize threadsPerThreadgroup = MTLSizeMake(8, 8, 1);
+  MTLSize threadgroups = MTLSizeMake(
+          (w + threadsPerThreadgroup.width - 1) / threadsPerThreadgroup.width,
+          (h + threadsPerThreadgroup.height - 1) / threadsPerThreadgroup.height, 1);
+
+  id<MTLComputeCommandEncoder> computeEncoder = [commandBuffer computeCommandEncoder];
+
+  auto bindInfo = context->m_constantBufferManager->getBindInfo(context, uniforms);
+  id<MTLTexture> colorTexture =
+          context->m_textureManager->getNativeFromHandle(m_lightMap);
+
+  id g1 = context->m_textureManager->getNativeFromHandle(m_gbuff[0]);
+  id g2 = context->m_textureManager->getNativeFromHandle(m_gbuff[1]);
+  id g3 = context->m_textureManager->getNativeFromHandle(m_gbuff[2]);
 
 
+  [computeEncoder
+          setAccelerationStructure:accelStruct.instanceAccelerationStructure
+                     atBufferIndex:0];
+  [computeEncoder setBuffer:bindInfo.buffer offset:bindInfo.offset atIndex:1];
+  [computeEncoder setBuffer:argRtBuffer offset:0 atIndex:2];
+  [computeEncoder setBytes:&index length:4 atIndex:3];
+  int off[] = {packResult.rectangles[index].x,
+               packResult.rectangles[index].y};
+  [computeEncoder setBytes:&off[0] length:sizeof(int) * 2 atIndex:4];
+  [computeEncoder setTexture:colorTexture atIndex:0];
+  [computeEncoder setTexture:randomTexture atIndex:1];
+  [computeEncoder setTexture:g1 atIndex:3];
+  [computeEncoder setTexture:g2 atIndex:4];
+  [computeEncoder setTexture:g3 atIndex:5];
+  [computeEncoder setComputePipelineState:rtLightmapPipeline];
+  [computeEncoder dispatchThreadgroups:threadgroups
+                 threadsPerThreadgroup:MTLSizeMake(8, 8, 1)];
+  [computeEncoder endEncoding];
+
+  ++rtFrameCounterFull;
+  if ((rtFrameCounterFull % m_asset->models.size()) == 0) { rtSampleCounter++; }
 }
 }// namespace SirMetal::graphics

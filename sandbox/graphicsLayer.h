@@ -45,10 +45,6 @@ class GraphicsLayer final : public SirMetal::Layer {
   void doRasterRender(id<MTLRenderCommandEncoder> commandEncoder,
                       const SirMetal::PSOCache &cache);
 
-#if RT
-  void doLightmapBake(id<MTLCommandBuffer> buffer);
-#endif
-
   private:
   SirMetal::Camera m_camera;
   SirMetal::FPSCameraController m_cameraController;
@@ -57,16 +53,13 @@ class GraphicsLayer final : public SirMetal::Layer {
   SirMetal::ConstantBufferHandle m_camUniformHandle;
   SirMetal::ConstantBufferHandle m_uniforms;
   SirMetal::LibraryHandle m_shaderHandle;
-  SirMetal::LibraryHandle m_gbuffHandle;
   SirMetal::LibraryHandle m_fullScreenHandle;
-  SirMetal::LibraryHandle m_rtLightMapHandle;
   SirMetal::TextureHandle m_depthHandle;
   dispatch_semaphore_t frameBoundarySemaphore;
 
   SirMetal::graphics::FrameTimingsWidget m_timingsWidget;
   SirMetal::graphics::GPUInfoWidget m_gpuInfo;
 
-  id rtLightmapPipeline;
   id m_randomTexture;
 
   id argBuffer;
@@ -74,9 +67,6 @@ class GraphicsLayer final : public SirMetal::Layer {
 
   SirMetal::GLTFAsset asset;
 
-  int rtSampleCounter = 0;
-  int requestedSamples = 400;
-  uint32_t rtFrameCounterFull = 0;
   uint32_t lightMapSize = 1024;
   bool debugFullScreen = false;
   int currentDebug = 0;
