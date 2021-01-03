@@ -117,27 +117,6 @@ float3 getSkyColor(float3 ray) {
   return (1.0f - t) * float3(1.0f, 1.0f, 1.0f) + t * float3(0.5f, 0.7f, 1.0f);
 }
 
-ray getCameraRay(constant Uniforms &uniforms, uint2 tid) {// Ray we will produce
-  ray pray;
-
-  constant Camera &camera = uniforms.camera;
-
-  // Rays start at the camera position
-  pray.origin = camera.position;
-  pray.min_distance = 0.0f;
-  pray.max_distance = INFINITY;
-
-  float2 xy = float2(tid.x + 0.5f, tid.y + 0.5f);// center in the middle of the pixel.
-  float2 screenPos = xy / float2(uniforms.width, uniforms.height) * 2.0 - 1.0;
-
-  // Un-project the pixel coordinate into a ray.
-  float4 world = camera.VPinverse * float4(screenPos, 0, 1);
-
-  world.xyz /= world.w;
-  pray.direction = normalize(world.xyz - pray.origin);
-  return pray;
-}
-
 float3 shootRayInWorld(instance_acceleration_structure accelerationStructure, ray pray,
                        int bounces, const device Mesh *meshes, texture2d<uint> randomTex,
                        constant Uniforms &uniforms, uint2 tid, uint2 tidOff,
@@ -145,15 +124,11 @@ float3 shootRayInWorld(instance_acceleration_structure accelerationStructure, ra
   // Create an intersector to test for intersection between the ray and the geometry in the scene.
   intersector<triangle_data, instancing> i;
 
-  //if (!useIntersectionFunctions) {
   i.assume_geometry_type(geometry_type::triangle);
   i.force_opacity(forced_opacity::opaque);
-  //}
   i.accept_any_intersection(false);
 
-  //  constexpr float3 skyColor = float3(53 / 255.0f, 81 / 255.0f, 92 / 255.0f);
   float3 outColor = 0;
-  //float3 currAttenuation = 1.0f;
   float3 currAttenuation = color;
 
   for (int b = 0; b < bounces; ++b) {
@@ -231,12 +206,10 @@ float3 shootRayInWorld(instance_acceleration_structure accelerationStructure, ra
 
 ray getLightMapRay(constant Uniforms &uniforms, uint2 tid, uint2 tidOff,
                    texture2d<uint> gbuffPos, texture2d<float> gbuffUV,
-                    texture2d<uint> randomTex,
-                   int instanceIndex, const device Mesh *meshes) {// Ray we will produce
+                   texture2d<uint> randomTex, int instanceIndex,
+                   const device Mesh *meshes) {// Ray we will produce
 
-  //float4 pos = gbuffPos.read(tid + tidOff).xyzw;
-  //float3 norm = normalize(gbuffNorm.read(tid + tidOff).xyz * 2.0f - 1.0f);
-
+  //here we use the visibility buffer to reconstruct the data
   uint primitiveIdx = gbuffPos.read(tid + tidOff).x;
   float3 norm = 0.0f;
   float3 pos = 0.0f;
@@ -244,6 +217,7 @@ ray getLightMapRay(constant Uniforms &uniforms, uint2 tid, uint2 tidOff,
   if (primitiveIdx < 0x0FFFFFFF) {
     device const Mesh &m = meshes[instanceIndex];
 
+    //we are only using normal and position
     uint vid0 = m.indices[primitiveIdx * 3 + 0];
     uint vid1 = m.indices[primitiveIdx * 3 + 1];
     uint vid2 = m.indices[primitiveIdx * 3 + 2];
@@ -267,10 +241,10 @@ ray getLightMapRay(constant Uniforms &uniforms, uint2 tid, uint2 tidOff,
   ray pray;
 
   pray.origin = pos.xyz + norm * 1e-3f;
-  //if the w is set to zero it means we have no triangle in there, so we set min distance
-  //negative as sentinel value to not shoot rays
+  //we need to check whether the pixel we are processing has data or not, the prim idx
+  //has been initialized with the value 0xFFFFFFFF, but unluckily doing the exact comparison
+  //was giving some troubles so we check against an value
   pray.min_distance = primitiveIdx > 0x0FFFFFF ? -1.0f : 0.0001f;
-  //pray.min_distance = 0.0001f;
   pray.max_distance = INFINITY;
 
   int bounce = 3;
@@ -284,7 +258,6 @@ ray getLightMapRay(constant Uniforms &uniforms, uint2 tid, uint2 tidOff,
   float3 sampleDirection = sampleCosineWeightedHemisphere(r);
   sampleDirection = alignHemisphereWithNormal(sampleDirection, norm);
   pray.direction = sampleDirection;
-  //pray.direction = norm;
   return pray;
 }
 
@@ -307,8 +280,8 @@ kernel void rayKernel(instance_acceleration_structure accelerationStructure,
   if ((tid.x >= uniforms.lightMapSize) | (tid.y >= uniforms.lightMapSize)) { return; }
 
   //sampling gbuffer to get a camera ray
-  ray pray = getLightMapRay(uniforms, tid, tidOff, gbuffPos, gbuffUV,
-                            randomTex, instanceIndex, meshes);
+  ray pray = getLightMapRay(uniforms, tid, tidOff, gbuffPos, gbuffUV, randomTex,
+                            instanceIndex, meshes);
 
   //if the distance is negative it means the pixel is not on the geometry
   if (pray.min_distance < 0.0f) return;

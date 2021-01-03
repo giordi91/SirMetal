@@ -69,7 +69,7 @@ class GraphicsLayer final : public SirMetal::Layer {
   id<MTLBuffer> instanceBuffer;
   id instanceAccelerationStructure;
 
-  SirMetal::GLTFAsset asset;
+  SirMetal::GLTFAsset m_asset;
   uint32_t rtSampleCounter = 0;
 };
 }// namespace Sandbox

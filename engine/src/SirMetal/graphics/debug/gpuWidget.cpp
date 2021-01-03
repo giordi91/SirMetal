@@ -24,10 +24,12 @@ void GPUInfoWidget::render(id device) {
     bool dyn = actualDevice.supportsDynamicLibraries;
     bool ray = actualDevice.supportsRaytracing;
     bool fnptr = actualDevice.supportsFunctionPointers;
+    int rw = actualDevice.readWriteTextureSupport;
     ImGui::Checkbox("BC Textures",&bc);
     ImGui::Checkbox("Dynamic libraries",&dyn);
     ImGui::Checkbox("Raytracing",&ray);
     ImGui::Checkbox("Function Pointers",&fnptr);
+    ImGui::DragInt("Texture R/W tier support:",&rw);
 
     ImGui::Separator();
   }

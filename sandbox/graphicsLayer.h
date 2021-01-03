@@ -60,11 +60,10 @@ class GraphicsLayer final : public SirMetal::Layer {
   SirMetal::graphics::GPUInfoWidget m_gpuInfo;
 
   id m_randomTexture;
+  id m_argBuffer;
+  id m_argBufferFrag;
 
-  id argBuffer;
-  id argBufferFrag;
-
-  SirMetal::GLTFAsset asset;
+  SirMetal::GLTFAsset m_asset;
 
   uint32_t lightMapSize = 1024;
   bool debugFullScreen = false;

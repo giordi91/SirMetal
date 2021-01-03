@@ -13,12 +13,9 @@
 #include "SirMetal/graphics/debug/imgui/imgui.h"
 #include "SirMetal/graphics/debug/imguiRenderer.h"
 #include "SirMetal/graphics/materialManager.h"
-//resources
 #include "SirMetal/resources/meshes/meshManager.h"
 #include "SirMetal/resources/shaderManager.h"
 #include <SirMetal/resources/textureManager.h>
-
-#include "finders_interface.h"//rectpack2D
 
 static const char *rts[] = {"GPositions", "GUVs","lightMap"};
 
@@ -90,7 +87,7 @@ void GraphicsLayer::onAttach(SirMetal::EngineContext *context) {
                   SirMetal::GLTF_LOAD_FLAGS_GENERATE_LIGHT_MAP_UVS;
   options.lightMapSize = lightMapSize;
 
-  SirMetal::loadGLTF(m_engine, (base + +"/test.glb").c_str(), asset, options);
+  SirMetal::loadGLTF(m_engine, (base + +"/test.glb").c_str(), m_asset, options);
 
 
   id<MTLDevice> device = m_engine->m_renderingContext->getDevice();
@@ -107,7 +104,7 @@ void GraphicsLayer::onAttach(SirMetal::EngineContext *context) {
   m_lightMapper.initialize(m_engine, (base + "/gbuff.metal").c_str(),(base + "/gbuffClear.metal").c_str(),
                            (base + "/rtLightMap.metal").c_str());
 
-  m_lightMapper.setAssetData(context, &asset, lightMapSize);
+  m_lightMapper.setAssetData(context, &m_asset, lightMapSize);
 
   recordRasterArgBuffer();
 
@@ -165,7 +162,7 @@ bool GraphicsLayer::updateUniformsForView(float screenWidth, float screenHeight,
   simd_float4 right = simd_normalize(m_camera.viewMatrix.columns[0]);
   u.camera.right = simd_normalize(simd_float3{right.x, right.y, right.z});
 
-  u.frameIndex = m_lightMapper.rtSampleCounter;
+  u.frameIndex = m_lightMapper.m_rtSampleCounter;
   u.height = m_engine->m_config.m_windowConfig.m_height;
   u.width = m_engine->m_config.m_windowConfig.m_width;
   u.lightMapSize = lightMapSize;
@@ -200,7 +197,7 @@ void GraphicsLayer::onUpdate() {
 
   id<MTLCommandBuffer> commandBuffer = [queue commandBuffer];
 
-  if (m_lightMapper.rtSampleCounter < m_lightMapper.requestedSamples) {
+  if (m_lightMapper.m_rtSampleCounter < m_lightMapper.m_requestedSamples) {
     m_lightMapper.bakeNextSample(m_engine, commandBuffer, m_uniforms, m_randomTexture);
   }
 
@@ -302,16 +299,16 @@ void GraphicsLayer::renderDebugWindow() {
     //lets render the pathracer stuff
     if (ImGui::CollapsingHeader("LightMapper")) {
 
-      ImGui::SliderInt("Number of samples", &m_lightMapper.requestedSamples, 0, 4000);
+      ImGui::SliderInt("Number of samples", &m_lightMapper.m_requestedSamples, 0, 4000);
       ImGui::Separator();
       //bake button
-      bool isDone = m_lightMapper.rtSampleCounter == m_lightMapper.requestedSamples;
+      bool isDone = m_lightMapper.m_rtSampleCounter == m_lightMapper.m_requestedSamples;
       if (isDone) { ImGui::PushStyleColor(0, ImVec4(0, 1, 0, 1)); }
-      if (ImGui::Button("Bake lightmap")) { m_lightMapper.rtSampleCounter = 0; }
+      if (ImGui::Button("Bake lightmap")) { m_lightMapper.m_rtSampleCounter = 0; }
       if (isDone) { ImGui::PopStyleColor(1); }
 
       ImGui::PushItemWidth(50.0f);
-      ImGui::DragInt("Samples done", &m_lightMapper.rtSampleCounter, 0.0f);
+      ImGui::DragInt("Samples done", &m_lightMapper.m_rtSampleCounter, 0.0f);
       ImGui::PopItemWidth();
       ImGui::Separator();
 
@@ -368,18 +365,18 @@ void GraphicsLayer::recordRasterArgBuffer() {
   id<MTLArgumentEncoder> argumentEncoderFrag =
           [fnFrag newArgumentEncoderWithBufferIndex:0];
 
-  int meshesCount = asset.models.size();
+  int meshesCount = m_asset.models.size();
   int buffInstanceSize = argumentEncoder.encodedLength;
-  argBuffer = [device newBufferWithLength:buffInstanceSize * meshesCount options:0];
+  m_argBuffer = [device newBufferWithLength:buffInstanceSize * meshesCount options:0];
 
   int buffInstanceSizeFrag = argumentEncoderFrag.encodedLength;
-  argBufferFrag =
+  m_argBufferFrag =
           [device newBufferWithLength:buffInstanceSizeFrag * meshesCount options:0];
 
 
   for (int i = 0; i < meshesCount; ++i) {
-    [argumentEncoder setArgumentBuffer:argBuffer offset:i * buffInstanceSize];
-    const auto *meshData = m_engine->m_meshManager->getMeshData(asset.models[i].mesh);
+    [argumentEncoder setArgumentBuffer:m_argBuffer offset:i * buffInstanceSize];
+    const auto *meshData = m_engine->m_meshManager->getMeshData(m_asset.models[i].mesh);
     [argumentEncoder setBuffer:meshData->vertexBuffer
                         offset:meshData->ranges[0].m_offset
                        atIndex:0];
@@ -396,8 +393,9 @@ void GraphicsLayer::recordRasterArgBuffer() {
                         offset:meshData->ranges[4].m_offset
                        atIndex:4];
 
-    const auto &material = asset.materials[i];
-    [argumentEncoderFrag setArgumentBuffer:argBufferFrag offset:i * buffInstanceSizeFrag];
+    const auto &material = m_asset.materials[i];
+    [argumentEncoderFrag setArgumentBuffer:m_argBufferFrag
+                                    offset:i * buffInstanceSizeFrag];
 
     id albedo;
     albedo = m_engine->m_textureManager->getNativeFromHandle(m_lightMapper.m_lightMap);
@@ -444,11 +442,11 @@ void GraphicsLayer::doRasterRender(id<MTLRenderCommandEncoder> commandEncoder,
   [commandEncoder setVertexBuffer:info.buffer offset:info.offset atIndex:4];
 
   //setting the arguments buffer
-  [commandEncoder setVertexBuffer:argBuffer offset:0 atIndex:0];
-  [commandEncoder setFragmentBuffer:argBufferFrag offset:0 atIndex:0];
+  [commandEncoder setVertexBuffer:m_argBuffer offset:0 atIndex:0];
+  [commandEncoder setFragmentBuffer:m_argBufferFrag offset:0 atIndex:0];
 
   int counter = 0;
-  for (auto &mesh : asset.models) {
+  for (auto &mesh : m_asset.models) {
     if (!mesh.mesh.isHandleValid()) continue;
     const SirMetal::MeshData *meshData = m_engine->m_meshManager->getMeshData(mesh.mesh);
     auto *data = (void *) (&mesh.matrix);

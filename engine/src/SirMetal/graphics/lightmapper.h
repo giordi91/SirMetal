@@ -21,13 +21,18 @@ struct GLTFAsset;
 
 namespace graphics {
 
+//basic lightmapping implementation, a lot more work is needed to make it actually "production ready" or usable
+//for a game, but the overal plumbing is done.
 class LightMapper {
   public:
-  void initialize(EngineContext *context, const char *gbufferShader,const char *gbufferClearShader,
-                             const char *rtShader);
-
+  //shaders are loaded at initialization time, this is because you might want to pass different
+  //shaders to perform the calculation, especially in the lightmapping stage.
+  void initialize(EngineContext *context, const char *gbufferShader,
+                  const char *gbufferClearShader, const char *rtShader);
+  //here is when all the heavy lighting of the accelleration structure happens
   void setAssetData(EngineContext *context, GLTFAsset *asset, int individualLightMapSize);
-  [[nodiscard]] const PackingResult &getPackResult() const { return packResult; }
+  //the packing result contains where the different lightmap ended up being in the atlas
+  [[nodiscard]] const PackingResult &getPackResult() const { return m_packResult; }
   void bakeNextSample(EngineContext *context, id<MTLCommandBuffer> commandBuffer,
                       ConstantBufferHandle uniforms, id randomTexture);
 
@@ -43,22 +48,25 @@ class LightMapper {
   public:
   TextureHandle m_gbuff[2];
   TextureHandle m_lightMap;
-  int rtSampleCounter = 0;
-  int requestedSamples = 400;
-  uint32_t rtFrameCounterFull = 0;
+  //how many samples have actually been done
+  int m_rtSampleCounter = 0;
+  int m_requestedSamples = 400;
+  //this value records the number of frames passed since we started baking
+  uint32_t m_rtFrameCounterFull = 0;
 
   private:
-  id rtLightmapPipeline;
+  id m_rtLightmapPipeline;
   GLTFAsset *m_asset;
   int m_lightMapSize;
-  PackingResult packResult;
+  PackingResult m_packResult;
   LibraryHandle m_rtLightMapHandle;
   LibraryHandle m_gbuffHandle;
   LibraryHandle m_gbuffClearHandle;
-  id argRtBuffer;
-  id argBuffer;
-  id argBufferFrag;
-  MetalBVH accelStruct;
+  //TODO this can probably be optimized and do not need a dedicated RT arg buffer
+  //we can reuse both vertex and fragment argument buffers
+  id m_argRtBuffer;
+  id m_argBuffer;
+  MetalBVH m_accelStruct;
 };
 
 

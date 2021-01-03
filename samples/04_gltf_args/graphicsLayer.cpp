@@ -54,7 +54,7 @@ void GraphicsLayer::onAttach(SirMetal::EngineContext *context) {
 
   struct SirMetal::GLTFLoadOptions options;
   options.flags= SirMetal::GLTFLoadFlags::GLTF_LOAD_FLAGS_FLATTEN_HIERARCHY;
-  SirMetal::loadGLTF(m_engine, (baseSample + +"/test.glb").c_str(), asset, options);
+  SirMetal::loadGLTF(m_engine, (baseSample + +"/test.glb").c_str(), m_asset, options);
 
   m_shaderHandle =
           m_engine->m_shaderManager->loadShader((baseSample + "/Shaders.metal").c_str());
@@ -74,12 +74,12 @@ void GraphicsLayer::onAttach(SirMetal::EngineContext *context) {
 
   //the way argument buffer works is that the encoder  writes one element only
   //if you have an array of them you simply re-set the buffer by shifting the offset
-  int meshesCount = asset.models.size();
+  int meshesCount = m_asset.models.size();
   int buffInstanceSize = argumentEncoder.encodedLength;
   int buffInstanceSizeFrag = argumentEncoderFrag.encodedLength;
   //we allocate enough memory in the buffer to store the full data for all the meshes
-  argBuffer = [device newBufferWithLength:buffInstanceSize * meshesCount options:0];
-  argBufferFrag =
+  m_argBuffer = [device newBufferWithLength:buffInstanceSize * meshesCount options:0];
+  m_argBufferFrag =
           [device newBufferWithLength:buffInstanceSizeFrag * meshesCount options:0];
 
   //create a single sampler that we will set on every material, technically this
@@ -97,8 +97,8 @@ void GraphicsLayer::onAttach(SirMetal::EngineContext *context) {
   for (int i = 0; i < meshesCount; ++i) {
 
     //first we set the buffer offsetting by the size and the id
-    [argumentEncoder setArgumentBuffer:argBuffer offset:i * buffInstanceSize];
-    const auto *meshData = m_engine->m_meshManager->getMeshData(asset.models[i].mesh);
+    [argumentEncoder setArgumentBuffer:m_argBuffer offset:i * buffInstanceSize];
+    const auto *meshData = m_engine->m_meshManager->getMeshData(m_asset.models[i].mesh);
     //next we set all the buffers, to note that there is a call to set multiple
     //buffers in one go to make it even more efficient, might be worth changing the
     //way I store ranges to have SOA layout and re-use the arrays to set them in bulk
@@ -118,8 +118,9 @@ void GraphicsLayer::onAttach(SirMetal::EngineContext *context) {
 
 
     //next we do the same exact process but for the material
-    const auto &material = asset.materials[i];
-    [argumentEncoderFrag setArgumentBuffer:argBufferFrag offset:i * buffInstanceSizeFrag];
+    const auto &material = m_asset.materials[i];
+    [argumentEncoderFrag setArgumentBuffer:m_argBufferFrag
+                                    offset:i * buffInstanceSizeFrag];
     id albedo = m_engine->m_textureManager->getNativeFromHandle(material.colorTexture);
     [argumentEncoderFrag setTexture:albedo atIndex:0];
     [argumentEncoderFrag setSamplerState:sampler atIndex:1];
@@ -229,11 +230,11 @@ void GraphicsLayer::onUpdate() {
   [commandEncoder setFragmentBuffer:info.buffer offset:info.offset atIndex:5];
 
   //next, setting the arguments buffer, to note we set them once outside the loop
-  [commandEncoder setVertexBuffer:argBuffer offset:0 atIndex:0];
-  [commandEncoder setFragmentBuffer:argBufferFrag offset:0 atIndex:0];
+  [commandEncoder setVertexBuffer:m_argBuffer offset:0 atIndex:0];
+  [commandEncoder setFragmentBuffer:m_argBufferFrag offset:0 atIndex:0];
 
   int counter = 0;
-  for (auto &mesh : asset.models) {
+  for (auto &mesh : m_asset.models) {
 
     //NOTE: now technically, you need to notify the metal driver about what resources you need to use in the argument
     //buffer, this works particularly well with heaps! In doing so the driver is able to figure out what necessary

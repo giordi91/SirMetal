@@ -103,7 +103,7 @@ void GraphicsLayer::onAttach(SirMetal::EngineContext *context) {
   struct SirMetal::GLTFLoadOptions options;
   options.flags= SirMetal::GLTFLoadFlags::GLTF_LOAD_FLAGS_FLATTEN_HIERARCHY;
 
-  SirMetal::loadGLTF(m_engine, (base + +"/test.glb").c_str(), asset,
+  SirMetal::loadGLTF(m_engine, (base + +"/test.glb").c_str(), m_asset,
                      options );
 
   id<MTLDevice> device = m_engine->m_renderingContext->getDevice();
@@ -511,7 +511,7 @@ void GraphicsLayer::buildAccellerationStructure() {
   id<MTLDevice> device = m_engine->m_renderingContext->getDevice();
   MTLResourceOptions options = MTLResourceStorageModeManaged;
 
-  int modelCount = asset.models.size();
+  int modelCount = m_asset.models.size();
 
   //TODO do i need the instance descriptor at all?
   //TODO right now we are not taking into account the concept of instance vs actual mesh, to do so we might need some extra
@@ -529,7 +529,7 @@ void GraphicsLayer::buildAccellerationStructure() {
 
   // Create a primitive acceleration structure for each piece of geometry in the scene.
   for (NSUInteger i = 0; i < modelCount; ++i) {
-    const SirMetal::Model &mesh = asset.models[i];
+    const SirMetal::Model &mesh = m_asset.models[i];
 
     MTLAccelerationStructureTriangleGeometryDescriptor *geometryDescriptor =
             [MTLAccelerationStructureTriangleGeometryDescriptor descriptor];
@@ -615,13 +615,13 @@ void GraphicsLayer::recordRTArgBuffer() {
   id<MTLFunction> fn = m_engine->m_shaderManager->getKernelFunction(m_rtMono);
   id<MTLArgumentEncoder> argumentEncoder = [fn newArgumentEncoderWithBufferIndex:2];
 
-  int meshesCount = asset.models.size();
+  int meshesCount = m_asset.models.size();
   int buffInstanceSize = argumentEncoder.encodedLength;
   argRtBuffer = [device newBufferWithLength:buffInstanceSize * meshesCount options:0];
 
   for (int i = 0; i < meshesCount; ++i) {
     [argumentEncoder setArgumentBuffer:argRtBuffer offset:i * buffInstanceSize];
-    const auto *meshData = m_engine->m_meshManager->getMeshData(asset.models[i].mesh);
+    const auto *meshData = m_engine->m_meshManager->getMeshData(m_asset.models[i].mesh);
     [argumentEncoder setBuffer:meshData->vertexBuffer
                         offset:meshData->ranges[0].m_offset
                        atIndex:0];
@@ -635,12 +635,12 @@ void GraphicsLayer::recordRTArgBuffer() {
                         offset:meshData->ranges[3].m_offset
                        atIndex:3];
     [argumentEncoder setBuffer:meshData->indexBuffer offset:0 atIndex:4];
-    const auto &material = asset.materials[i];
+    const auto &material = m_asset.materials[i];
     id albedo = m_engine->m_textureManager->getNativeFromHandle(material.colorTexture);
     [argumentEncoder setTexture:albedo atIndex:5];
 
     auto *ptrMatrix = [argumentEncoder constantDataAtIndex:6];
-    memcpy(ptrMatrix, &asset.models[i].matrix, sizeof(float) * 16);
+    memcpy(ptrMatrix, &m_asset.models[i].matrix, sizeof(float) * 16);
     memcpy(((char *) ptrMatrix + sizeof(float) * 16), &material.colorFactors,
            sizeof(float) * 4);
   }

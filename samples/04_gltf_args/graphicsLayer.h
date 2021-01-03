@@ -55,13 +55,13 @@ private:
   DirLight light{};
   SirMetal::GPUMemoryAllocator m_gpuAllocator;
 
-  id argBuffer;
-  id argBufferFrag;
+  id m_argBuffer;
+  id m_argBufferFrag;
   id sampler;
 
   void encodeShadowRay(id<MTLCommandBuffer> buffer, float w, float h);
   void encodePrimaryRay(id<MTLCommandBuffer> commandBuffer, float w, float h);
 
-  SirMetal::GLTFAsset asset;
+  SirMetal::GLTFAsset m_asset;
 };
 } // namespace Sandbox
