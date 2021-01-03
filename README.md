@@ -47,6 +47,7 @@ to the resource folder.
 - [Basic raytracing plumbing](#basicrt)
 - [GLTF scene + argument buffers](#gltf)
 - [Modern RT](#rt)
+- [Lightmapping](#lightmap)
 
 ### Jump flooding selection. <a name="jump"/>
 This is an implementation of jump flooding algorithm used to generate a thick outline, 
@@ -94,6 +95,15 @@ more properly material data from the GLTF file.
 
 ![basic](./docs/images/samples05.gif "rt")
 
+### Lightmapping  <a name="lightmap">
+This sample builds on top of the previous one (05). We use the basic RT created to generate lightmaps
+and then apply them in a raster render.
+The sample provides several options and debugging capabilities in the debug window ('`' on the keyboard)
+also allow you to see the gbuffer and lightmap generated
+
+![basic](./docs/images/samples06.png "lightmap")
+![basic](./docs/images/samples06.gif "lightmap")
+
 ## What this project used to be!
 This project used to be a start of a game editor, but then due to reasons I decided
 to pivot and rewrite around a more sample based architecture, the old work is still available
@@ -108,7 +118,7 @@ This version is the hello world.
 * Basic cocoa window
 * Basic geometry rendering in Metal 
 * Imgui
-* Dx12 init
+* Metal init
 * Resize and clear color
 
 [![basic](./docs/images/SirMetal01.png "basic")](https://www.youtube.com/watch?v=3p58WVu8q5QERE)
