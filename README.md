@@ -99,7 +99,8 @@ more properly material data from the GLTF file.
 This sample builds on top of the previous one (05). We use the basic RT created to generate lightmaps
 and then apply them in a raster render.
 The sample provides several options and debugging capabilities in the debug window ('`' on the keyboard)
-also allow you to see the gbuffer and lightmap generated
+also allow you to see the gbuffer and lightmap generated.
+***This sample to works requires texture read and write 2, barycentric coordinates and raytracing api to work***.
 
 ![basic](./docs/images/samples06.png "lightmap")
 ![basic](./docs/images/samples06.gif "lightmap")
